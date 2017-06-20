@@ -1,29 +1,17 @@
-c     ************************************************************
-c     formulacao hibrida primal - Problema de Poisson/Convec-Difus
-c     Multplicador = potencial na interface dos elementos
+c     ******************************************************************
+c     * Formulacao Hibrida Primal - Prob. Poisson/ConveccaoDifusao     *
+c     *   Multplicador = potencial na interface dos elementos          *
+c     *                   Setembro de 2016                             *
+c     ******************************************************************
+c      Residuo no interior dos elementos:
+c         (grad u , grad v ) + (grad u,v) - (f,v)
 c
-c     ************************************************************
-c     *                                                          *
-c     *            * * *   Poisson Problem      * * *            *
-c     *                                                          *
-c     *                                                          *
-c     *         FORMULACAO HIBRIDA PRIMAL ESTABILIZADA           *
-c     *                                                          *
-c     *                 MULTIPLICADOR = POTENCIAL                *
-c     *                                                          *
-c     *                                                          *
-c     *                    ABIMAEL LOULA                         *
-c     *                                                          *
-c     *                   Setembro de 2016                       *
-c     ************************************************************
-
-c     Residuo no interior dos elementos:
-c     (grad u , grad v ) + (grad u,v) - (f,v)
+c      Termos de saltos nas arestas:
+c        beta(u - up, v-vp)
+c        -(grad(u).n , (v-vp))
+c        lambda((u-up) , grad(v).n)
 c
-c     Termos de saltos nas arestas:
-c     beta(u - up, v-vp)
-c     -(grad(u).n , (v-vp))
-c     lambda((u-up) , grad(v).n)
+c     ******************************************************************      
 c
 c     program to set storage capacity, precision and input/output units
 c
