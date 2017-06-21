@@ -11,15 +11,15 @@ c        beta(u - up, v-vp)
 c        -(grad(u).n , (v-vp))
 c        lambda((u-up) , grad(v).n)
 c
-c     ******************************************************************      
+c     ******************************************************************
 c
 c     program to set storage capacity, precision and input/output units
 c
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
-      parameter (ndim=200000000)
-c     parameter (ndim=4000000000)
+c     parameter (ndim=200000000)
+      parameter (ndim=800000000)
 c
       common a(ndim)
       common /dictn/ ia(10000000)
@@ -31,7 +31,7 @@ c     mlast  = address of last available word in blank common
 c     mtot   = total storage allocated to blank common
 c     iin    = input unit number
 c     ieco   = output unit of input data
-c     ilocal = output unit of post-processed displacements
+c     ilocal = output unit of post-processed solution
 c     iprec  = precision flag; eq.1, single precision
 c                              eq.2, double precision
 c
@@ -51,9 +51,6 @@ c
       open(unit=interpl, file= 'erro-interpolante.dat')
       open(unit=ielmat,  file= 'matriz-elemento-primal-shdg-dc.dat')
 c
-c     open(unit=ilocal, file= 'erro-local-pp-misto-hdg.con')
-c     open(unit=ipmx, file= 'errofem-pp-misto-hdg.con')
-c
       mfirst = 1
       ilast  = 0
       mlast  = ndim
@@ -68,12 +65,15 @@ c     system-dependent unit/file specifications
 c
       close(iin)
       close(ieco)
-      close(ipmx)
       close(ipp)
       close(ipl)
-      close(ilocal)
       close(interpl)
       close(ielmat)
+c
+c     open(unit=ilocal, file= 'erro-local-pp-misto-hdg.con')
+c     open(unit=ipmx, file= 'errofem-pp-misto-hdg.con')
+c     close(ipmx)
+c     close(ilocal)
 c
       stop
       end
@@ -120,6 +120,9 @@ c
       titlea = title
       read(iin,1000) title
       if (title(1).eq.'*end') then
+c
+c     erro da aprox. mef
+c
       write(ipp,11)
   11  format(/
      $         6x,'-log(h)',7x,'log(k)',
@@ -127,16 +130,8 @@ c
      $ 10x,'Estudo de convergencia das aproximacoes hibridas',/,
      & 10x,'primal-pp-primal: (p, gard p, mult)',/)
       write(ipp,3333) titlea
-      write(ipmx,10)
-  10  format(/
-     $         6x,'-log(h)',7x,'log(k)',7x,'log(u)',2x,'log(grad u)',
-     $         7x,'log(p)',2x,'log(grad p)', 4x,'log(mult)',
-     $         2x,'conservacao',//,
-     $ 10x,'Estudo de convergencia das aproximacoes hibridas',/,
-     & 10x,'primal-pp-primal: (p, gard p, mult)',/,
-     & 10x,'primal-pp-mista estabilizada: (u, gard u)',/)
-      write(ipmx,3333) titlea
-3333  format(/,20a4)
+c
+c     erro da projecao local (faces
 c
       write(ilp,21)
   21  format(/
@@ -146,15 +141,7 @@ c
      & 10x,'primal-pp-primal: (p, gard p, mult)',/)
       write(ilp,3333) titlea
 c
-      write(ilocal,20)
-  20  format(/
-     $         6x,'-log(h)',7x,'log(k)',7x,'log(u)',2x,'log(grad u)',
-     $         7x,'log(p)',2x,'log(grad p)',
-     $         2x,'conservacao',//,
-     $ 10x,'Estudo de convergencia das projecoes locais',/,
-     & 10x,'primal-pp-primal: (p, gard p)',/,
-     & 10x,'primal-pp-mista estabilizada: (u, gard u)',/)
-      write(ilocal,3333) titlea
+c     erro da interpolacao
 c
       write(interpl,30)
   30  format(/
@@ -164,7 +151,7 @@ c
      $ 10x,'Estudo de convergencia das interpolantes',/)
       write(interpl,3333) titlea
 c
-
+ 3333 format(/,20a4)
       return
       end if
       read(iin,2000) iexec,iprtin,irank,
@@ -203,7 +190,7 @@ c
       call bcedge(a(mped),a(mpid),npar,nedge,ndof,nmultp,neq,iprtin)
 c
 c     input nodal force and prescribed kinematic boundary-value data
-c
+c      
       if (nlvect.gt.0) call input(a(mpf),ndof,nmultp,0,nlvect,
      &                            iprtin)
 c
@@ -493,74 +480,76 @@ c-----------------------------------------------------------------------
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       logical pflag
-c
+c     
       call iclear(ideg,2*ndof*nedge)
       call iclear(id,ndof*numnp)
-      call igen(ideg,2*ndof)
-c
+      call igen3d(ideg,2*ndof)
+c      
+c     call igen(ideg,2*ndof)
+      do i=1,nedge
+         write(*,*) "face",i,ideg(1,i)
+      end do     
+c     
       if (iprtin.eq.0) then
          nn=0
-         do 200 n=1,nedge
-         pflag = .false.
+         do n=1,nedge
+            pflag = .false.
 c
-         do 100 i=1,2*ndof
-         if (ideg(i,n).ne.0) pflag = .true.
-  100    continue
-c
-         if (pflag) then
-            nn = nn + 1
-            if (mod(nn,50).eq.1) write(ieco,1000) (i,i=1,2*ndof)
-            write(ieco,2000) n,(ideg(i,n),i=1,2*ndof)
-         endif
-  200    continue
+            do i=1,2*ndof
+               if (ideg(i,n).ne.0) pflag = .true.
+            end do
+c     
+            if (pflag) then
+               nn = nn + 1
+               if (mod(nn,50).eq.1) write(ieco,1000) (i,i=1,2*ndof)
+               write(ieco,2000) n,(ideg(i,n),i=1,2*ndof)
+            endif
+         end do
       endif
-c
-c    id - prescribed dof
-c
-        kk=0
-        do n=1,nedge
-	     do is=1,npar
-	       kk=kk+1
-             do j=1,ndof
-	         id(j,kk) = ideg(j,n)
-	       end do
-	     end do
-	  end do
-c
+c     
+c     id - prescribed dof
+c     
+      kk=0
+      do n=1,nedge
+         do is=1,npar
+            kk=kk+1
+            do j=1,ndof
+               id(j,kk) = ideg(j,n)
+            end do
+         end do
+      end do
+c     
       if (iprtin.eq.0) then
          nn=0
-         do 220 n=1,numnp
-         pflag = .false.
-c
-         do 110 i=1,ndof
-         if (id(i,n).ne.0) pflag = .true.
-  110    continue
-c
-         if (pflag) then
-            nn = nn + 1
-            if (mod(nn,50).eq.1) write(ieco,1100) (i,i=1,ndof)
-            write(ieco,2000) n,(id(i,n),i=1,ndof)
-         endif
-  220    continue
+         do n=1,numnp
+            pflag = .false.
+c     
+            do i=1,ndof
+               if (id(i,n).ne.0) pflag = .true.
+            end do
+c     
+            if (pflag) then
+               nn = nn + 1
+               if (mod(nn,50).eq.1) write(ieco,1100) (i,i=1,ndof)
+               write(ieco,2000) n,(id(i,n),i=1,ndof)
+            endif
+         end do
       endif
-c
+c     
 c     establish equation numbers
-c
+c     
       neq = 0
-c
-      do 400 n=1,numnp
-c
-      do 300 i=1,ndof
-      if (id(i,n).eq.0) then
-         neq = neq + 1
-         id(i,n) = neq
-      else
-         id(i,n) = 1 - id(i,n)
-      endif
-c
-  300 continue
-c
-  400 continue
+c     
+      do n=1,numnp    
+         do i=1,ndof
+            if (id(i,n).eq.0) then
+               neq = neq + 1
+               id(i,n) = neq
+            else
+               id(i,n) = 1 - id(i,n)
+            endif
+         end do
+      end do
 c
       return
 c
@@ -1326,6 +1315,9 @@ c     *** OLD ***
      &        incf(3,4),incf(3,5),incf(3,6)
          call genelad1(lado,nside)
       endif
+
+      write(*,*) "BLA",incf(3,1),incf(3,2),incf(3,3),incf(3,4),
+     &    incf(3,5),incf(3,6)
 c
       go to 100
 c
@@ -1855,9 +1847,95 @@ c
       end
 
 c-----------------------------------------------------------------------
+      subroutine igen3d(ia,m)
+c-----------------------------------------------------------------------
+c     program to read and generate integer nodal data
+c     boundary conditions (BCs)
+c        ia = input array
+c         m = number of rows in ia
+c         n = node number
+c        ne = end node in generation sequence
+c        ng = generation increment
+c-----------------------------------------------------------------------
+      dimension ia(m,*),ib(13)
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+c
+  100 continue
+      read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+      write(*,"(A,10I5)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+
+      if (n.eq.0) return
+c
+c     trata caso simples (antigo)
+c      
+      if (ng1.eq.0.and.ng2.eq.0) then
+         ne = n
+         ng = 1
+      else
+         ne = ne - mod(ne-n,ng1)
+      endif
+c
+      if(ng2.eq.0) then
+         do i=n,ne,ng1
+            write(*,*) "tratando simples",i
+            call imove(ia(1,i),ib,m)
+         end do
+      end if
+c
+c     trata caso com dois incrementos (novo)
+c
+      if(ng1.ne.0.and.ng2.ne.0) then
+c         nk = n
+         do j=1,nfd
+            nk = n + (j-1)*ng2
+            nki = nk
+            do i=1,nfd
+               nki = nk + (i-1)*ng1
+c               write(*,*) "NK,NKI",nk,nki,ng1,ng2
+               write(*,*) "tratando",nki
+               call imove(ia(1,nki),ib,m)
+            end do
+         end do
+         
+c$$$         do i=1,nfd
+c$$$            write(*,*) "tratando",nk
+c$$$            call imove(ia(1,nk),ib,m)
+c$$$            nk = nk + ng1
+c$$$         end do
+c$$$         nk = n + ng2
+c$$$         do i=1,nfd
+c$$$            write(*,*) "tratando",nk
+c$$$            call imove(ia(1,nk),ib,m)
+c$$$            nk = nk + ng1
+c$$$         end do
+         
+      end if
+
+c$$$      if(ng1.ne.0.and.ng2.ne.0) then
+c$$$         nk = n
+c$$$         do i=1,nfd
+c$$$            write(*,*) "tratando",nk
+c$$$            call imove(ia(1,nk),ib,m)
+c$$$            nk = nk + ng1
+c$$$         end do
+c$$$         nk = n + ng2
+c$$$         do i=1,nfd
+c$$$            write(*,*) "tratando",nk
+c$$$            call imove(ia(1,nk),ib,m)
+c$$$            nk = nk + ng1
+c$$$         end do
+c$$$      end if
+c      
+      go to 100
+c
+ 1000 format(16i10)
+      end
+
+c-----------------------------------------------------------------------
       subroutine igen(ia,m)
 c-----------------------------------------------------------------------
 c     program to read and generate integer nodal data
+c     boundary conditions (BCs)
 c        ia = input array
 c         m = number of rows in ia
 c         n = node number
@@ -1886,7 +1964,7 @@ c
       go to 100
 c
  1000 format(16i10)
-      end
+      end      
 
 c-----------------------------------------------------------------------
       subroutine imove(ia,ib,n)
@@ -5133,7 +5211,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine shghx(xl,det,shl,shg,nint,nel,neg,hexa,nen,
+      subroutine shghx(xl,det,shl,shg,nint,nel,neg,nen,
      &                 shlnode,nenode)
 c-----------------------------------------------------------------------
 c     program to calculate global derivatives of shape functions and
@@ -5159,7 +5237,6 @@ c              nint = number of integration points, eq. 1 or 4
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-      logical hexa
       dimension xl(3,*),det(*),xjac(3,3),xjinv(3,3)
       dimension shl(4,nen,*),shg(4,nen,*),shlnode(4,nenode,*)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
@@ -5958,9 +6035,16 @@ c     ('form_stb')
 c
       read(iin,*) index,iwrite
 c
+c     escreve malha GMSH
+c
+      write(*,'(A)') "escreve malha.msh"
+      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
+     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
+     &             nsd,nesd,npars,nside)      
+c
 c     Esta rotina calcula projecoes locais:
 c     para a formulacao hibrida primal
-c
+c     
       write(*,'(A)') "subroutine flux0primal"
       call flux0primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6002,13 +6086,6 @@ c
       write(*,*) " "
       write(*,*) " "
 c
-c     escreve malha GMSH
-c
-      write(*,'(A)') "escreve malha.msh"
-      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
-     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
-     &             nsd,nesd,npars,nside)
-c
 c     Esta rotina calcula os erros da projecao local
 c     para a formulacao hibrida primal
 c
@@ -6035,7 +6112,6 @@ c
      &             nints ,ilp ,nenp  ,
      &             nside ,nnods ,nenlad,npars ,
      &             nmultp,nodsp )
-      write(*,*) "NODSP",nodsp
       write(*,'(A)') "fim da flnormp"
 c
 c  esta rotina calcula os erros das interpolantes
@@ -6063,7 +6139,6 @@ c$$$     &            ncon  ,nencon,necon ,index ,
 c$$$     &            nints ,interpl,nenp  ,
 c$$$     &            nside ,nnods ,nenlad,npars ,
 c$$$     &            nmultp,nodsp )
-c
 c
       return
 c
@@ -6159,7 +6234,6 @@ c  esta rotina calcula os erros das aproximacoes para a variavel
 c  primal (p) no nivel de cada elemento e multiplicador (grad u)
 c
       write(*,'(A)') "subroutine flnormp (depois da flux3primal)"
-      write(*,*) "NODSP",nodsp
       call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
      &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
      &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
@@ -6182,32 +6256,8 @@ c
      &            nints ,ipp,   nenp  ,
      &            nside ,nnods ,nenlad,npars ,
      &            nmultp,nodsp )
-
+c
       write(*,'(A)') "fim da flnormp"
-
-c$$$  c
-c$$$      call gnusol(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
-c$$$     &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
-c$$$     &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
-c$$$     &            a(mp(mdlp )),a(mp(mdsfl )),a(mp(mdet  )),
-c$$$     &            a(mp(mshl )),a(mp(mshg  )),a(mp(mw    )),
-c$$$     &            a(mp(mdetc )),a(mp(mshlc)),a(mp(mshgc )),
-c$$$     &            a(mp(mddis )),a(mp(mdetp)),a(mp(mshlp )),
-c$$$     &            a(mp(mshgp )),
-c$$$c
-c$$$     &            a(mp(mshln )),a(mp(mshgn )),
-c$$$     &            a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-c$$$     &            a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-c$$$     &            a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-c$$$     &            a(mp(mgrav )),a(mp(mwn   )),
-c$$$c
-c$$$     &            numel ,neesq ,nen   ,nsd   ,
-c$$$     &            nesd  ,nint  ,neg   ,nrowsh,
-c$$$     &            ned   ,nee   ,numnp ,ndof  ,
-c$$$     &            ncon  ,nencon,necon ,index ,
-c$$$     &            nints ,iwrite,ipp ,nenp  ,
-c$$$     &            nside ,nnods ,nenlad,npars ,
-c$$$     &            nmultp,nodsp )
 c
       return
       end
@@ -6892,7 +6942,7 @@ c        and right-hand side vector
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-      logical diag,quad,hexa
+      logical diag,quad
 c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
      &          elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
@@ -6908,8 +6958,9 @@ c
      &          dsfl(ncon,nencon,*),ddis(ned,nenp,*)
       dimension dls(12),detp(*)
 c
+c     geometria
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
-      dimension shln (nrowsh,nnods,*), shgn (nrowsh,nnods,*)
+c     multiplicador
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
 c
       dimension shl (nrowsh+1,nen,*),   shg (nrowsh+1,nen,*)
@@ -6945,142 +6996,12 @@ c
       do i=1,nedge
          iboolf(i)=0
       end do
-c
-c$$$      open(123, file='malha.msh')
-c$$$      write(*,*) "dump mesh to screen/file"
-c$$$      write(123,'(a)') "$MeshFormat"
-c$$$      write(123,'(a)') "2.2 0 8"
-c$$$      write(123,'(a)') "$EndMeshFormat"
-c$$$      write(123,'(a)') "$Nodes$"
-c$$$
-c$$$      write(*,*) " coordenadas", nen, nsd, nesd
-c$$$      do np=1,numnp
-c$$$         write(*,456) np, (x(i,np), i=1,nsd)
-c$$$      end do
-c$$$      write(123,*) numnp
-c$$$c     2D
-c$$$      if(nsd.eq.2) then
-c$$$         do np=1,numnp
-c$$$            write(123,456) np, (x(i,np), i=1,nsd), 0.0
-c$$$         end do
-c$$$      end if
-c$$$c     3D
-c$$$      if(nsd.eq.3) then
-c$$$         do np=1,numnp
-c$$$            write(123,456) np, (x(i,np), i=1,nsd)
-c$$$         end do
-c$$$      end if
-c
-c$$$ 456  format(' ',I6,30F10.6)
-c$$$      write(123,'(a)') "$EndNodes"
 
-c$$$      write(123,'(a)') "$Elements"
-c$$$      write(123,*) nedge+numel
-c$$$      write(*,*) " conectividade - elementos"
-c$$$      do nel=1,numel
-c$$$         call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$         write(*,*) nel, (ien(j, nel), j=1,nen)
-c$$$      end do
-c$$$      write(*,*) " faces por elemento"
-c$$$      do nel=1,numel
-c$$$         call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$         write(*,*) nel, (lado(j,nel), j=1,nside)
-c$$$      end do
-c$$$      write(*,*) " numeracao local das faces"
-c$$$      do il=1,nside
-c$$$         write(*,*) il, (idside(il,j),j=1,4)
-c$$$      end do
-c$$$      write(*,*)
-c$$$      write(*,*) " conectividade - faces"
-c$$$c
-c$$$c     2D
-c$$$c
-c$$$      if(nsd.eq.2) then
-c$$$         kel = 1
-c$$$         do nel=1,numel
-c$$$            call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$            do ns=1,nside
-c$$$               ns1=idside(ns,1)
-c$$$               ns2=idside(ns,2)
-c$$$c
-c$$$               nl1=ien(ns1,nel)
-c$$$               nl2=ien(ns2,nel)
-c$$$c
-c$$$               iface=lado(ns,nel)
-c$$$               write(*,*) nel, ns, iface, nl1, nl2
-c$$$               if(iboolf(iface).eq.0) then
-c$$$                  iboolf(iface) = 1
-c$$$                  elfaces(iface,1) = nl1
-c$$$                  elfaces(iface,2) = nl2
-c$$$               end if
-c$$$               kel = kel + 1
-c$$$            end do
-c$$$         end do
-c$$$         do ifc=1,nedge
-c$$$            nl1=elfaces(ifc,1)
-c$$$            nl2=elfaces(ifc,2)
-c$$$            write(123,789) ifc, 1, 2, 100, 200, nl1, nl2
-c$$$         end do
-c$$$         kel = nedge + 1
-c$$$         do nel=1,numel
-c$$$            call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$            write(123,789) nedge+nel,3,2,100,200,(ien(j,nel),j=1,nen)
-c$$$         end do
-c$$$      end if
-c$$$c
-c$$$c     3D
-c$$$c
-c$$$      if(nsd.eq.3) then
-c$$$         kel = 1
-c$$$         do nel=1,numel
-c$$$            call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$            do ns=1,nside
-c$$$               ns1=idside(ns,1)
-c$$$               ns2=idside(ns,2)
-c$$$               ns3=idside(ns,3)
-c$$$               ns4=idside(ns,4)
-c$$$c
-c$$$               nl1=ien(ns1,nel)
-c$$$               nl2=ien(ns2,nel)
-c$$$               nl3=ien(ns3,nel)
-c$$$               nl4=ien(ns4,nel)
-c$$$c
-c$$$               iface=lado(ns,nel)
-c$$$               write(*,*) nel, ns, iface, nl1, nl2, nl3, nl4
-c$$$               if(iboolf(iface).eq.0) then
-c$$$                  iboolf(iface) = 1
-c$$$                  elfaces(iface,1) = nl1
-c$$$                  elfaces(iface,2) = nl2
-c$$$                  elfaces(iface,3) = nl3
-c$$$                  elfaces(iface,4) = nl4
-c$$$               end if
-c$$$               kel = kel + 1
-c$$$            end do
-c$$$         end do
-c$$$         do ifc=1,nedge
-c$$$            nl1=elfaces(ifc,1)
-c$$$            nl2=elfaces(ifc,2)
-c$$$            nl3=elfaces(ifc,3)
-c$$$            nl4=elfaces(ifc,4)
-c$$$            write(123,789) ifc, 3, 2, 100, 200, nl1, nl2, nl3, nl4
-c$$$         end do
-c$$$         kel = nedge + 1
-c$$$         do nel=1,numel
-c$$$            call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c$$$            write(123,789) nedge+nel,5,2,100,200,(ien(j,nel),j=1,nen)
-c$$$         end do
-c$$$      end if
-c$$$c
-c$$$      write(123,'(a)') "$EndElements"
-c$$$      close(123)
-c$$$ 789  format(' ', 16I5)
-c$$$c     fim do output no GMSH
-
-c     **************************************************************************
+c     ******************************************************************
 c     element loop
-c     **************************************************************************
-      do 500 nel=1,numel
+c     ******************************************************************
 
+      do 500 nel=1,numel
          write(*,*) ""
          write(*,*) ""
          write(*,*) "ELEMENTO",nel
@@ -7123,13 +7044,11 @@ c
 c
             m = mat(nel)
             quad = .false.
-            hexa = .true.
-            write(*,*) " subroutines shg"
-            write(*,*) " subroutines shghx1 (shgc)"
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,hexa,nencon,
+            write(*,*) " subroutine shghx1 (shgc)"
+            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,
      &           shl,nen)
-            write(*,*) " subroutines shghx2 (shgp)"
-            call shghx(xl,detp,shlp,shgp,nint,nel,neg,hexa,nenp,
+            write(*,*) " subroutine shghx2 (shgp)"
+            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,
      &           shl,nen)
 
 c     NINTB eh o total de pontos de integracao por elemento
@@ -7190,13 +7109,11 @@ c
             xx = 0.d00
             yy = 0.d00
             zz = 0.d00
-c
             do i=1,nen
                xx = xx + shl(4,i,l)*xl(1,i)
                yy = yy + shl(4,i,l)*xl(2,i)
                zz = zz + shl(4,i,l)*xl(3,i)
             end do
-c
             pix = pi*xx
             piy = pi*yy
             piz = pi*zz
@@ -7374,28 +7291,17 @@ c
 c
             ndgs = lado(ns,nel)
 c
+c     problema 2D ou 3D
+c
             if(nesd.eq.2) then
-c
-c     problema 2D
-c
-               call oneshgp(xls,detn,shlb,shln,shgn,
-     &              nenlad,nnods,nints,nesd,ns,nel,neg)
                call oneshgp(xls,detpn,shlb,shlpn,shgpn,
      &              nenlad,npars,nints,nesd,ns,nel,neg)
             else
-c
-c     problema 3D
-c
-               nenlad2=4
-               npars2=npars
-               nnods2=4
-ccc               call twoshgp(xls,detn,shlb,shln,shgn,
-ccc     &              nenlad2,nnods2,nints,nesd,ns,nel,neg,xxn)
                call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad2,npars2,nints,nesd,ns,nel,neg,xxn)
+     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
             end if
 c
-c     projecao local do multiplicador
+c     projecao local do multiplicador na face
 c
             call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
      &           eps,pi,nints,nenlad,npars)
@@ -7419,11 +7325,6 @@ c
             write(*,'(A,10F8.4)') " proje ", (dls(i),i=1,npars)
             write(*,'(A,10F8.4)') " exata ", (solex(i),i=1,nenlad)
 c
-c     TODO: AQUI TEM QUE VER O QUE ESTA ROLANDO
-c     tinha um problema de guardar 2x vezes no mesmo lugar
-c     por causa de elementos que compartilham a mesma face
-c     fiz a gambiarra abaixo de guardar com ordem trocada de acordo com sinal
-c
             ngs = npars*(ndgs-1)
             nls = npars*(ns-1)
 
@@ -7439,10 +7340,8 @@ c$$$                  write(*,'(A,F8.4,2I5)') " save ",dls(i),i,indx
 c$$$                  d(1,indx) = dls(i)
 c$$$               end do
             end if
-
+c
             write(*,'(A,3F8.4)') " normal xn ",xn(1),xn(2),xn(3)
-c            write(*,'(A,3F8.4)') " normal xxn",xxn(1),xxn(2),xxn(3)
-
 c
 c     compute boundary integral - symmetrization
 c
@@ -7460,16 +7359,12 @@ c
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
-c               write(*,'(A,3F8.4)') "x1,x2,x3",x1,x2,x3
-
 c
 c     normal da face
 c
                xn1 = xn(1)
                xn2 = xn(2)
                xn3 = xn(3)
-c               write(*,'(A,3F8.4)') " normal xn in",xn(1),xn(2),xn(3)
-
 c
 c     valores exatos dos multiplicadores
 c
@@ -7539,20 +7434,22 @@ c
 c
 c     projecao local primal
 c
-         write(*,*)
-         write(*,'(A)') " call to solvetdg - proj local primal"
-         write(*,'(A,I5)') " size", neep
-         write(*,'(A)') " matriz"
-         do ik=1,neep
-            write(*,'(20F8.4)') (elmbb(ik,jk),jk=1,neep)
-         end do
-         write(*,'(A)') " vetor"
-         write(*,'(20F8.4)') (elfbb(jk),jk=1,neep)
+
+c         write(*,*)
+c         write(*,'(A)') " call to solvetdg - proj local primal"
+c         write(*,'(A,I5)') " size", neep
+c         write(*,'(A)') " matriz"
+c         do ik=1,neep
+c            write(*,'(20F8.4)') (elmbb(ik,jk),jk=1,neep)
+c         end do
+c         write(*,'(A)') " vetor"
+c         write(*,'(20F8.4)') (elfbb(jk),jk=1,neep)
 
          call solvetdg(elmbb,elfbb,neep)
 
-         write(*,'(A)') " solucao"
-         write(*,'(20F8.4)') (elfbb(jk),jk=1,neep)
+c         write(*,'(A)') " solucao"
+c         write(*,'(20F8.4)') (elfbb(jk),jk=1,neep)
+
 c
 c     projecao local do potencial
 c
@@ -7650,7 +7547,6 @@ c
       dimension ideg(2*ndof,*)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
-      dimension shln (nrowsh,nnods,*), shgn (nrowsh,nnods,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
 c
       dimension shl (nrowsh+1,nen,*),   shg (nrowsh+1,nen,*)
@@ -7661,11 +7557,7 @@ c
       dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
       dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
 c
-      dimension solex(nen),vab(3),vad(3),vc(3),xn(3),coo(3),xxn(3)
-c
-ccccc    dimension shsde(nside,nen,*),ideg(2*ndof,*)
-cccc     dimension shlpsd(nrowsh,nenp,*),shlcsd(nrowsh,nencon,*),
-cccc     &     shgpsd(nrowsh,nenp,*),shgcsd(nrowsh,nencon,*)
+      dimension vab(3),vad(3),vc(3),xn(3),coo(3),xxn(3)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -7734,12 +7626,11 @@ c
             write(*,*) "PROBLEMA 3D"
             quad = .false.
             hexa = .true.
-            write(*,*) " subroutines shg"
             write(*,*) " subroutines shghx1 (shgc)"
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,hexa,nencon,
+            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,
      &           shl,nen)
             write(*,*) " subroutines shghx2 (shgp)"
-            call shghx(xl,detp,shlp,shgp,nint,nel,neg,hexa,nenp,
+            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,
      &           shl,nen)
 c
             nintb=nside*nints
@@ -7971,25 +7862,14 @@ c
                xls(3,nn)=xl(3,nl)
             end do
 c
-c     problema 2d
+c     problema 2D / ou / 3D
 c
             if(nesd.eq.2) then
-               call oneshgp(xls,detn,shlb,shln,shgn,
-     &              nenlad,nnods,nints,nesd,ns,nel,neg)
                call oneshgp(xls,detpn,shlb,shlpn,shgpn,
      &              nenlad,npars,nints,nesd,ns,nel,neg)
-c
             else if(nesd.eq.3) then
-c
-c     problema 3d
-c
-               nenlad2=4
-               npars2=npars
-               nnods2=4
-ccc               call twoshgp(xls,detn,shlb,shln,shgn,
-ccc     &              nenlad2,nnods2,nints,nesd,ns,nel,neg,xxn)
                call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad2,npars2,nints,nesd,ns,nel,neg,xxn)
+     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
             end if
 c
 c     Dirichlet boundary conditions on the multiplier
@@ -8337,7 +8217,7 @@ c        and right-hand side vector
 c-------------------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-      logical diag,quad,hexa,zerodl
+      logical diag,quad
 c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
@@ -8353,21 +8233,7 @@ c
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
       dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*),dls(12)
 c
-c     shln(3,nnods,*),shgn(3,nnods,*),
-c     ,shlb(3,nenlad,*),shgb(3,nenlad,*),
-c     ,shlpn(3,npars,*),shgpn(3,npars,*),
-
-c     shl(nrowsh,nen,*),shg(nrowsh,nen,*),
-c     shlc(nrowsh,nencon,*), shgc(nrowsh,nencon,*)
-c     ,shlp(3,nenp,*),shgp(3,nenp,*)
-
-c      dimension shsde(nside,nen,*)
-c      dimension shlpsd(nrowsh,nenp,*),shlcsd(nrowsh,nencon,*),
-c     &     shgpsd(nrowsh,nenp,*),shgcsd(nrowsh,nencon,*)
-c
-c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
-      dimension shln (nrowsh,nnods,*), shgn (nrowsh,nnods,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
 c
       dimension shl (nrowsh+1,nen,*),   shg (nrowsh+1,nen,*)
@@ -8434,14 +8300,11 @@ c           call shgqsd(xl,shlcsd,shgcsd,nintb,nel,neg,nencon,shl,nen)
 c
          else if(nsd.eq.3) then
             write(*,*) "PROBLEMA 3D"
-            quad = .false.
-            hexa = .true.
-            write(*,*) " subroutines shg"
             write(*,*) " subroutines shghx1 (shgc)"
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,hexa,nencon,
+            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,
      &           shl,nen)
             write(*,*) " subroutines shghx2 (shgp)"
-            call shghx(xl,detp,shlp,shgp,nint,nel,neg,hexa,nenp,
+            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,
      &           shl,nen)
 c
             nintb=nside*nints
@@ -8672,18 +8535,11 @@ c
 c     global shape functions
 c
             if(nesq.eq.2) then
-               call oneshgp(xls,detn,shlb,shln,shgn,
-     &              nenlad,nnods,nints,nesd,ns,nel,neg)
                call oneshgp(xls,detpn,shlb,shlpn,shgpn,
      &              nenlad,npars,nints,nesd,ns,nel,neg)
             else if(nesd.eq.3) then
-               nenlad2=4
-               npars2=npars
-               nnods2=4
-ccc               call twoshgp(xls,detn,shlb,shln,shgn,
-ccc     &              nenlad2,nnods2,nints,nesd,ns,nel,neg,xxn)
                call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad2,npars2,nints,nesd,ns,nel,neg,xxn)
+     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
             end if
 c
 c     compute boundary integral
@@ -8703,20 +8559,12 @@ c
                x1 = 0.d00
                x2 = 0.d00
                x3 = 0.d00
-c               dx1 = 0.d00
-c               dx2 = 0.d00
 c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(2,i)*shlb(3,i,ls)
-c                 dx1 = dx1 + xls(1,i)*shlb(1,i,ls)
-c                 dx2 = dx2 + xls(2,i)*shlb(1,i,ls)
                end do
-c               dxx=dsqrt(dx1*dx1+dx2*dx2)
-c               xn1= sign*dx2/dxx
-c               xn2=-sign*dx1/dxx
-
 c
 c     normal da face
 c
@@ -9186,7 +9034,7 @@ c
 c
       end do
       return
-c     
+c
  1000 format(///,
      &    ' m a t e r i a l   s e t   d a t a       '   //5x,
      &    ' number of material sets . . . . . (numat ) = ',i10//,
@@ -9373,65 +9221,7 @@ c
 1001  continue
       return
       end
-c-----------------------------------------------------------------------
-      subroutine elemult(xl,dlp,eps,ned,nenp,index)
-c-----------------------------------------------------------------------
-      implicit real*8(a-h,o-z)
-      dimension xl(2,*),dlp(ned,*)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-c
-      pi=4.d00*datan(1.d00)
-      pi2=pi*pi
-c
-      do 1001 n=1,nenp
-       x = xl(1,n)
-       y = xl(2,n)
-c
-       go to (100,200,300) index
-c
-c        PROBLEM 1 - T=sin\B9x*sin\B9y
-c
- 100   continue
-      px=pi*x
-      py=pi*y
-      sx=dsin(px)
-      sy=dsin(py)
-      cx=dcos(px)
-      cy=dcos(py)
-      co=1.d00
-c
-      dlp(1,n) = sx*sy
-c
-      go to 1001
-c
-c     2  PROBLEM 2 - U=  sin(pix/2)sin(piy/2)*(1-e^((x-1)/eps))
-c    &                 *(1-e^((x-1)/eps))
-c
- 200   continue
-      px=pi*x
-      py=pi*y
-      sx=dsin(px)
-      sy=dsin(py)
-      cx=dcos(px)
-      cy=dcos(py)
-      xinveps=eps**(-1.0)
-      co=1.d00
-c
-      dlp(1,n) = dsin(px/2.d00)*dsin(py/2.d00)*(1.d00 - exp((x
-     &- 1.d00)/eps))*(1.d00 - exp((y - 1.d00)/eps))
-c
-      go to 1001
-c
-c     Plane wave
-c
-300   continue
-c
-      dlp(1,n) = 1.d00
-c
-1001  continue
-      return
-      end
-      
+
 c-------------------------------------------------------------------------------
       subroutine shlq(shl,w,nint,nen)
 c-------------------------------------------------------------------------------
@@ -9445,9 +9235,9 @@ c              w(l) = integration-rule weight
 c                 i = local node number
 c                 l = integration point number
 c              nint = number of integration points, eq. 1 or 4
-c-------------------------------------------------------------------------------     
+c-------------------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
-c     
+c
       dimension wone(8),raone(8)
       dimension shl(3,nen,*),w(*),ra(64),sa(64)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
@@ -9458,14 +9248,14 @@ c
      &     r3b/0.d00/,w3b/0.888888888888889d00/,
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
-c     
+c
       if (nint.eq.1) then
          wone(1)  = two
          raone(1) = zero
          nintx=1
          ninty=1
       endif
-c     
+c
       if (nint.eq.4) then
          wone(1) = one
          wone(2) = one
@@ -9474,7 +9264,7 @@ c
          nintx=2
          ninty=2
       endif
-c     
+c
       if (nint.eq.9) then
          wone(1) = five9
          wone(2) = five9
@@ -9485,7 +9275,7 @@ c
          nintx=3
          ninty=3
       endif
-c     
+c
       if (nint.eq.16) then
          wone(1) = .347854845137454
          wone(2) = .347854845137454
@@ -9498,8 +9288,8 @@ c
          nintx=4
          ninty=4
       endif
-c     
-c     
+c
+c
       if(nint.eq.25) then
          wone(1) = .236926885056189
          wone(2) = .236926885056189
@@ -9514,7 +9304,7 @@ c
          nintx=5
          ninty=5
       endif
-c     
+c
       if(nint.eq.36) then
          wone(1) = .171324492397170
          wone(2) = .171324492397170
@@ -9531,7 +9321,7 @@ c
          nintx=6
          ninty=6
       endif
-c     
+c
       if(nint.eq.49) then
          wone(1) = .129484966168870
          wone(2) = .129484966168870
@@ -9550,8 +9340,8 @@ c
          nintx=7
          ninty=7
       endif
-c     
-c     
+c
+c
       if(nint.eq.64) then
          wone(1) = .101228536290376
          wone(2) = .101228536290376
@@ -9572,8 +9362,8 @@ c
          nintx=8
          ninty=8
       endif
-c     
-c     
+c
+c
       l=0
       do ly=1,ninty
          do lx=1,nintx
@@ -9583,12 +9373,12 @@ c
             sa(l) = raone(ly)
          end do
       end do
-c     
+c
       do 200 l=1,nint
-c     
+c
          r=ra(l)
          s=sa(l)
-c     
+c
          if(nen.eq.4) then
             f1 = pt5*(one-r)
             f2 = pt5*(one+r)
@@ -9611,14 +9401,14 @@ c
             shl(2,4,l)=f1*gx2
             shl(3,4,l)=f1*g2
          end if
-c     
-c     
+c
+c
          if(nen.eq.9) then
             f1 = -pt5*(one-r)*r
             f2 =  pt5*(one+r)*r
             f3 = (one+r)*(one-r)
-c     
-c     
+c
+c
             f1x = pt5*r - pt5*(one-r)
             f2x = pt5*r + pt5*(one+r)
             f3x =-two*r
@@ -9626,48 +9416,48 @@ c
             g1 =-pt5*(one-s)*s
             g2 = pt5*(one+s)*s
             g3 = (one+s)*(one-s)
-c     
+c
             g1x = pt5*s - pt5*(one-s)
             g2x = pt5*s + pt5*(one+s)
             g3x =-two*s
-c     
-c     
+c
+c
             shl(3,1,l)=f1*g1
             shl(3,2,l)=f2*g1
             shl(3,3,l)=f2*g2
             shl(3,4,l)=f1*g2
-c     
+c
             shl(3,5,l)=f3*g1
             shl(3,6,l)=f2*g3
             shl(3,7,l)=f3*g2
             shl(3,8,l)=f1*g3
             shl(3,9,l)=f3*g3
-c     
+c
             shl(1,1,l)=f1x*g1
             shl(1,2,l)=f2x*g1
             shl(1,3,l)=f2x*g2
             shl(1,4,l)=f1x*g2
-c     
+c
             shl(1,5,l)=f3x*g1
             shl(1,6,l)=f2x*g3
             shl(1,7,l)=f3x*g2
             shl(1,8,l)=f1x*g3
             shl(1,9,l)=f3x*g3
-c     
+c
             shl(2,1,l)=f1*g1x
             shl(2,2,l)=f2*g1x
             shl(2,3,l)=f2*g2x
             shl(2,4,l)=f1*g2x
-c     
+c
             shl(2,5,l)=f3*g1x
             shl(2,6,l)=f2*g3x
             shl(2,7,l)=f3*g2x
             shl(2,8,l)=f1*g3x
             shl(2,9,l)=f3*g3x
-c     
+c
          end if
-c     
-c     
+c
+c
          if (nen.eq.16) then
             onemrsq=one-r*r
             onemssq=one-s*s
@@ -9679,7 +9469,7 @@ c
             f2=9.d00/16.d00*(1.d00-r*r)*onem3r
             f3=9.d00/16.d00*(1.d00-r*r)*onep3r
             f4=1.d00/16.d00*(9.d00*r*r-1.d00)*(r+1.d00)
-c     
+c
             f1x=-1.d00/16.d00*(18.d00*r)*(r-1.d00)
      &           -1.d00/16.d00*(9.d00*r*r-1.d00)
             f2x=9.d00/16.d00*(-2.d00*r)*onem3r
@@ -9688,12 +9478,12 @@ c
      &           -9.d00/16.d00*(r*r-1.d00)*3.d00
             f4x=1.d00/16.d00*(18.d00*r)*(r+1.d00)
      &           +1.d00/16.d00*(9.d00*r*r-1.d00)
-c     
+c
             g1=-1.d00/16.d00*(9.d00*s*s-1.d00)*(s-1.d00)
             g2=9.d00/16.d00*(1.d00-s*s)*onem3s
             g3=9.d00/16.d00*(1.d00-s*s)*onep3s
             g4=1.d00/16.d00*(9.d00*s*s-1.d00)*(s+1.d00)
-c     
+c
             g1x=-1.d00/16.d00*(18.d00*s)*(s-1.d00)
      &           -1.d00/16.d00*(9.d00*s*s-1.d00)
             g2x=9.d00/16.d00*(-2.d00*s)*onem3s
@@ -9702,12 +9492,12 @@ c
      &           -9.d00/16.d00*(s*s-1.d00)*3.d00
             g4x=1.d00/16.d00*(18.d00*s)*(s+1.d00)
      &           +1.d00/16.d00*(9.d00*s*s-1.d00)
-c     
+c
             shl(3,1,l)=f1*g1
             shl(3,2,l)=f4*g1
             shl(3,3,l)=f4*g4
             shl(3,4,l)=f1*g4
-c     
+c
             shl(3,5,l)=f2*g1
             shl(3,6,l)=f3*g1
             shl(3,7,l)=f4*g2
@@ -9720,13 +9510,13 @@ c
             shl(3,14,l)=f3*g2
             shl(3,15,l)=f3*g3
             shl(3,16,l)=f2*g3
-c     
-c     
+c
+c
             shl(1,1,l)=f1x*g1
             shl(1,2,l)=f4x*g1
             shl(1,3,l)=f4x*g4
             shl(1,4,l)=f1x*g4
-c     
+c
             shl(1,5,l)=f2x*g1
             shl(1,6,l)=f3x*g1
             shl(1,7,l)=f4x*g2
@@ -9738,13 +9528,13 @@ c
             shl(1,13,l)=f2x*g2
             shl(1,14,l)=f3x*g2
             shl(1,15,l)=f3x*g3
-            shl(1,16,l)=f2x*g3   
-c     
+            shl(1,16,l)=f2x*g3
+c
             shl(2,1,l)=f1*g1x
             shl(2,2,l)=f4*g1x
             shl(2,3,l)=f4*g4x
             shl(2,4,l)=f1*g4x
-c     
+c
             shl(2,5,l)=f2*g1x
             shl(2,6,l)=f3*g1x
             shl(2,7,l)=f4*g2x
@@ -9757,10 +9547,10 @@ c
             shl(2,14,l)=f3*g2x
             shl(2,15,l)=f3*g3x
             shl(2,16,l)=f2*g3x
-c     
+c
          end if
  200  continue
-c     
+c
       return
       end
 
@@ -10863,8 +10653,6 @@ c
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
 c
-      write(*,'(A,I5)') " nint=", nint
-c
       if (nint.eq.1) then
          wone(1)  = two
          raone(1) = zero
@@ -11346,29 +11134,29 @@ c
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c     
+c
       pi=4.*datan(1.d00)
       dpi=2.d00*pi
-c     
+c
       gf1=grav(1)
       gf2=grav(2)
       gf3=grav(3)
       eps=c(1,1)
-c     
+c
       tab=char(9)
       xint=0.d00
       yint=0.d00
-c     
+c
       call clear ( el2, ncon )
       call clear (eprix, ncon )
       call clear (epriy, ncon )
-c     
+c
       divu2 = 0.d00
       edp   = 0.d00
       edpx  = 0.d00
       edpy  = 0.d00
       xmlt  = 0.d00
-c     
+c
       call shapesd(shlsd,nenlad,npars)
       if (nen.eq.3) then
          call shapent(sxlhp,nen,nenp)
@@ -11379,20 +11167,20 @@ c
       else
          stop
       endif
-c     
+c
 c     call shapesd(shlsd,nenlad,npars)
 c     call shapen(sxlhp,nen,nenp)
 c     call shapen(sxlhv,nen,nencon)
 c
 
-c     
+c
 c     loop on elements
-c     
+c
       do 50 n=1,numel
-c     
+c
          call local(ien(1,n),x,xl,nen,nsd,nesd)
          call local(ipar(1,n),d,dl,nodsp,ndof,ned)
-c     
+c
          do i=1,nenp
             xlpn(1,i) = 0.d00
             xlpn(2,i) = 0.d00
@@ -11401,9 +11189,9 @@ c
                xlpn(2,i) = xlpn(2,i) + sxlhp(j,i)*xl(2,j)
             end do
          end do
-c     
+c
          call elemdlp(xlpn,dlp,eps,ned,nenp,index)
-c     
+c
          do i=1,nencon
             xlvn(1,i) = 0.d00
             xlvn(2,i) = 0.d00
@@ -11412,28 +11200,28 @@ c
                xlvn(2,i) = xlvn(2,i) + sxlhv(j,i)*xl(2,j)
             end do
          end do
-c     
+c
          call elemdlf(xlvn,dlf,eps,ncon,nencon,index)
-c     
+c
          call clear(el2el, ncon)
          call clear(eprxel,ncon)
          call clear(epryel,ncon)
-c         
+c
          divue = 0.d00
          pmede = 0.d00
          dpe   = 0.d00
          dpex  = 0.d00
          dpey  = 0.d00
-c     
+c
 c     loop on integration points
 c
-         
-c     
+
+c
 c     triangles or quadrilaterals
 c
-         call shgqs(xl,detc,shlc,shgc,nint,n,neg,.true.,nencon,shl,nen)    
+         call shgqs(xl,detc,shlc,shgc,nint,n,neg,.true.,nencon,shl,nen)
          call shgqs(xl,detp,shlp,shgp,nint,n,neg,.true.,nenp,shl,nen)
-c     
+c
          do 4040 l=1,nint
             ct=detc(l)*wt(l)
             call clear ( u, ncon )
@@ -11445,7 +11233,7 @@ c
                xint=xint+shl(3,i,l)*xl(1,i)
                yint=yint+shl(3,i,l)*xl(2,i)
                end do
-c     
+c
             do i=1,nencon
                do j=1,ncon
                   u(j)   = u(j)   + shgc(3,i,l)*dlf(j,i)
@@ -11453,14 +11241,14 @@ c
 	          duy(j) = duy(j) + shgc(2,i,l)*dlf(j,i)
                end do
             end do
-c     
+c
 c     NEED TO CALL UXEXAFX3
 c     call uexafx3(xint,yint,ue,duex,duey,eps,index)
-c            
+c
 
-c     
+c
 c     pressao descontinua
-c     
+c
             pe  = 0.d00
 	    pex = 0.d00
             pey = 0.d00
@@ -11472,12 +11260,12 @@ c
 	    dpe  = dpe  + ct*(pe  - ue(3))**2
 	    dpex = dpex + ct*(pex-duex(3))**2
 	    dpey = dpey + ct*(pey-duey(3))**2
-c     
+c
             if(iwrite.ne.0) then
                write(43,2424) n,l,u(1),ue(1),u(2),ue(2),pe,ue(3)
  2424          format(2i10,6e15.5)
             end if
-c     
+c
             do j=1,ncon
                un = ct * ( (u(j)-ue(j))**2 )
                upnx= ct * ( (dux(j)-duex(j))**2 )
@@ -11486,43 +11274,43 @@ c
                eprxel(j) = eprxel(j) + upnx
                epryel(j) = epryel(j) + upny
             end do
-c     
+c
 c     conservacao
-c     
+c
             divue = divue + (dux(1)+duy(2)-duex(1)-duey(2))*ct
      &                    + eps*(pe-ue(3))*ct ! apagar conservacao
  4040    continue
-c     
+c
          do j=1,ncon
             el2(j) = el2(j) + el2el(j)
             eprix(j) = eprix(j) + eprxel(j)
             epriy(j) = epriy(j) + epryel(j)
          end do
-c     
+c
          divu2 = divu2 + divue**2
          edp   = edp + dpe
          edpx  = edpx+ dpex
          edpy  = edpy+ dpey
-c     
+c
 c     boundary terms - multiplier
-c     
+c
          xmlte = 0.d00
          do 4000 ns=1,nside
-c     
+c
 c     localiza os parametros do lado n
-c     
+c
             do nn=1,npars
                nld = (ns-1)*npars + nn
                dls(nn) = dl(1,nld)
             end do
-c     
+c
 c     localiza os no's do lado ns
-c     
+c
             ns1 = idside(ns,1)
             ns2 = idside(ns,2)
             nl1 = ien(ns1,n)
             nl2 = ien(ns2,n)
-c     
+c
             if(nl2.gt.nl1) then
                sign = 1.d00
                do  nn=1,nenlad
@@ -11539,13 +11327,13 @@ c
                   end do
                end if
             end if
-c     
+c
             do nn=1,nenlad
                nl = idlsd(nn)
                xls(1,nn) = xl(1,nl)
                xls(2,nn) = xl(2,nl)
             end do
-c     
+c
             do nn=1,npars
                xlps(1,nn) = 0.d00
                xlps(2,nn) = 0.d00
@@ -11554,23 +11342,21 @@ c
                   xlps(2,nn) = xlps(2,nn) + shlsd(jj,nn)*xls(2,jj)
                end do
             end do
-c     
-c     c       call elemult(xlps,dls,eps,ned,npars,index)
-c     
+c
             call oneshgp(xls,detn,shlb,shln,shgn,
      &           nenlad,nnods,nints,nesd,ns,n,neg)
-c     
+c
             call oneshgp(xls,detpn,shlb,shlpn,shgpn,
      &           nenlad,npars,nints,nesd,ns,n,neg)
-c     
+c
 c     compute boundary integral
-c     
+c
             do 1000 ls=1,nints
-c     
+c
                cwn = wn(ls)*detn(ls)
-c     
+c
 c     valores dos parametros do multiplicador
-c     
+c
                dhs = 0.d00
                do i=1,npars
                   dhs = dhs + dls(i)*shgpn(2,i,ls)
@@ -11582,7 +11368,7 @@ c
                x2  = 0.d00
                dx1 = 0.d00
                dx2 = 0.d00
-c     
+c
                do i=1,nenlad
                   x1  = x1  + xls(1,i)*shlb(2,i,ls)
                   x2  = x2  + xls(2,i)*shlb(2,i,ls)
@@ -11592,40 +11378,40 @@ c
                dxx = dsqrt(dx1*dx1+dx2*dx2)
                xn1 =  sign*dx2/dxx
                xn2 = -sign*dx1/dxx
-c     
+c
 c     valores exatos dos multiplicadores
-c     
+c
                pix = pi*x1
                piy = pi*x2
                sx  = dsin(pix)
                sy  = dsin(piy)
                cx  = dcos(pix)
                cy  = dcos(piy)
-c     
+c
                pi2 = pi*pi
                xinvpes = eps**(-1.0)
                co = 1.d00
-c     
+c
 c     valor exato do multiplicador
-c     
+c
                dhse = gf1*sx*sy
      &           + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - exp((x1
      &           - 1.d00)/eps))*(1.d00 - exp((x2 - 1.d00)/eps)))
      &           + gf3*1.d00
-c     
+c
                xmlte = xmlte + cwn*(dhse-dhs)**2
-c     
+c
  1000       continue
  4000    continue
-c     
+c
          xmlt = xmlt + xmlte
-c     
+c
  50   continue
-c     
+c
       divu = dsqrt(divu2)
-c     
+c
 c     error in all domain
-c     
+c
       fxl2 = dsqrt(el2(1) + el2(2))
       fxh1 = dsqrt(eprix(1)+eprix(2) + epriy(1)+epriy(2))
 
@@ -11635,6 +11421,7 @@ c
       fxl2 = dlog10(fxl2)
       fxh1 = dlog10(fxh1)
       xmlt = dlog10(dsqrt(xmlt))
+
       xel = dfloat(numel)/dfloat(nnods-1)**2
       xnp = nmultp
       xel = dlog10(xel)/2.d00
@@ -11643,7 +11430,7 @@ c
       write(iplt,2101) xel,xnp,fxl2,fxh1,edp,gradp,xmlt,divu
       write(999,2101)  xel,xnp,eprix(1),eprix(2),epriy(1),epriy(2)
       return
-c     
+c
  2101 format(9(e13.4))
       end
 
@@ -11652,8 +11439,8 @@ c-----------------------------------------------------------------------
      &                   d     ,dl    ,mat   ,
      &                   c     ,ipar  ,dlf   ,
      &                   dlp   ,dsfl  ,det   ,
-     &                   shl   ,shg  ,wt    ,
-     &                   detc  ,shlc  , shgc ,
+     &                   shl   ,shg   ,wt    ,
+     &                   detc  ,shlc  ,shgc ,
      &                   ddis  ,detp  ,shlp  ,
      &                   shgp ,
 c
@@ -11667,9 +11454,9 @@ c
      &                   nesd  ,nint  ,neg   ,nrowsh,
      &                   ned   ,nee   ,numnp ,ndof  ,
      &                   ncon  ,nencon,necon ,index ,
-     &                   nints, iplt  ,nenp  ,
-     &                   nside, nnods,nenlad ,npars  ,
-     &                   nmultp, nodsp)
+     &                   nints ,iplt  ,nenp  ,
+     &                   nside ,nnods ,nenlad,npars  ,
+     &                   nmultp,nodsp)
 c------------------------------------------------------------------
 c     Some variables used in this subroutine
 c            j: degree of freedom (1,...ncon)
@@ -11687,7 +11474,6 @@ c    for each degree of freedom in the finite element solution .
 c    The trapezoidal rule is used for integration in each element .
 c    The number of integration points is given by nints .
 c
-c     This version is only applicable to 2D/3D
 c     Writes to:
 c        erro-local-primal-shdg-dc.dat
 c-----------------------------------------------------------------------
@@ -11701,21 +11487,18 @@ c
       dimension u(6),dux(6),duy(6),duz(6)
       dimension ue(6),duex(6),duey(6),duez(6)
       dimension el2(6),eprix(6),epriy(6),epriz(6)
-      dimension el2el(6),eprxel(6),epryel(6),eprzel(6)
+      dimension el2el(6),eprxel(6),epryel(6)
+c
+      dimension shlb (nrowsh,nenlad,*),shgb(nrowsh,nenlad,*)
+      dimension shlpn(nrowsh,npars,*),shgpn(nrowsh,npars,*)
 c
       dimension shl (nrowsh+1,nen,*),   shg(nrowsh+1,nen,*)
       dimension shlp(nrowsh+1,nenp,*),  shgp(nrowsh+1,nenp,*)
       dimension shlc(nrowsh+1,nencon,*),shgc(nrowsh+1,nencon,*)
-      dimension det(*),detn(*),detp(*),wt(*),wn(*)
 c
-      dimension shlb (nrowsh,nenlad,*),shgb(nrowsh,nenlad,*)
-      dimension shln (nrowsh,nnods,*), shgn(nrowsh,nnods,*)
-      dimension shlpn(nrowsh,npars,*),shgpn(nrowsh,npars,*)
-      dimension detc(*),detpn(*)
-c
+      dimension det(*),detn(*),detp(*),detc(*),detpn(*),wt(*),wn(*)
       dimension dlp(ned,*), dls(12)
       dimension idside(nside,*),xls(nesd,*),idlsd(*),grav(*)
-c
       dimension coo(3),vab(3),vad(3),vc(3),xn(3),xxn(3)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
@@ -11764,14 +11547,12 @@ c
          write(*,'(A,I3)') "elemento ", n
 c
          call local(ien(1,n),x,xl,nen,nsd,nesd)
+         call local(ipar(1,n),d,dl,nodsp,ndof,ned)
 c
 c     DEBUG LOCAL
 c         write(*,*) "copia de D para DL (nos indices dados por IPAR)"
 c         write(*,*) nodsp, ndof, ned
 c
-         call local(ipar(1,n),d,dl,nodsp,ndof,ned)
-c
-c        write(*,'(24I4)') (ipar(kk,n),kk=1,24)
          write(*,'(A)') " array dl"
          do kk=1,6
             write(*,'(24F8.4)') (dl(1,4*(kk-1)+jj),jj=1,4)
@@ -11809,8 +11590,8 @@ c
           call shgqs(xl,detc,shlc,shgc,nint,n,neg,.true.,nencon,shl,nen)
           call shgqs(xl,detp,shlp,shgp,nint,n,neg,.true.,nenp,shl,nen)
          else if(nsd.eq.3) then
-          call shghx(xl,detc,shlc,shgc,nint,n,neg,.true.,nencon,shl,nen)
-          call shghx(xl,detp,shlp,shgp,nint,n,neg,.true.,nenp,shl,nen)
+          call shghx(xl,detc,shlc,shgc,nint,n,neg,nencon,shl,nen)
+          call shghx(xl,detp,shlp,shgp,nint,n,neg,nenp,shl,nen)
          end if
 c
 c     loop on integration points (volume)
@@ -11913,11 +11694,6 @@ c
             write(*,'(A,4I5)') " global ",nl1,nl2,nl3,nl4
             write(*,'(A)') " dls "
             write(*,'(10F8.4)') (dls(nn),nn=1,npars)
-c            write(*,'(4F8.4)') (xl(kd,ns1), kd=1,3)
-c            write(*,'(4F8.4)') (xl(kd,ns2), kd=1,3)
-c            write(*,'(4F8.4)') (xl(kd,ns3), kd=1,3)
-c            write(*,'(4F8.4)') (xl(kd,ns4), kd=1,3)
-
 c
 c     calcula sign para a aresta/face
 c
@@ -11925,7 +11701,7 @@ c
             call vec3sub(xl(1,ns4), xl(1,ns1), vad)
             call vec3sub(coo,xl(1,ns1),vc)
             call cross(vab,vad,xn)
-            call nrm3(xn)           
+            call nrm3(xn)
             dotcn = dot3(vc,xn)
 c
             if(dotcn.lt.0.d0) then
@@ -11960,31 +11736,15 @@ c
                xls(2,nn) = xl(2,nl)
                xls(3,nn) = xl(3,nl)
             end do
-
 c
-c     calculo funcoes globais
+c     calculo funcoes globais (2D ou 3D)
 c
             if(nesd.eq.2) then
-c
-c     PROBLEMA 2D
-c
-               call oneshgp(xls,detn,shlb,shln,shgn,
-     &              nenlad,nnods,nints,nesd,ns,n,neg)
-c
                call oneshgp(xls,detpn,shlb,shlpn,shgpn,
      &              nenlad,npars,nints,nesd,ns,n,neg)
             else
-c
-c     PROBLEMA 3D
-c
-c               write(*,*) "computing twoshgp (flnormp)"
-               nenlad2=4
-               npars2=npars
-               nnods2=4
-ccc               call twoshgp(xls,detn,shlb,shln,shgn,
-ccc     &              nenlad2,nnods2,nints,nesd,ns,n,neg,xxn)
                call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad2,npars2,nints,nesd,ns,n,neg,xxn)
+     &              nenlad,npars,nints,nesd,ns,n,neg,xxn)
             end if
 c
 c     compute boundary integral
@@ -12016,20 +11776,7 @@ c
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(3,i)*shlb(3,i,ls)
-c                  dx1 = dx1 + xls(1,i)*shlb(1,i,ls)
-c                  dx2 = dx2 + xls(2,i)*shlb(1,i,ls)
-c                  dx3 = dx3 + xls(3,i)*shlb(1,i,ls)
                end do
-
-c               write(*,*) "SHLB FLNORMP"
-c               write(*,'(10F8.4)') (shlb(3,i,ls), i=1,nenlad)
-c               write(*,*) "INTERPOLOU PONTOS DE INT p/ FACE DO MULTP"
-c               write(*,*) x1,x2,x3
-
-c               dxx = dsqrt(dx1*dx1+dx2*dx2)
-c               xn1 = sign*dx2/dxx
-c               xn2 =-sign*dx1/dxx
-
 c
 c     normal da face
 c
@@ -12070,7 +11817,7 @@ c
                write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
             end do
  4000    continue
-c        
+c
 c     fim do loop nas faces/arestas
 c
          xmlt = xmlt + xmlte
@@ -12106,7 +11853,7 @@ c-----------------------------------------------------------------------
       subroutine shapent(shl,nen,nenc)
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
-c     
+c
       dimension shl(64,64),cl1(64),cl2(64),cl3(64)
       data   zero,pt1667,pt25,pt5
      &     /0.0d0,0.1666666666666667d0,0.25d0,0.5d0/,
@@ -12114,7 +11861,7 @@ c
      &     /1.0d0,2.0d0,3.0d0,4.0d0,5.0d0,6.0d0/
       data r1/0.33333333333333333333d00/ ,w1/1.d00/,
      &     r2/0.5d00                   /,w2/0.3333333333333333333d00/
-c     
+c
       pt1s3 = one/three
       pt2s3 = two/three
       pt1s4 = one/four
@@ -12124,7 +11871,7 @@ c
       pt2s5 = two/five
       pt3s5 = three/five
       pt4s5 = four/five
-c     
+c
       pt3s2 = three/two
       pt9s2 = 9.d0/two
       pt27s2= 27.d0/two
@@ -12133,13 +11880,13 @@ c
       pt32s3= 32.d0/three
       pt8s3 = 8.d0/three
 
-c     
+c
       if (nenc.eq.1) then
          cl1(1)=r1
          cl2(1)=r1
          cl3(1)=one-r1-r1
       end if
-c     
+c
       if(nenc.eq.3) then
          cl1(1)=one
          cl2(1)=zero
@@ -12153,7 +11900,7 @@ c
          cl2(3)=zero
          cl3(3)=one
       end if
-c     
+c
       if(nenc.eq.6) then
          cl1(1)=one
          cl2(1)=zero
@@ -12180,7 +11927,7 @@ c
          cl3(6)=r2
 
       end if
-c     
+c
       if(nenc.eq.10) then
          cl1(1)=one
          cl2(1)=zero
@@ -12223,7 +11970,7 @@ c
          cl3(10)=r1
 
       end if
-c     
+c
       if(nenc.eq.15) then
          cl1(1)=one
          cl2(1)=zero
@@ -12285,7 +12032,7 @@ c
          cl2(15)=pt1s4
          cl3(15)=pt2s4
       end if
-c     
+c
       if(nenc.eq.21) then
          cl1(1)=one
          cl2(1)=zero
@@ -12371,9 +12118,9 @@ c
          cl2(21)=pt1s5
          cl3(21)=pt2s5
       end if
-c     
+c
       do 200 l=1,nenc
-c     
+c
          c1 = cl1(l)
          c2 = cl2(l)
          c3 = cl3(l)
@@ -12515,9 +12262,9 @@ c
           shl(21,l)=((125.d0/4.d0)*(five*c1-one))*(five*c3-one)*c1*c2*c3
 
        end if
-       
+
  200  continue
-c     
+c
       return
       end
 
@@ -12677,10 +12424,10 @@ c
          nenry=8
       endif
 c
-c      
+c
 c
       if(nen.eq.1) inod(1,1) = 1
-c      
+c
       if(nen.eq.4) then
          inod(1,1) = 1
          inod(2,1) = 2
@@ -12935,7 +12682,7 @@ c
 c
 c
       if(nenc.eq.1) inodc(1,1) = 1
-c      
+c
       if(nenc.eq.4) then
          inodc(1,1) = 1
          inodc(2,1) = 2
@@ -13383,14 +13130,14 @@ c
 
 c-----------------------------------------------------------------------
       subroutine dumpmsh(ien, x, xl, idside, lado, numel, nef, numnp,
-     &                   nen, nenlad, nsd, nesd, npars, nside)      
+     &                   nen, nenlad, nsd, nesd, npars, nside)
 c-----------------------------------------------------------------------
 c     program to dump mesh to file and screen
 c        nel: number of elements
 c        nef: number of face/edge elements
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
-c      
+c
       dimension ien(nen,*),x(nsd,*),xl(nesd,*)
       dimension lado(nside,*), idside(nside,*)
       integer iboolf(nef), elfaces(nef,nenlad)
@@ -13401,11 +13148,11 @@ c
       end do
 c
 c     debug
-c      
-c      write(*,*) " coordenadas", numnp, nen, nsd, nesd
-c      do np=1,numnp
-c         write(*,456) np, (x(i,np), i=1,nsd)
-c      end do
+c
+      write(*,*) " coordenadas", numnp, nen, nsd, nesd
+      do np=1,numnp
+         write(*,456) np, (x(i,np), i=1,nsd)
+      end do
 c      write(*,*) " conectividade- elem (msh)", nef, numel, nef+numel
 c      do nel=1,numel
 c         call local(ien(1,nel),x,xl,nen,nsd,nesd)
@@ -13422,7 +13169,7 @@ c         write(*,*) il, (idside(il,j),j=1,4)
 c      end do
 
 c
-c     file and header     
+c     file and header
 c
 
 c      character(len=1024) :: filename
@@ -13430,15 +13177,15 @@ c      write (filename, "(A6,I5,A4)") "malha_", numel, ".msh"
 c     write(*,*) "ARQUIVO: ", trim(filename)
 
       write (seqstring,'(I0)') numel
-      open(123, file='malha'//trim(seqstring)//'.msh')   
-      
+      open(123, file='malha'//trim(seqstring)//'.msh')
+
       write(*,*) "dump mesh to file"
       write(123,'(a)') "$MeshFormat"
       write(123,'(a)') "2.2 0 8"
-      write(123,'(a)') "$EndMeshFormat"      
+      write(123,'(a)') "$EndMeshFormat"
 c
 c     nodes
-c      
+c
       write(123,'(a)') "$Nodes$"
       write(123,*) numnp
       if(nsd.eq.2) then
@@ -13448,13 +13195,13 @@ c
       else if(nsd.eq.3) then
          do np=1,numnp
             write(123,456) np, (x(i,np), i=1,nsd)
-         end do         
+         end do
       end if
  456  format(' ',I6,30F10.6)
-      write(123,'(a)') "$EndNodes"     
+      write(123,'(a)') "$EndNodes"
 c
 c     elementos / faces
-c      
+c
       write(123,'(a)') "$Elements"
       write(123,*) nef+numel
 c
@@ -13471,10 +13218,10 @@ c
             do ns=1,nside
                ns1=idside(ns,1)
                ns2=idside(ns,2)
-c     
+c
                nl1=ien(ns1,nel)
                nl2=ien(ns2,nel)
-c     
+c
                iface=lado(ns,nel)
 c               write(*,*) nel, ns, iface, nl1, nl2
                if(iboolf(iface).eq.0) then
@@ -13493,12 +13240,12 @@ c               write(*,*) nel, ns, iface, nl1, nl2
          do nel=1,numel
             call local(ien(1,nel),x,xl,nen,nsd,nesd)
             write(123,789) nef+nel,3,2,100,200,(ien(j,nel),j=1,nen)
-         end do         
+         end do
       end if
-      
+
 c
 c     caso 3D
-c      
+c
       if (nsd.eq.3) then
          kel = 1
          do nel=1,numel
@@ -13507,15 +13254,15 @@ c
                ns1=idside(ns,1)
                ns2=idside(ns,2)
                ns3=idside(ns,3)
-               ns4=idside(ns,4)
-c     
+               ns4=idside(ns,4) 
+c
                nl1=ien(ns1,nel)
                nl2=ien(ns2,nel)
                nl3=ien(ns3,nel)
                nl4=ien(ns4,nel)
-c     
+c
                iface=lado(ns,nel)
-c     write(*,*) nel, ns, iface, nl1, nl2, nl3, nl4
+      write(*,*) nel, ns, iface, nl1, nl2, nl3, nl4
                if(iboolf(iface).eq.0) then
                   iboolf(iface) = 1
                   elfaces(iface,1) = nl1
@@ -13526,7 +13273,7 @@ c     write(*,*) nel, ns, iface, nl1, nl2, nl3, nl4
                kel = kel + 1
             end do
          end do
-c     
+c
          do ifc=1,nef
             nl1=elfaces(ifc,1)
             nl2=elfaces(ifc,2)
