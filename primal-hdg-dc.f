@@ -6101,9 +6101,10 @@ c
 c     escreve malha GMSH
 c
       write(*,'(A)') "escreve malha.msh"
-      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
-     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
-     &             nsd,nesd,npars,nside)      
+c      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
+c     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
+c     &             nsd,nesd,npars,nside)
+      
 c
 c     Esta rotina calcula projecoes locais:
 c     para a formulacao hibrida primal
@@ -6480,10 +6481,12 @@ c
          nenlad2=2
          nnods2=2
 
-         if(nints.eq.4) then
-            nints2=2
+         if(nints.eq.1) then
+            nints2 = 1
+         else if(nints.eq.4) then
+            nints2 = 2
          else if(nints.eq.9) then
-            nints2=3
+            nints2 = 3
          end if
 c
          write(*,*)
@@ -8112,10 +8115,11 @@ c
          if(.not.zerodl)
      &        call kdbc(eleffd,elresd,dl,nee)
 c
-c
+c     TODO:
 c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
-c
+c     lm - prescritos
+c         
          call addlhs(alhs,eleffd,idiag,lm(1,1,nel),nee,diag)
 c        call addnsl(alhs,dlhs,eleffd,idiag,lm(1,1,nel),nee,diag)
 c
@@ -11654,8 +11658,9 @@ c
          xaone(3)= zero
       endif
 c
+      write(*,*) nints
       if(nints.gt.3) then
-         write(*,*) "error nints shlhxpbk"
+         write(*,*) "error nints shlhxpbk AAA"
          stop
       end if
       if(nnods.gt.2) then
