@@ -1423,18 +1423,70 @@ c               write(*,*) nl, l, nsp, lada+np
       end do
 c
 c     TESTE 1: trocar dois DOFs
-c     
-ccc   ipar(1,1) = 42
-ccc   ipar(2,1) = 41
+c     OK
+c      
+c      ipar(1,1) = 42
+c      ipar(2,1) = 41
+c
+c      ipar(1,2) = 46
+c      ipar(2,2) = 45
 
 c
 c     TESTE 2: trocar DOFs de duas faces (el1 e el2)
+c     NAO FUNCIONA
+c     NA FLUX0 OK
+c     ALGUMA COISA NA FLUX2 ou FLUX3
+      
+c
+c     Exemplo:
 c     
+c     el 1 face 3
+c           1           9          21
+c           1          10          22
+c           1          11          23
+c           1          12          24
+c     el 2 face 2
+c           2           5          21
+c           2           6          22
+c           2           7          23
+c           2           8          24
+c
+c     trocar pelos da face 1 do el 1
+c     41 42 43 44
+c
+c      ipar(9,1)  = 41
+c      ipar(10,1) = 42
+c      ipar(11,1) = 43
+c      ipar(12,1) = 44
+
+c      ipar(5,2) = 41
+c      ipar(6,2) = 42
+c      ipar(7,2) = 43
+c      ipar(8,2) = 44
+
+c      ipar(1,1) = 21
+c      ipar(2,1) = 22
+c      ipar(3,1) = 23
+c      ipar(4,1) = 24
+                                    
 
 c
 c     TESTE 3: algoritmo para numerar POR ELEMENTO primeiro
 c     
       
+c
+      write(*,*) "debug ipar"
+      do nl=1,numel
+         do l=1,nside
+            la = lado(l,nl)
+            lada = npars*(la-1)
+            do np=1,npars
+               nsp = (l-1)*npars + np
+c               ipar(nsp,nl) = lada + np
+               write(*,*) nl, nsp, ipar(nsp,nl)
+            end do
+         end do
+      end do
 c      
       return
       end
@@ -7320,8 +7372,14 @@ c
             nls = npars*(ns-1)
 c
             do i=1,npars
-ccc               write(*,'(A,F8.4,2I5)') " save ",dls(i),i,ngs+i
-               d(1,ngs + i) = dls(i)
+ccc   write(*,'(A,F8.4,2I5)') " save ",dls(i),i,ngs+i
+c
+c     TODO: mudar ipar(*,*) aqui
+c     
+c     write(*,'(A,F8.4,2I5)') "dbg",dls(i),ngs+i,ipar(nls+i,nel)
+               indx = ipar(nls+i,nel)
+               d(1,indx) = dls(i)
+c              d(1,ngs + i) = dls(i)               
             end do
 c     
 c     compute boundary integral - symmetrization
@@ -7682,22 +7740,6 @@ c
 c
             pss = 3.d00*eps*pi2*sx*sy*sz
 c
-c$$$            pss = gf1*(3.d00*eps*pi2*sx*sy*sz + b1*pi*cx*sy+b2*pi*sx*cy)
-c$$$     &           + gf2*(-pi*(-dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps
-c$$$     &           + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps*dexp((yy -
-c$$$     &           0.1D1)/eps) + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-c$$$     &  *eps*dexp((xx - 0.1D1)/eps) - dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-c$$$     &           *eps*dexp((xx - 0.2D1 + yy)/eps) - dcos(pix/0.2D1
-c$$$     &         )*dsin(piy/0.2D1)*dexp((xx - 0.1D1)/eps) + dcos(pix/0.2D1
-c$$$     &    )*dsin(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps) - dsin(pix/0.2D1
-c$$$     &        )*dcos(piy/0.2D1)*dexp((yy - 0.1D1)/eps) + dsin(pix/0.2D1
-c$$$     &           )*dcos(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps)
-c$$$     &           - dcos(pix/0.2D1)*dsin(piy/0.2D1) + dcos(pix/0.2D1)
-c$$$     &         *dsin(piy/0.2D1)*dexp((yy - 0.1D1)/eps) - dsin(pix/0.2D1
-c$$$     &           )*dcos(piy/0.2D1) + dsin(pix / 0.2D1)*dcos(piy/0.2D1
-c$$$     &           )*dexp((xx - 0.1D1)/eps))/0.2D1)
-c$$$  &           + gf3*1.d00
-
 c     **************************************************************************
 c     loop to compute volume integrals
 c     **************************************************************************
@@ -7859,10 +7901,13 @@ c     &                      eps,pi,nints,nenlad,npars)
                nls = npars*(ns-1)
                do i=1,npars
                   index = ipar(nls+i,nel)
+c
+c     TODO: ajeitar ipar(*,*) aqui
+c     
 ccc               novo
-ccc               d(1,index) = dls(i)                  
+                  d(1,index) = dls(i)                  
 ccc               write(*,*) "flux2", ngs+i, ipar(nls+i,nel)                  
-                  d(1,ngs + i) = dls(i)
+ccc                  d(1,ngs + i) = dls(i)
                   dl(1,nls + i) = dls(i)
                end do
             end if
@@ -8573,6 +8618,7 @@ c
       return
       end
 
+c ----------------------------------------------------------------------      
       subroutine flninter(ien   ,x     ,xl   ,
      &                 d     ,dl    ,mat   ,
      &                 c     ,ipar  ,dlf   ,
@@ -9356,20 +9402,20 @@ c
 c
 c     geometria
 c
-        x1 =0.d00
-        x2 =0.d00
-        dx1=0.d00
-        dx2=0.d00
+         x1 = 0.d00
+         x2 = 0.d00
+         dx1 = 0.d00
+         dx2 = 0.d00
 c
         do i=1,nenlad
-          x1 =x1 +xls(1,i)*shlb(2,i,ls)
-          x2 =x2 +xls(2,i)*shlb(2,i,ls)
-          dx1=dx1+xls(1,i)*shlb(1,i,ls)
-          dx2=dx2+xls(2,i)*shlb(1,i,ls)
+          x1 = x1 +xls(1,i)*shlb(2,i,ls)
+          x2 = x2 +xls(2,i)*shlb(2,i,ls)
+          dx1 = dx1+xls(1,i)*shlb(1,i,ls)
+          dx2 = dx2+xls(2,i)*shlb(1,i,ls)
         end do
-           dxx=dsqrt(dx1*dx1+dx2*dx2)
-           xn1= sign*dx2/dxx
-           xn2=-sign*dx1/dxx
+           dxx = dsqrt(dx1*dx1+dx2*dx2)
+           xn1 = sign*dx2/dxx
+           xn2 = -sign*dx1/dxx
 c
 c
       pix=pi*x1
