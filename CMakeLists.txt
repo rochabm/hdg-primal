@@ -3,8 +3,12 @@ project (HDG)
 enable_language (Fortran)
 
 if(NOT DEFINED ENV{PETSC_DIR})
-  message(FATAL_ERROR "You must the environment variable PETSC_DIR for compilation")
+  message(FATAL_ERROR "You must set PETSC_DIR for compilation")
 endif()
+
+message(STATUS "PETSC_ARCH $ENV{PETSC_ARCH}")
+message(STATUS "PETSC_DIR $ENV{PETSC_DIR}")
+
 
 link_directories ($ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
 
@@ -14,8 +18,8 @@ get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-  set (CMAKE_Fortran_FLAGS_RELEASE "-funroll-all-loops -fno-f2c -O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-fno-f2c -O0 -g")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
   set (CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
@@ -35,20 +39,28 @@ endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 
 #
 # begin of my programs
-# 
-set (PROGRAMS "exvec" "primal-hdg-dc")
+#
+set(PROGRAMS exvec exksp primal-hdg-dc)
+#add_executable (exvec "exvec.F")
+#add_executable (primal-hdg-dc "primal-hdg-dc.F")
 
-foreach (p ${PROGRAMS})
+foreach(p ${PROGRAMS})
   add_executable (${p} "${p}.F")
-endforeach (p)
+  target_include_directories (${p} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    $ENV{PETSC_DIR}/include
+    $ENV{PETSC_DIR}/include/mpiuni
+    $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
+  target_link_libraries (${p} LINK_PUBLIC petsc lapack blas)
+endforeach(p)
 
-message(STATUS "PETSC_ARCH $ENV{PETSC_ARCH}")
-message(STATUS "PETSC_DIR $ENV{PETSC_DIR}")
 
-target_include_directories (exvec PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-			   $ENV{PETSC_DIR}/include
-			   $ENV{PETSC_DIR}/include/mpiuni
-			   $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include
-			   )
-target_link_libraries (exvec LINK_PUBLIC petsc lapack blas)
+#target_include_directories (primal-hdg-dc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+#			   $ENV{PETSC_DIR}/include
+#			   $ENV{PETSC_DIR}/include/mpiuni
+#			   $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include
+#			   )
+#target_link_libraries (primal-hdg-dc LINK_PUBLIC petsc)
+
+
 

@@ -19,12 +19,25 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
 c     parameter (ndim=200000000)
-      parameter (ndim=800000000)
+      parameter (ndim=10000000)
 c
       common a(ndim)
       common /dictn/ ia(10000000)
 c     old    /dictn/ ia(100000000)
 
+c
+c     PETSC includes 
+c      
+      
+#include <finclude/petscsys.h>
+#include <finclude/petscvec.h>
+#include <finclude/petscmat.h>
+#include <finclude/petscksp.h>
+#include <finclude/petscpc.h>
+
+      PetscErrorCode   ierr
+      PetscMPIInt size,rank
+      
 c
 c     mfirst = address of first available word in blank common
 c     mlast  = address of last available word in blank common
@@ -57,6 +70,22 @@ c
       mtot   = ndim
       iprec  = 2
 c
+c     test PETSc
+c
+
+      call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+      call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
+      if (size .ne. 1) then
+         call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
+         if (rank .eq. 0) then
+            write(6,*) 'This is a uniprocessor example only!'
+         endif
+         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+      endif
+
+      call tpetsc
+      stop
+c
 c     main subroutine
 c
       call lpgm
@@ -77,7 +106,155 @@ c     close(ilocal)
 c
       stop
       end
-c
+c----------------------------------------------------------------------
+      subroutine tpetsc
+c----------------------------------------------------------------------
+c     Test PETSc by solving Ax=b
+c----------------------------------------------------------------------
+      Vec              x,b,u
+      Mat              A
+      KSP              ksp
+      PC               pc
+      PetscReal        norm,tol
+      PetscErrorCode   ierr
+      PetscInt i,n,col(3),its,i1,i2,i3
+      PetscBool  flg
+      PetscMPIInt size,rank
+      PetscScalar      none,one,value(3)
+      
+c      call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+c      call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
+c      if (size .ne. 1) then
+c         call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
+c         if (rank .eq. 0) then
+c            write(6,*) 'This is a uniprocessor example only!'
+c         endif
+c         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+c      endif
+      none = -1.0
+      one  = 1.0
+      n    = 10
+      i1 = 1
+      i2 = 2
+      i3 = 3
+c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+
+      !  Create matrix.  When using MatCreate(), the matrix format can
+!  be specified at runtime.
+
+      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,n,n,ierr)
+      call MatSetFromOptions(A,ierr)
+      call MatSetUp(A,ierr)
+
+!  Assemble matrix.
+!   - Note that MatSetValues() uses 0-based row and column numbers
+!     in Fortran as well as in C (as set here in the array "col").
+
+      value(1) = -1.0
+      value(2) = 2.0
+      value(3) = -1.0
+      do 50 i=1,n-2
+         col(1) = i-1
+         col(2) = i
+         col(3) = i+1
+         call MatSetValues(A,i1,i,i3,col,value,INSERT_VALUES,ierr)
+  50  continue
+      i = n - 1
+      col(1) = n - 2
+      col(2) = n - 1
+      call MatSetValues(A,i1,i,i2,col,value,INSERT_VALUES,ierr)
+      i = 0
+      col(1) = 0
+      col(2) = 1
+      value(1) = 2.0
+      value(2) = -1.0
+      call MatSetValues(A,i1,i,i2,col,value,INSERT_VALUES,ierr)
+      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
+
+!  Create vectors.  Note that we form 1 vector from scratch and
+!  then duplicate as needed.
+
+      call VecCreate(PETSC_COMM_WORLD,x,ierr)
+      call VecSetSizes(x,PETSC_DECIDE,n,ierr)
+      call VecSetFromOptions(x,ierr)
+      call VecDuplicate(x,b,ierr)
+      call VecDuplicate(x,u,ierr)
+
+!  Set exact solution; then compute right-hand-side vector.
+
+      call VecSet(u,one,ierr)
+      call MatMult(A,u,b,ierr)
+
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+!          Create the linear solver and set various options
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+!  Create linear solver context
+
+      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
+
+!  Set operators. Here the matrix that defines the linear system
+!  also serves as the preconditioning matrix.
+
+      call KSPSetOperators(ksp,A,A,ierr)
+
+!  Set linear solver defaults for this problem (optional).
+!   - By extracting the KSP and PC contexts from the KSP context,
+!     we can then directly directly call any KSP and PC routines
+!     to set various options.
+!   - The following four statements are optional; all of these
+!     parameters could alternatively be specified at runtime via
+!     KSPSetFromOptions();
+
+      call KSPGetPC(ksp,pc,ierr)
+      call PCSetType(pc,PCJACOBI,ierr)
+      tol = 1.d-7
+      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,                         &
+     &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+
+!  Set runtime options, e.g.,
+!      -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
+!  These options will override those specified above as long as
+!  KSPSetFromOptions() is called _after_ any other customization
+!  routines.
+
+      call KSPSetFromOptions(ksp,ierr)
+
+      call KSPSolve(ksp,b,x,ierr)
+
+      call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+!                      Check solution and clean up
+! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+!  Check the error
+
+      call VecAXPY(x,none,u,ierr)
+      call VecNorm(x,NORM_2,norm,ierr)
+      call KSPGetIterationNumber(ksp,its,ierr)
+      if (norm .gt. 1.e-12) then
+        write(6,100) norm,its
+      else
+        write(6,200) its
+      endif
+ 100  format('Norm of error = ',e11.4,',  Iterations = ',i5)
+ 200  format('Norm of error < 1.e-12,Iterations = ',i5)
+
+!  Free work space.  All PETSc objects should be destroyed when they
+!  are no longer needed.
+
+      call VecDestroy(x,ierr)
+      call VecDestroy(u,ierr)
+      call VecDestroy(b,ierr)
+      call MatDestroy(A,ierr)
+      call KSPDestroy(ksp,ierr)
+ccc      call PetscFinalize(ierr)
+
+
+      end 
 c----------------------------------------------------------------------
       subroutine lpgm
 c----------------------------------------------------------------------
@@ -218,10 +395,6 @@ c
       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
       meanbw = nalhs/neq
       nwords = mtot - mlast + mfirst - 1
-
-      write(*,*) "NWORDS", nwords
-      write(*,*) "MTOT", mtot
-      write(*,*) "MLAST",mlast
 c
 c     write equation system data
 c
@@ -440,17 +613,17 @@ c
 c
 c     diagonal scaling
 c
-      do 200 j=1,neq
+      do j=1,neq
          ajj = a(idiag(j))
          if (ajj.ne.zero) b(j) = b(j)/ajj
- 200  continue
+      end do
 c
 c     back substitution
 c
       if (neq.eq.1) return
       jjnext = idiag(neq)
 c
-      do 400 j=neq,2,-1
+      do j=neq,2,-1
          jj     = jjnext
          jjnext = idiag(j-1)
          jcolht = jj - jjnext
@@ -459,13 +632,13 @@ c
             istart = j - jcolht + 1
             jtemp  = jjnext - istart + 1
 c
-            do 300 i=istart,j-1
+            do i=istart,j-1
                b(i) = b(i) - a(jtemp+i)*bj
- 300        continue
+            end do
 c
          endif
 c
- 400  continue
+      end do
 c
       return
       end
@@ -728,34 +901,29 @@ c-----------------------------------------------------------------------
 c     program to compute column heights in global left-hand-side matrix
 c-----------------------------------------------------------------------
       dimension idiag(*),lm(ned,nen,*)
-c
+c     
       do 500 k=1,numel
-      min = neq
+         min = neq
+c     
+         do j=1,nen
+            do i=1,ned
+               num = lm(i,j,k)
+               if (num.gt.0) min = min0(min,num)
+            end do
+         end do
+c     
+         do j=1,nen
+            do i=1,ned
+               num = lm(i,j,k)
+               if (num.gt.0) then
+                  m = num - min
+                  if (m.gt.idiag(num)) idiag(num) = m
+               endif
+            end do
+         end do
 c
-      do 200 j=1,nen
-c
-      do 100 i=1,ned
-      num = lm(i,j,k)
-      if (num.gt.0) min = min0(min,num)
-  100 continue
-c
-  200 continue
-c
-      do 400 j=1,nen
-c
-      do 300 i=1,ned
-      num = lm(i,j,k)
-      if (num.gt.0) then
-         m = num - min
-         if (m.gt.idiag(num)) idiag(num) = m
-      endif
-c
-  300 continue
-
-  400 continue
-c
-  500 continue
-c
+ 500  continue
+c     
       return
       end
 
@@ -778,30 +946,29 @@ c
 c
       call genfl(x,nsd)
 c
-      ! Malhas trapezoidais
-      if (beta > 0.d0) then
-         do j=2,ninc(2),2
-            do i=1,ninc(1)+1,2
-               ! baixar
-               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
-               noAnty = no-inc(2)
-               noProxy = no+inc(2)
-               do isd=1,nsd
-              x(isd,no)=beta*x(isd,noProxy)+(1.d00-beta)*x(isd,noAnty)
-               end do
-            end do
-            do i=2,ninc(1)+1,2
-               ! subir
-               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
-               noAnty = no-inc(2)
-               noProxy = no+inc(2)
-               do isd=1,nsd
-              x(isd,no)=beta*x(isd,noAnty)+(1.d00-beta)*x(isd,noProxy)
-               end do
-            end do
-         end do
-      end if
-c
+c$$$      ! Malhas trapezoidais
+c$$$      if (beta > 0.d0) then
+c$$$         do j=2,ninc(2),2
+c$$$            do i=1,ninc(1)+1,2
+c$$$               ! baixar
+c$$$               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
+c$$$               noAnty = no-inc(2)
+c$$$               noProxy = no+inc(2)
+c$$$               do isd=1,nsd
+c$$$              x(isd,no)=beta*x(isd,noProxy)+(1.d00-beta)*x(isd,noAnty)
+c$$$               end do
+c$$$            end do
+c$$$            do i=2,ninc(1)+1,2
+c$$$               ! subir
+c$$$               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
+c$$$               noAnty = no-inc(2)
+c$$$               noProxy = no+inc(2)
+c$$$               do isd=1,nsd
+c$$$              x(isd,no)=beta*x(isd,noAnty)+(1.d00-beta)*x(isd,noProxy)
+c$$$               end do
+c$$$            end do
+c$$$         end do
+c$$$      end if
 c
       if (iprtin.eq.1) return
 c
@@ -853,9 +1020,10 @@ c
       idiag(1) = 1
       if (neq.eq.1) return
 c
-      do 100 i=2,neq
-      idiag(i) = idiag(i) + idiag(i-1) + 1
-  100 continue
+      do i=2,neq
+         idiag(i) = idiag(i) + idiag(i-1) + 1
+      end do
+c      
       n = idiag(neq)
 c
       return
@@ -1215,22 +1383,20 @@ c-----------------------------------------------------------------------
       subroutine formlm (id,ien,lm,ndof,ned,nen,numel)
 c-----------------------------------------------------------------------
 c     program to form lm array
+c     local to global mapping
 c-----------------------------------------------------------------------
       dimension id(ndof,*),ien(nen,*),lm(ned,nen,*)
-c
-      do 300 k=1,numel
-c
-      do 200 j=1,nen
-      node=ien(j,k)
-c
-      do 100 i=1,ndof
-      lm(i,j,k) = id(i,node)
-  100 continue
-c
-  200 continue
-c
-  300 continue
-c
+c     
+      do k=1,numel
+         do j=1,nen
+            node=ien(j,k)
+            do i=1,ndof
+               lm(i,j,k) = id(i,node)
+               write(*,*) "LM", j, k, lm(i,j,k)
+            end do
+         end do
+      end do
+c     
       return
       end
 
@@ -1316,8 +1482,8 @@ c     *** OLD ***
          call genelad1(lado,nside)
       endif
 
-      write(*,*) "BLA",incf(3,1),incf(3,2),incf(3,3),incf(3,4),
-     &    incf(3,5),incf(3,6)
+c      write(*,*) "BLA",incf(3,1),incf(3,2),incf(3,3),incf(3,4),
+c     &    incf(3,5),incf(3,6)
 c
       go to 100
 c
@@ -1422,71 +1588,17 @@ c               write(*,*) nl, l, nsp, lada+np
          end do
       end do
 c
-c     TESTE 1: trocar dois DOFs
-c     OK
-c      
-c      ipar(1,1) = 42
-c      ipar(2,1) = 41
-c
-c      ipar(1,2) = 46
-c      ipar(2,2) = 45
-
-c
-c     TESTE 2: trocar DOFs de duas faces (el1 e el2)
-c     NAO FUNCIONA
-c     NA FLUX0 OK
-c     ALGUMA COISA NA FLUX2 ou FLUX3
-      
-c
-c     Exemplo:
-c     
-c     el 1 face 3
-c           1           9          21
-c           1          10          22
-c           1          11          23
-c           1          12          24
-c     el 2 face 2
-c           2           5          21
-c           2           6          22
-c           2           7          23
-c           2           8          24
-c
-c     trocar pelos da face 1 do el 1
-c     41 42 43 44
-c
-c      ipar(9,1)  = 41
-c      ipar(10,1) = 42
-c      ipar(11,1) = 43
-c      ipar(12,1) = 44
-
-c      ipar(5,2) = 41
-c      ipar(6,2) = 42
-c      ipar(7,2) = 43
-c      ipar(8,2) = 44
-
-c      ipar(1,1) = 21
-c      ipar(2,1) = 22
-c      ipar(3,1) = 23
-c      ipar(4,1) = 24
-                                    
-
-c
-c     TESTE 3: algoritmo para numerar POR ELEMENTO primeiro
-c     
-      
-c
-      write(*,*) "debug ipar"
-      do nl=1,numel
-         do l=1,nside
-            la = lado(l,nl)
-            lada = npars*(la-1)
-            do np=1,npars
-               nsp = (l-1)*npars + np
-c               ipar(nsp,nl) = lada + np
-               write(*,*) nl, nsp, ipar(nsp,nl)
-            end do
-         end do
-      end do
+c$$$      write(*,*) "debug ipar"
+c$$$      do nl=1,numel
+c$$$         do l=1,nside
+c$$$            la = lado(l,nl)
+c$$$            lada = npars*(la-1)
+c$$$            do np=1,npars
+c$$$               nsp = (l-1)*npars + np
+c$$$               write(*,*) nl, nsp, ipar(nsp,nl)
+c$$$            end do
+c$$$         end do
+c$$$      end do
 c      
       return
       end
