@@ -87,7 +87,6 @@ c
          endif
          SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
       endif
-
 c
 c     test if PETSc is working fine
 c
@@ -140,13 +139,13 @@ c----------------------------------------------------------------------
        PetscFortranAddr userctx(*)
 
  !  Local variable declararions
-       Mat     A
-       Vec     b,x
-       KSP    ksp
+       Mat      A
+       Vec      b,x
+       KSP      ksp
        PetscInt Ntot,five,one
 
        one  = 1
-       five = 50
+       five = 1000
        Ntot = n
 
 !     Create matrix.  When using MatCreate(), the matrix format can
@@ -160,8 +159,7 @@ c      call MatSetUp(A,ierr)
       call MatCreateSeqAIJ(PETSC_COMM_SELF,Ntot,Ntot,five,              &
      &      PETSC_NULL_INTEGER,A,ierr)
 
-      call MatZeroEntries(A,ierr)
-      
+      call MatZeroEntries(A,ierr)      
 !
 !  Create vectors. Here we create vectors with no memory allocated.
 !  This way, we can use the data structures already in the program
@@ -229,12 +227,14 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Solve Ax=b
 c----------------------------------------------------------------------
+      implicit none
+c      
 #include <finclude/petsc.h>
-
+c
 #define xx_a(ib) xx_v(xx_i + (ib))      
-
+c      
       real*8 sol(*)
-     
+c     
       Vec              x,b,u
       Mat              A
       KSP              ksp
@@ -593,17 +593,19 @@ c
 c
 c     allocate memory for global equation system
 c
-      mpalhs = mpoint('alhs    ',nalhs,0,0,iprec)
-      mpdlhs = mpoint('dlhs    ',nalhs,0,0,iprec)
-      mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
+c      mpalhs = mpoint('alhs    ',nalhs,0,0,iprec)
+c      mpdlhs = mpoint('dlhs    ',nalhs,0,0,iprec)
+c      mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
+      mpalhs = mpoint('alhs    ',1,0,0,iprec)
+      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
+      mpbrhs = mpoint('brhs    ',1,0,0,iprec)      
       meanbw = nalhs/neq
       nwords = mtot - mlast + mfirst - 1
 c
 c     allocate matrices
 c
       write(*,*) "INITIALIZE MATs",neq
-      call UserInitializeLinearSolver(neq,neq,userctx,ierr)
-      
+      call UserInitializeLinearSolver(neq,neq,userctx,ierr)      
 c
 c     write equation system data
 c
@@ -708,31 +710,32 @@ c
 c
 c     solve
 c      
-      call factor(a(mpalhs),a(mpdiag),neq)
+c$$$      call factor(a(mpalhs),a(mpdiag),neq)
 c
 c     back substitution
 c        back: for symmetric matrices
 c        backns: for non-symmetric matrices
 c
-      write(*,*) "back substitution", neq
-      call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
-
-      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
-      call vecprint(a(mpbrhs),neq)
+c$$$      write(*,*) "back substitution", neq
+c$$$      call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
+c$$$
+c$$$      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
+c$$$      call vecprint(a(mpbrhs),neq)
       
 c
 c     PETSC solver
 c
+#ifdef DEBUG
+      stop
+#endif
+      
       write(*,*) "PETSC SOLVING"
       call UserDoLinearSolver(userctx,a(mpbrhs))
-      write(*,*) "SOLUCAO COPIADA PARA MPBRHS"
-      call vecprint(a(mpbrhs),neq)
-c      stop
-      
+c      write(*,*) "SOLUCAO COPIADA PARA MPBRHS"
+c      call vecprint(a(mpbrhs),neq)
 c
  1111 continue
 c
-      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
       call btod(a(mpid),a(mpd),a(mpbrhs),ndof,nmultp)
 c
 c     write output
@@ -781,11 +784,8 @@ c
       b    = userctx(2)
       A    = userctx(3)
 c
-      write(*,*) "ADDLHS", diag
-c      
       if (diag) then
 c
-         write(*,*) "ADDLHS VALOR DIAGONAL"
          do j=1,nee
             k = lm(j)
             if (k.gt.0) then
@@ -816,26 +816,23 @@ c
                      endif
                      alhs(l) = alhs(l) + eleffm(i,j)
 
-                     
                      val = eleffm(i,j)
-
-                     write(*,*) "ADDLHS", k,m
-                     
+                     write(*,*) "addlhs local ", k,m
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
+                     write(*,*) "addlhs local ", k,m, "OK"
                      if (ierr.ne.0) then
-                        SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+                        SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
                      endif
-
-                     if(k.ne.m) then
-
-                        write(*,*) "ADDLHS sym", m, k
-                        call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
-                        if (ierr.ne.0) then
-                           SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-                        endif
-                        
-                     end if                        
                      
+                     if(k.ne.m) then
+                        write(*,*) "addlhs sym local ", m,k
+                        call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
+                        write(*,*) "addlhs sym local ", m,k, "OK"
+                        if (ierr.ne.0) then
+                           SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
+                        endif                        
+                     end if                        
+c                     
                   endif
                end do
 c
@@ -872,7 +869,7 @@ c
             brhs(k) = brhs(k) + elresf(j)
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
-            write(*,*) "VEC ADD",k-1,val
+c            write(*,*) "VEC ADD",k-1,val
             if (ierr.ne.0) then
                SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
             endif            
@@ -893,7 +890,7 @@ c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
 c
 c     forward reduction
-c
+c      
       jj = 0
 c
       do 100 j=1,neq
@@ -1148,7 +1145,6 @@ c
          do j=1,numnp
             k = id(i,j)
             if (k.gt.0) d(i,j) = brhs(k)
-            if (k.gt.0) write(*,*) brhs(k)
          end do
       end do
 c
@@ -1689,7 +1685,7 @@ c
             node=ien(j,k)
             do i=1,ndof
                lm(i,j,k) = id(i,node)
-               write(*,*) "LM", j, k, lm(i,j,k)
+c               write(*,*) "LM", j, k, lm(i,j,k)
             end do
          end do
       end do
@@ -5902,7 +5898,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5929,7 +5925,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5956,7 +5952,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5983,7 +5979,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6010,7 +6006,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6037,7 +6033,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6052,7 +6048,8 @@ c$$$         end do
       end if
 c
 c     integration points
-c
+
+c     
       do l=1,nint
 c
          do j=1,3
@@ -8040,6 +8037,8 @@ c
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+c      
+      write(*,*) "BEGIN FLUX2"
 c
 c     PETSC stuff
 c      
@@ -8160,7 +8159,7 @@ c
 c
 c     loop on integration points
 c
-         write(*,*) "FLUX2 int points"
+c         write(*,*) "FLUX2 int points"
          do l=1,nint
             c1=detc(l)*w(l)
 c
@@ -8567,7 +8566,8 @@ c     TODO:
 c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
 c     lm - prescritos
-c         
+c
+         write(*,*) "addlhs elem ", nel
          call addlhs(alhs,eleffd,idiag,lm(1,1,nel),nee,diag,userctx)
 c        call addnsl(alhs,dlhs,eleffd,idiag,lm(1,1,nel),nee,diag)
 c
@@ -8581,13 +8581,13 @@ c
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 
-      write(*,*) "ASSEMBLY OK", nee     
-      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-      write(*,*) "RHS MANUAL"
-      do ii=1,48
-         write(*,*) brhs(ii)
-      end do
+c      write(*,*) "ASSEMBLY OK", nee     
+c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      write(*,*) "RHS MANUAL"
+c      do ii=1,48
+c         write(*,*) brhs(ii)
+c      end do
       
 c      stop
       
