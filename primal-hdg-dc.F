@@ -19,7 +19,7 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
 c     parameter (ndim=200000000)
-      parameter (ndim=10000000)
+      parameter (ndim=400000000)
 c
       common a(ndim)
       common /dictn/ ia(10000000)
@@ -37,6 +37,11 @@ c
 
       PetscErrorCode   ierr
       PetscMPIInt size,rank
+      PetscFortranAddr userctx(6)
+
+      external UserInitializeLinearSolver
+      external UserFinalizeLinearSolver
+      external UserDoLinearSolver
       
 c
 c     mfirst = address of first available word in blank common
@@ -72,7 +77,7 @@ c
 c
 c     test PETSc
 c
-
+      
       call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
       call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
       if (size .ne. 1) then
@@ -83,12 +88,19 @@ c
          SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
       endif
 
-      call tpetsc
-      stop
+c
+c     test if PETSc is working fine
+c
+c$$$      call UserInitializeLinearSolver(10,10,userctx,ierr)
+c$$$      call tpetsc(userctx)
+c$$$      call UserFinalizeLinearSolver(userctx,ierr)
+c$$$      call PetscFinalize(ierr)
+c$$$      stop
+      
 c
 c     main subroutine
 c
-      call lpgm
+      call lpgm(userctx)
 c
 c     system-dependent unit/file specifications
 c
@@ -104,53 +116,244 @@ c     open(unit=ipmx, file= 'errofem-pp-misto-hdg.con')
 c     close(ipmx)
 c     close(ilocal)
 c
+
+c
+c     clean-up PETSc stuff and finalize
+c      
+      call PetscFinalize(ierr)
       stop
       end
+
 c----------------------------------------------------------------------
-      subroutine tpetsc
+      subroutine UserInitializeLinearSolver(m,n,userctx,ierr)
+c----------------------------------------------------------------------      
+      implicit none
+
+#include <finclude/petscsys.h>
+#include <finclude/petscvec.h>
+#include <finclude/petscmat.h>
+#include <finclude/petscksp.h>
+#include <finclude/petscpc.h>
+
+       PetscInt m,n
+       PetscErrorCode ierr
+       PetscFortranAddr userctx(*)
+
+ !  Local variable declararions
+       Mat     A
+       Vec     b,x
+       KSP    ksp
+       PetscInt Ntot,five,one
+
+       one  = 1
+       five = 50
+       Ntot = n
+
+!     Create matrix.  When using MatCreate(), the matrix format can
+!     be specified at runtime.
+
+c      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+c      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n,ierr)
+c      call MatSetFromOptions(A,ierr)
+c      call MatSetUp(A,ierr)
+       
+      call MatCreateSeqAIJ(PETSC_COMM_SELF,Ntot,Ntot,five,              &
+     &      PETSC_NULL_INTEGER,A,ierr)
+
+      call MatZeroEntries(A,ierr)
+      
+!
+!  Create vectors. Here we create vectors with no memory allocated.
+!  This way, we can use the data structures already in the program
+!  by using VecPlaceArray() subroutine at a later stage.
+!
+      call VecCreateSeq(PETSC_COMM_SELF,Ntot,b,ierr)
+      call VecDuplicate(b,x,ierr)
+
+!  Create linear solver context. This will be used repeatedly for all
+!  the linear solves needed.
+
+      call KSPCreate(PETSC_COMM_SELF,ksp,ierr)
+
+       userctx(1) = x
+       userctx(2) = b
+       userctx(3) = A
+       userctx(4) = ksp
+       userctx(5) = m
+       userctx(6) = n
+
+       write(*,*) "PETSC: criando matriz OK"
+       
+       return
+       end
+
+c-----------------------------------------------------------------------
+      subroutine UserFinalizeLinearSolver(userctx,ierr)
+c-----------------------------------------------------------------------      
+      implicit none
+
+#include <finclude/petscsys.h>
+#include <finclude/petscvec.h>
+#include <finclude/petscmat.h>
+#include <finclude/petscksp.h>
+#include <finclude/petscpc.h>
+
+      PetscErrorCode ierr
+      PetscFortranAddr userctx(*)
+
+!  Local variable declararions
+
+      Vec  x,b
+      Mat  A
+      KSP ksp
+!
+!     We are all done and don't need to solve any more linear systems, so
+!     we free the work space.  All PETSc objects should be destroyed when
+!     they are no longer needed.
+!
+      x    = userctx(1)
+      b    = userctx(2)
+      A    = userctx(3)
+      ksp  = userctx(4)
+
+      call VecDestroy(x,ierr)
+      call VecDestroy(b,ierr)
+      call MatDestroy(A,ierr)
+      call KSPDestroy(ksp,ierr)
+
+      return
+      end
+
 c----------------------------------------------------------------------
-c     Test PETSc by solving Ax=b
+      subroutine UserDoLinearSolver(userctx,sol)
 c----------------------------------------------------------------------
+c     Solve Ax=b
+c----------------------------------------------------------------------
+#include <finclude/petsc.h>
+
+#define xx_a(ib) xx_v(xx_i + (ib))      
+
+      real*8 sol(*)
+     
       Vec              x,b,u
       Mat              A
       KSP              ksp
       PC               pc
       PetscReal        norm,tol
       PetscErrorCode   ierr
-      PetscInt i,n,col(3),its,i1,i2,i3
-      PetscBool  flg
-      PetscMPIInt size,rank
+      PetscInt         i,n,col(3),its,i1,i2,i3
+      PetscBool        flg
+      PetscScalar      none,one,value(3)     
+      PetscFortranAddr userctx(*)
+
+      PetscScalar xx_v(1)
+      PetscOffset xx_i,yy_i      
+c      
+c     Get PETSC data
+c      
+      x    = userctx(1)
+      b    = userctx(2)
+      A    = userctx(3)
+      ksp  = userctx(4)
+      n    = int(userctx(5))
+      
+c      
+c     Create linear solver context
+c
+      write(*,*) "PETSC: criando solver"
+      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
+
+c     Set operators. Here the matrix that defines the linear system
+c     also serves as the preconditioning matrix.
+
+      call KSPSetOperators(ksp,A,A,ierr)
+
+c     Set linear solver defaults for this problem (optional).
+      
+      call KSPGetPC(ksp,pc,ierr)
+      call PCSetType(pc,PCJACOBI,ierr)
+      tol = 1.d-7
+      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
+     &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+
+c     Set runtime options (override all previous definitions)
+      
+      call KSPSetFromOptions(ksp,ierr)
+
+      write(*,*) "PETSC: resolvendo sistema"      
+      call KSPSolve(ksp,b,x,ierr)
+
+      write(*,*)
+      write(*,*)
+      write(*,*)
+      write(*,*)     
+c
+c     show information
+c           
+      write(*,*) "PETSC: solucao"
+      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)            
+      call KSPGetIterationNumber(ksp,its,ierr)
+      call KSPGetResidualNorm(ksp,norm,ierr)
+      write(6,100) norm, its
+ 100  format('Norm of residual = ',E10.6,'Iterations = ',I5)
+c
+c     get data from vector, copy to sol and restore vector
+c
+      call VecGetArray(x,xx_v,xx_i,ierr)
+      do i=1,n
+         sol(i) = xx_a(i)
+      end do      
+      call VecRestoreArray(x,xx_v,xx_i,ierr)     
+c      
+      end      
+     
+c----------------------------------------------------------------------
+      subroutine tpetsc(userctx)
+c----------------------------------------------------------------------
+c     Test PETSc by solving Ax=b
+c----------------------------------------------------------------------
+#include <finclude/petsc.h>
+     
+      Vec              x,b,u
+      Mat              A
+      KSP              ksp
+      PC               pc
+      PetscReal        norm,tol
+      PetscErrorCode   ierr
+      PetscInt         i,n,col(3),its,i1,i2,i3
+      PetscBool        flg
       PetscScalar      none,one,value(3)
       
-c      call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
-c      call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
-c      if (size .ne. 1) then
-c         call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
-c         if (rank .eq. 0) then
-c            write(6,*) 'This is a uniprocessor example only!'
-c         endif
-c         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-c      endif
+      PetscFortranAddr userctx(*)
+
+      one  = 1
+      x    = userctx(1)
+      b    = userctx(2)
+      A    = userctx(3)
+      ksp  = userctx(4)
+      m    = int(userctx(5))
+      n    = int(userctx(6))
+      
       none = -1.0
       one  = 1.0
       n    = 10
       i1 = 1
       i2 = 2
       i3 = 3
-c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
-      !  Create matrix.  When using MatCreate(), the matrix format can
-!  be specified at runtime.
+!     Create matrix.  When using MatCreate(), the matrix format can
+!     be specified at runtime.     
 
-      call MatCreate(PETSC_COMM_WORLD,A,ierr)
-      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,n,n,ierr)
-      call MatSetFromOptions(A,ierr)
-      call MatSetUp(A,ierr)
+c      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+c      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,n,n,ierr)
+c      call MatSetFromOptions(A,ierr)
+c      call MatSetUp(A,ierr)
 
-!  Assemble matrix.
+!     Assemble matrix.
 !   - Note that MatSetValues() uses 0-based row and column numbers
 !     in Fortran as well as in C (as set here in the array "col").
 
+      write(*,*) "PETSC: montando matriz"
       value(1) = -1.0
       value(2) = 2.0
       value(3) = -1.0
@@ -173,8 +376,8 @@ c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 
-!  Create vectors.  Note that we form 1 vector from scratch and
-!  then duplicate as needed.
+!     Create vectors.  Note that we form 1 vector from scratch and
+!     then duplicate as needed.
 
       call VecCreate(PETSC_COMM_WORLD,x,ierr)
       call VecSetSizes(x,PETSC_DECIDE,n,ierr)
@@ -182,7 +385,7 @@ c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
       call VecDuplicate(x,b,ierr)
       call VecDuplicate(x,u,ierr)
 
-!  Set exact solution; then compute right-hand-side vector.
+!     Set exact solution; then compute right-hand-side vector.
 
       call VecSet(u,one,ierr)
       call MatMult(A,u,b,ierr)
@@ -191,49 +394,47 @@ c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 !          Create the linear solver and set various options
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-!  Create linear solver context
+      write(*,*) "PETSC: criando solver"
+      
+!     Create linear solver context
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
-!  Set operators. Here the matrix that defines the linear system
-!  also serves as the preconditioning matrix.
+!     Set operators. Here the matrix that defines the linear system
+!     also serves as the preconditioning matrix.
 
       call KSPSetOperators(ksp,A,A,ierr)
 
-!  Set linear solver defaults for this problem (optional).
-!   - By extracting the KSP and PC contexts from the KSP context,
-!     we can then directly directly call any KSP and PC routines
-!     to set various options.
-!   - The following four statements are optional; all of these
-!     parameters could alternatively be specified at runtime via
-!     KSPSetFromOptions();
-
+!     Set linear solver defaults for this problem (optional).
+      
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
       tol = 1.d-7
-      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,                         &
+      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 
-!  Set runtime options, e.g.,
-!      -ksp_type <type> -pc_type <type> -ksp_monitor -ksp_rtol <rtol>
-!  These options will override those specified above as long as
-!  KSPSetFromOptions() is called _after_ any other customization
-!  routines.
-
+!     Set runtime options (override all previous definitions)
+      
       call KSPSetFromOptions(ksp,ierr)
 
+      write(*,*) "PETSC: resolvendo sistema"      
       call KSPSolve(ksp,b,x,ierr)
 
-      call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
-
+c      write(*,*) "PETSC: solucao"
+c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
+      
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !                      Check solution and clean up
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-!  Check the error
-
       call VecAXPY(x,none,u,ierr)
       call VecNorm(x,NORM_2,norm,ierr)
+
+c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      call VecView(u,PETSC_VIEWER_STDOUT_SELF,ierr)      
+      
       call KSPGetIterationNumber(ksp,its,ierr)
       if (norm .gt. 1.e-12) then
         write(6,100) norm,its
@@ -243,28 +444,30 @@ c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
  100  format('Norm of error = ',e11.4,',  Iterations = ',i5)
  200  format('Norm of error < 1.e-12,Iterations = ',i5)
 
-!  Free work space.  All PETSc objects should be destroyed when they
-!  are no longer needed.
+!     Free work space.  All PETSc objects should be destroyed when they
+!     are no longer needed.
 
-      call VecDestroy(x,ierr)
-      call VecDestroy(u,ierr)
-      call VecDestroy(b,ierr)
-      call MatDestroy(A,ierr)
-      call KSPDestroy(ksp,ierr)
-ccc      call PetscFinalize(ierr)
-
-
-      end 
+c      call VecDestroy(x,ierr)
+c      call VecDestroy(u,ierr)
+c      call VecDestroy(b,ierr)
+c      call MatDestroy(A,ierr)
+c      call KSPDestroy(ksp,ierr)
+c      
+      end
+      
 c----------------------------------------------------------------------
-      subroutine lpgm
+      subroutine lpgm(userctx)
 c----------------------------------------------------------------------
 c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
+#include <finclude/petsc.h>
+c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
-c
-c     remove above card for single-precision operation
+c      
+      PetscFortranAddr userctx(*)
+      PetscErrorCode   ierr           
 c
 c     catalog of common statements
 c
@@ -396,6 +599,12 @@ c
       meanbw = nalhs/neq
       nwords = mtot - mlast + mfirst - 1
 c
+c     allocate matrices
+c
+      write(*,*) "INITIALIZE MATs",neq
+      call UserInitializeLinearSolver(neq,neq,userctx,ierr)
+      
+c
 c     write equation system data
 c
       write(ieco,5000) title,neq,nalhs,meanbw,nwords
@@ -403,7 +612,7 @@ c
 c     solution phase
 c
       write(*,'(A)') "subroutine driver"
-      if (iexec.eq.1) call driver(neq,nalhs)
+      if (iexec.eq.1) call driver(neq,nalhs,userctx)
 c
 c     print memory-pointer dictionary
 c
@@ -448,7 +657,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine driver(neq,nalhs)
+      subroutine driver(neq,nalhs,userctx)
 c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
@@ -462,13 +671,15 @@ c-----------------------------------------------------------------------
       common a(1)
       common /dictn/ ia(10000000)
 c
+      PetscFortranAddr userctx(*)
+c
 c     clear left and right hand side
 c
       call clear(a(mpalhs),nalhs)
       call clear(a(mpdlhs),nalhs)
       call clear(a(mpbrhs),neq)
 c
-      call elemnt('form_stb',a(mpngrp))
+      call elemnt('form_stb',a(mpngrp),userctx)
 c
 c      account the nodal forces in the r.h.s.
 c
@@ -484,7 +695,7 @@ c
 c
 c     form the l.h.s and r.h.s. at element level
 c
-      call elemnt('form_lrs',a(mpngrp))
+      call elemnt('form_lrs',a(mpngrp),userctx)
 c
 c     factorization of the stiffnes matrix
 c        factor: symmetric matrices
@@ -495,17 +706,33 @@ c
 c
       if(neq.eq.0) go to 1111
 c
+c     solve
+c      
       call factor(a(mpalhs),a(mpdiag),neq)
 c
 c     back substitution
 c        back: for symmetric matrices
 c        backns: for non-symmetric matrices
 c
-      write(*,*) "back substitution"
+      write(*,*) "back substitution", neq
       call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
+
+      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
+      call vecprint(a(mpbrhs),neq)
+      
+c
+c     PETSC solver
+c
+      write(*,*) "PETSC SOLVING"
+      call UserDoLinearSolver(userctx,a(mpbrhs))
+      write(*,*) "SOLUCAO COPIADA PARA MPBRHS"
+      call vecprint(a(mpbrhs),neq)
+c      stop
+      
 c
  1111 continue
 c
+      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
       call btod(a(mpid),a(mpd),a(mpbrhs),ndof,nmultp)
 c
 c     write output
@@ -515,7 +742,7 @@ c
 c
 c     post-processing phase
 c
-      call elemnt('pos_proc',a(mpngrp))
+      call elemnt('pos_proc',a(mpngrp),userctx)
 c
 c100   continue
 c
@@ -523,7 +750,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine addlhs(alhs,eleffm,idiag,lm,nee,diag)
+      subroutine addlhs(alhs,eleffm,idiag,lm,nee,diag,userctx)
 c-----------------------------------------------------------------------
 c     program to add element left-hand-side matrix to
 c        global left-hand-side matrix
@@ -532,16 +759,43 @@ c        diag = .false, add upper triangle of full element matrix
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
+#include <finclude/petsc.h>
+
+c            
+      Vec              x,b
+      Mat              A
+      KSP              ksp
+      PC               pc
+      PetscReal        norm,tol
+      PetscErrorCode   ierr
+      PetscInt         i,n
+      PetscBool        flg
+      PetscScalar      val
+      
+      PetscFortranAddr userctx(*)
+c
       logical diag
       dimension alhs(*),eleffm(nee,*),idiag(*),lm(*)
 c
+      x    = userctx(1)
+      b    = userctx(2)
+      A    = userctx(3)
+c
+      write(*,*) "ADDLHS", diag
+c      
       if (diag) then
 c
+         write(*,*) "ADDLHS VALOR DIAGONAL"
          do j=1,nee
             k = lm(j)
             if (k.gt.0) then
                l = idiag(k)
                alhs(l) = alhs(l) + eleffm(j,j)
+               val = eleffm(j,j)
+               call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)               
+               if (ierr.ne.0) then
+                  SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+               endif
             endif
          end do
 c
@@ -554,12 +808,34 @@ c
                do i=1,j
                   m = lm(i)
                   if (m.gt.0) then
+                     
                      if (k.ge.m) then
                         l = idiag(k) - k + m
                      else
                         l = idiag(m) - m + k
                      endif
                      alhs(l) = alhs(l) + eleffm(i,j)
+
+                     
+                     val = eleffm(i,j)
+
+                     write(*,*) "ADDLHS", k,m
+                     
+                     call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
+                     if (ierr.ne.0) then
+                        SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+                     endif
+
+                     if(k.ne.m) then
+
+                        write(*,*) "ADDLHS sym", m, k
+                        call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
+                        if (ierr.ne.0) then
+                           SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+                        endif
+                        
+                     end if                        
+                     
                   endif
                end do
 c
@@ -572,18 +848,35 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine addrhs(brhs,elresf,lm,nee)
+      subroutine addrhs(brhs,elresf,lm,nee,userctx)
 c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
+#include <finclude/petsc.h>
+c     
+      Vec              b
+      PetscScalar      val
+      PetscErrorCode   ierr
+      PetscFortranAddr userctx(*)
+c      
       dimension brhs(*),elresf(*),lm(*)
-c
+c      
+      b = userctx(2)
+c      
       do j=1,nee
          k = lm(j)
-         if (k.gt.0) brhs(k) = brhs(k) + elresf(j)
+         if (k.gt.0) then
+            brhs(k) = brhs(k) + elresf(j)
+            val = elresf(j)
+            call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
+            write(*,*) "VEC ADD",k-1,val
+            if (ierr.ne.0) then
+               SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+            endif            
+         end if
       end do
 c
       return
@@ -855,6 +1148,7 @@ c
          do j=1,numnp
             k = id(i,j)
             if (k.gt.0) d(i,j) = brhs(k)
+            if (k.gt.0) write(*,*) brhs(k)
          end do
       end do
 c
@@ -1066,7 +1360,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine elemnt(task,ngrp)
+      subroutine elemnt(task,ngrp,userctx)
 c-----------------------------------------------------------------------
 c     program to calculate element task number
 c-----------------------------------------------------------------------
@@ -1077,6 +1371,9 @@ c-----------------------------------------------------------------------
 
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
+c
+      PetscFortranAddr userctx(*)
+c      
       common na(1)
       common /dictn/ ia(10000000)
       data ntask,    eltask
@@ -1100,7 +1397,7 @@ c
       endif
 c
       ntype  = na(mpnpar)
-      call elmlib(ntype,mpnpar,itask,neg)
+      call elmlib(ntype,mpnpar,itask,neg,userctx)
   200 continue
 c
       return
@@ -2686,6 +2983,24 @@ c-----------------------------------------------------------------------
       return
       end
 
+c-----------------------------------------------------------------------
+      subroutine vecprint(v,n)
+c-----------------------------------------------------------------------
+c     program to print vector v
+c-----------------------------------------------------------------------
+      implicit none
+      integer*8 i,n
+      real *8 v(*)
+c
+      do i=1,n
+         write(*,100) v(i)
+      end do
+ 100  format(F10.6)
+c     
+      return
+      end
+
+      
 c-----------------------------------------------------------------------
       subroutine centroid(xls,nesd,nen,c)
 c-----------------------------------------------------------------------
@@ -5793,10 +6108,11 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine elmlib(ntype,mpnpar,itask,neg)
+      subroutine elmlib(ntype,mpnpar,itask,neg,userctx)
 c-----------------------------------------------------------------------
 c     program to call element routines
 c-----------------------------------------------------------------------
+      PetscFortranAddr userctx(*)      
       common a(1)
 c
       go to (10,20) ntype
@@ -5804,19 +6120,22 @@ c
 c     Poisson problem - kinematic formulation
 c
   10  continue
-      call pflux(itask,a(mpnpar),a(mpnpar+16),neg)
+      call pflux(itask,a(mpnpar),a(mpnpar+16),neg,userctx)
  20   continue
       return
       end
 
 c-----------------------------------------------------------------------
-      subroutine pflux(itask,npar,mp,neg)
+      subroutine pflux(itask,npar,mp,neg,userctx)
 c-----------------------------------------------------------------------
 c     program to set storage and call tasks for the
 c     primal mixed Poisson  problem
 c     with continuous temperature and discontinuous flux
 c-----------------------------------------------------------------------
+      PetscFortranAddr userctx(*)
+c      
       dimension npar(*),mp(*)
+c      
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
@@ -6324,7 +6643,7 @@ c     Esta rotina monta a matriz global (multiplicadores
 c     usando condensacao estatica dos graus de liberdade
 c     da variavel primalx
 c
-      write(*,'(A)') "subroutine flux2"
+      write(*,'(A)') "subroutine flux2"      
       call flux2(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
      &           a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
@@ -6358,7 +6677,7 @@ c
      &           ncon  ,nencon,necon ,neep  ,
      &           nints ,nnods ,nenlad,npars ,
      &           nside ,nenp  ,nedge ,nodsp ,
-     &           index ,nface)
+     &           index ,nface, userctx)
 c
       write(*,'(A)') "fim da flux2"
       return
@@ -7669,12 +7988,24 @@ c
      &                 ned   ,nee   ,numnp ,ndof  ,
      &                 ncon  ,nencon,necon ,neep  ,
      &                 nints ,nnods ,nenlad,npars ,
-     &                 nside ,nenp  ,nedge ,nodsp ,index,nface)
+     &                 nside ,nenp  ,nedge ,nodsp ,index,nface,
+     &                 userctx)
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
 c------------------------------------------------------------------------------
+c     
       implicit real*8 (a-h,o-z)
+c
+#include <finclude/petscsys.h>
+#include <finclude/petscvec.h>
+#include <finclude/petscmat.h>
+#include <finclude/petscksp.h>
+#include <finclude/petscpc.h>
+c      
+      PetscFortranAddr userctx(*)
+      Mat A
+      Vec b
 c
       logical diag,quad,hexa,zerodl
 c
@@ -7710,8 +8041,13 @@ c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
-c     consistent matrix
+c     PETSC stuff
+c      
+      b = userctx(2)
+      A = userctx(3)
 c
+c     consistent matrix
+c      
       diag = .false.
       pi = 4.d00*datan(1.d00)
       gf1 = grav(1)
@@ -8232,14 +8568,30 @@ c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
 c     lm - prescritos
 c         
-         call addlhs(alhs,eleffd,idiag,lm(1,1,nel),nee,diag)
+         call addlhs(alhs,eleffd,idiag,lm(1,1,nel),nee,diag,userctx)
 c        call addnsl(alhs,dlhs,eleffd,idiag,lm(1,1,nel),nee,diag)
 c
-         call addrhs(brhs,elresd,lm(1,1,nel),nee)
+         call addrhs(brhs,elresd,lm(1,1,nel),nee,userctx)
 c
  500  continue
 c
 c
+      write(*,*) "FIM DA FLUX2"    
+      
+      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
+
+      write(*,*) "ASSEMBLY OK", nee     
+      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
+      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
+      write(*,*) "RHS MANUAL"
+      do ii=1,48
+         write(*,*) brhs(ii)
+      end do
+      
+c      stop
+      
+c      
       return
       end
 
