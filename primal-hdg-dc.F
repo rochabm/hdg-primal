@@ -674,14 +674,12 @@ c
 c     
       if(neq.eq.0) go to 1111
 c
-c     solve: factorization and back-substitution
-c     factorization of the stiffnes matrix
-c        factor: symmetric matrices
-c        factorns: for non-symmetric matrices      
+c     solve: factorization and back-substitution    
 c      
 c$$$      call factor(a(mpalhs),a(mpdiag),neq)
 c$$$      call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
-c$$$      call vecprint(a(mpbrhs),neq)      
+c$$$      call vecprint(a(mpbrhs),neq)
+      
 c
 c     PETSC solver
 c
@@ -11990,9 +11988,10 @@ c
       endif
 c
       if (nints.eq.3) then
+         write(*,*) "ACHOU NINTS=3"
          nintx=3
          ninty=3
-c
+
          raone(1)=-.774596669241483
          raone(2)= zero
          raone(3)= .774596669241483
@@ -12012,6 +12011,7 @@ c
          xaone(3)= zero
       endif
 c
+      write(*,*) nints
       if(nints.gt.3) then
          write(*,*) "error nints shlhxpbk AAA"
          stop
@@ -12060,7 +12060,9 @@ c
          write(*,'(A,I5)') " face",ns
          do ly = 1, ninty
             do lx = 1, nintx
+
                lb = lb + 1
+
 c     frente
                if(ns.eq.1) then
                   r = raone(lx)
