@@ -242,8 +242,7 @@ c
       b    = userctx(2)
       A    = userctx(3)
       ksp  = userctx(4)
-      n    = int(userctx(5))
-      
+      n    = int(userctx(5))      
 c      
 c     Create linear solver context
 c
@@ -323,17 +322,17 @@ c----------------------------------------------------------------------
       i2 = 2
       i3 = 3
 
-!     Create matrix.  When using MatCreate(), the matrix format can
-!     be specified at runtime.     
+c     Create matrix.  When using MatCreate(), the matrix format can
+c     be specified at runtime.     
 
 c      call MatCreate(PETSC_COMM_WORLD,A,ierr)
 c      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,n,n,ierr)
 c      call MatSetFromOptions(A,ierr)
 c      call MatSetUp(A,ierr)
 
-!     Assemble matrix.
-!   - Note that MatSetValues() uses 0-based row and column numbers
-!     in Fortran as well as in C (as set here in the array "col").
+c     Assemble matrix.
+c   - Note that MatSetValues() uses 0-based row and column numbers
+c     in Fortran as well as in C (as set here in the array "col").
 
       write(*,*) "PETSC: montando matriz"
       value(1) = -1.0
@@ -358,8 +357,8 @@ c      call MatSetUp(A,ierr)
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 
-!     Create vectors.  Note that we form 1 vector from scratch and
-!     then duplicate as needed.
+c     Create vectors.  Note that we form 1 vector from scratch and
+c     then duplicate as needed.
 
       call VecCreate(PETSC_COMM_WORLD,x,ierr)
       call VecSetSizes(x,PETSC_DECIDE,n,ierr)
@@ -367,27 +366,27 @@ c      call MatSetUp(A,ierr)
       call VecDuplicate(x,b,ierr)
       call VecDuplicate(x,u,ierr)
 
-!     Set exact solution; then compute right-hand-side vector.
+c     Set exact solution; then compute right-hand-side vector.
 
       call VecSet(u,one,ierr)
       call MatMult(A,u,b,ierr)
 
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-!          Create the linear solver and set various options
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c          Create the linear solver and set various options
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
       write(*,*) "PETSC: criando solver"
       
-!     Create linear solver context
+c     Create linear solver context
 
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
-!     Set operators. Here the matrix that defines the linear system
-!     also serves as the preconditioning matrix.
+c     Set operators. Here the matrix that defines the linear system
+c     also serves as the preconditioning matrix.
 
       call KSPSetOperators(ksp,A,A,ierr)
 
-!     Set linear solver defaults for this problem (optional).
+c     Set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
@@ -395,7 +394,7 @@ c      call MatSetUp(A,ierr)
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 
-!     Set runtime options (override all previous definitions)
+c     Set runtime options (override all previous definitions)
       
       call KSPSetFromOptions(ksp,ierr)
 
@@ -405,9 +404,9 @@ c      call MatSetUp(A,ierr)
 c      write(*,*) "PETSC: solucao"
 c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-!                      Check solution and clean up
-! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c                      Check solution and clean up
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
       call VecAXPY(x,none,u,ierr)
       call VecNorm(x,NORM_2,norm,ierr)
@@ -423,17 +422,9 @@ c      call VecView(u,PETSC_VIEWER_STDOUT_SELF,ierr)
       else
         write(6,200) its
       endif
+c      
  100  format('Norm of error = ',e11.4,',  Iterations = ',i5)
  200  format('Norm of error < 1.e-12,Iterations = ',i5)
-
-!     Free work space.  All PETSc objects should be destroyed when they
-!     are no longer needed.
-
-c      call VecDestroy(x,ierr)
-c      call VecDestroy(u,ierr)
-c      call VecDestroy(b,ierr)
-c      call MatDestroy(A,ierr)
-c      call KSPDestroy(ksp,ierr)
 c      
       end
       
@@ -463,9 +454,9 @@ c
      &                numeg,nmultp,nedge
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /labels/ labeld(3),label1(16),label2(3)
-      common /spoint/ mpd,mpx,mpid,mpf,mpdiag,mpngrp,
-     &                mpalhs,mpdlhs,mpbrhs,mped,index
+      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index      
       common /titlec/ title(20)
+c      
       character*4 ia
       common a(1)
       common /dictn/ ia(10000000)
@@ -558,8 +549,8 @@ c
 c
 c     allocate memory for idiag array and clear
 c
-      mpdiag = mpoint('idiag   ',neq   ,0     ,0     ,1)
-      call iclear(a(mpdiag),neq)
+c$$$      mpdiag = mpoint('idiag   ',neq   ,0     ,0     ,1)
+c$$$      call iclear(a(mpdiag),neq)
 c
       mpngrp = mpoint('ngrp    ',numeg ,0     ,0     ,1)
 c
@@ -571,18 +562,18 @@ c
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
-      call diag(a(mpdiag),neq,nalhs)
+c$$$      call diag(a(mpdiag),neq,nalhs)
+      
 c
 c     allocate memory for global equation system
 c
 c      mpalhs = mpoint('alhs    ',nalhs,0,0,iprec)
 c      mpdlhs = mpoint('dlhs    ',nalhs,0,0,iprec)
-c      mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
-      mpalhs = mpoint('alhs    ',1,0,0,iprec)
-      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
-      mpbrhs = mpoint('brhs    ',1,0,0,iprec)      
-      meanbw = nalhs/neq
-      nwords = mtot - mlast + mfirst - 1
+       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
+c      mpalhs = mpoint('alhs    ',1,0,0,iprec)
+c      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
+       meanbw = nalhs/neq
+       nwords = mtot - mlast + mfirst - 1
 c
 c     allocate matrices
 c
@@ -597,7 +588,6 @@ c     solution phase
 c
       write(*,'(A)') "subroutine driver"
       if (iexec.eq.1) call driver(neq,nalhs,userctx)
-      write(*,'(A)') "subroutine driver OK"
 c
 c     print memory-pointer dictionary
 c
@@ -650,8 +640,8 @@ c-----------------------------------------------------------------------
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nedge
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-      common /spoint/ mpd,mpx,mpid,mpf,mpdiag,mpngrp,
-     &                mpalhs,mpdlhs,mpbrhs,mped,index
+      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
+c      
       character*4 ia
       common a(1)
       common /dictn/ ia(10000000)
@@ -662,7 +652,7 @@ c     clear left and right hand side
 c
 c$$$      call clear(a(mpalhs),nalhs)
 c$$$      call clear(a(mpdlhs),nalhs)
-c$$$      call clear(a(mpbrhs),neq)
+      call clear(a(mpbrhs),neq)
 c
       call elemnt('form_stb',a(mpngrp),userctx)
 c
@@ -681,41 +671,22 @@ c
 c     form the l.h.s and r.h.s. at element level
 c
       call elemnt('form_lrs',a(mpngrp),userctx)
-c
-c     factorization of the stiffnes matrix
-c        factor: symmetric matrices
-c        factorns: for non-symmetric matrices
-c
-      write(*,*) "solving global system"
-      write(*,*) "factorization of stiff matrix"
-c
+c     
       if(neq.eq.0) go to 1111
 c
-c     solve
+c     solve: factorization and back-substitution
+c     factorization of the stiffnes matrix
+c        factor: symmetric matrices
+c        factorns: for non-symmetric matrices      
 c      
 c$$$      call factor(a(mpalhs),a(mpdiag),neq)
-c
-c     back substitution
-c        back: for symmetric matrices
-c        backns: for non-symmetric matrices
-c
-c$$$      write(*,*) "back substitution", neq
 c$$$      call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
-c$$$
-c$$$      write(*,*) "SOLUCAO VIA FACTOR/BACK MATRIZ SKYLINE"
-c$$$      call vecprint(a(mpbrhs),neq)
-      
+c$$$      call vecprint(a(mpbrhs),neq)      
 c
 c     PETSC solver
 c
-#ifdef DEBUG
-      stop
-#endif
-      
-      write(*,*) "PETSC SOLVING"
+      write(*,*) "PETSC solving linear system"
       call UserDoLinearSolver(userctx,a(mpbrhs))
-c      write(*,*) "SOLUCAO COPIADA PARA MPBRHS"
-c      call vecprint(a(mpbrhs),neq)
 c
  1111 continue
 c
@@ -736,7 +707,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine addlhs(alhs,eleffm,idiag,lm,nee,diag,userctx)
+      subroutine addlhs(eleffm,lm,nee,diag,userctx)
 c-----------------------------------------------------------------------
 c     program to add element left-hand-side matrix to
 c        global left-hand-side matrix
@@ -746,7 +717,6 @@ c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
 #include <finclude/petsc.h>
-
 c            
       Vec              x,b
       Mat              A
@@ -761,7 +731,7 @@ c
       PetscFortranAddr userctx(*)
 c
       logical diag
-      dimension alhs(*),eleffm(nee,*),idiag(*),lm(*)
+      dimension eleffm(nee,*),lm(*)
 c
       x    = userctx(1)
       b    = userctx(2)
@@ -773,8 +743,7 @@ c
             k = lm(j)
             if (k.gt.0) then
 c$$$               l = idiag(k)
-c$$$               alhs(l) = alhs(l) + eleffm(j,j)
-               
+c$$$               alhs(l) = alhs(l) + eleffm(j,j)               
                val = eleffm(j,j)
                call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)               
                if (ierr.ne.0) then
@@ -791,24 +760,21 @@ c
 c
                do i=1,j
                   m = lm(i)
-                  if (m.gt.0) then
-                     
+                  if (m.gt.0) then                     
 c$$$                     if (k.ge.m) then
 c$$$                        l = idiag(k) - k + m
 c$$$                     else
 c$$$                        l = idiag(m) - m + k
 c$$$                     endif
 c$$$                     alhs(l) = alhs(l) + eleffm(i,j)
-
+c
                      val = eleffm(i,j)
-c                     write(*,*) "addlhs local ", k,m                     
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
                      if (ierr.ne.0) then
                         SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
                      endif
-
+c
                      if(k.ne.m) then
-c                        write(*,*) "ADDLHS sym", m, k
                         call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
                         if (ierr.ne.0) then
                            SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
@@ -827,7 +793,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine addrhs(brhs,elresf,lm,nee,userctx)
+      subroutine addrhs(elresf,lm,nee,userctx)
 c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
@@ -841,15 +807,14 @@ c
       PetscErrorCode   ierr
       PetscFortranAddr userctx(*)
 c      
-      dimension brhs(*),elresf(*),lm(*)
+      dimension elresf(*),lm(*)
 c      
       b = userctx(2)
 c      
       do j=1,nee
          k = lm(j)
          if (k.gt.0) then
-c$$$            brhs(k) = brhs(k) + elresf(j)
-            
+c$$$            brhs(k) = brhs(k) + elresf(j)            
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
             if (ierr.ne.0) then
@@ -2698,32 +2663,6 @@ c
      &' load vector number = ',i10///5x,
      &' node no.',6(13x,'dof',i1,:)/)
  2000 format(6x,i10,10x,6(1pe15.8,2x))
-      end
-
-c-----------------------------------------------------------------------
-      subroutine printp(a,idiag,neq,nsq,*)
-c-----------------------------------------------------------------------
-c     program to print array d after Crout factorization
-c        a = u(transpose) * d * u
-c-----------------------------------------------------------------------
-      implicit real*8(a-h,o-z)
-c
-      dimension a(*),idiag(*)
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c
-      do 100 n=1,neq
-      if (mod(n,50).eq.1) write(ieco,1000) nsq
-      write(ieco,1000)
-      i = idiag(n)
-      write(ieco,2000) n,a(i)
-  100 continue
-c
-      return 1
-c
- 1000 format(///,' array d of factorization',/
-     &' a = u(transpose) * d * u ',                               //5x,
-     &' time sequence number   . . . . . . . . . . . (nsq) = ',i10//5x)
- 2000 format(1x,i10,4x,1pe20.8)
       end
 
 c-----------------------------------------------------------------------
@@ -6118,9 +6057,7 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nedge
-
-      common /spoint/ mpd,mpx,mpid,mpf,mpdiag,mpngrp,
-     &                mpalhs,mpdlhs,mpbrhs,mped,index
+      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
 
       character*4 ia
       common a(1)
@@ -6475,28 +6412,21 @@ c
 c     input element data ('input___')
 c
       write(*,'(A)') "subroutine flux1"
-      call flux1(a(mp(mshl  )),a(mp(mw    )),
-     &           a(mp(mc    )),a(mp(mgrav )),
-     &           a(mp(mien  )),a(mp(mmat  )),
-     &           a(mpid      ),a(mp(mlm   )),
-     &           a(mpdiag    ),a(mp(mipar )),
-     &           a(mpx       ),a(mp(mlado)),
-     &           a(mp(mshlc )),a(mp(mwc   )),
-     &           a(mp(mshlpn)),a(mp(mwpn  )),
-     &           a(mp(mshln )),a(mp(mwn   )),
-     &           a(mp(mshlb )),a(mp(mshlp )),
-     &           a(mp(mwp   )),a(mp(mdside)),
-     &           a(mp(mshsde)),
-c
-     &           a(mp(mshlpsd)),a(mp(mshlcsd)),
-c
-     &           ntype ,numel ,numat ,
-     &           nint  ,nrowsh,nesd  ,
-     &           nen   ,ndof  ,ned   ,
-     &           iprtin,numnp ,ncon  ,
-     &           nencon,necon ,nints ,
-     &           nnods ,nenlad,npars ,
-     &           nenp  ,nside ,nodsp )
+      call flux1(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
+     &           a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
+     &           a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
+     &           a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
+     &           a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
+     &           a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
+     &           a(mp(mshlp )),a(mp(mwp   )),a(mp(mdside)),
+     &           a(mp(mshsde)),a(mp(mshlpsd)),a(mp(mshlcsd)),
+     &           ntype        ,numel         ,numat,
+     &           nint         ,nrowsh        ,nesd,
+     &           nen          ,ndof          ,ned,
+     &           iprtin       ,numnp         ,ncon,
+     &           nencon       ,necon         ,nints,
+     &           nnods        ,nenlad        ,npars,
+     &           nenp         ,nside         ,nodsp)
 c
       write(*,*) "fim da flux1"
       return
@@ -6625,8 +6555,7 @@ c
       call flux2(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
      &           a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
-     &           a(mp(mw    )),a(mp(mc    )),a(mpalhs    ),
-     &           a(mpbrhs    ),a(mpdiag    ),a(mp(mlm   )),
+     &           a(mp(mw    )),a(mp(mc    )),a(mp(mlm   )),
      &           a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
      &           a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
      &           a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
@@ -6636,7 +6565,6 @@ c
      &           a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
      &           a(mp(mdsfl )),a(mp(mddis )),a(mp(mdetp )),
      &           a(mp(mshlp )),a(mp(mshgp )),a(mpdlhs   ),
-c
      &           a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
      &           a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
      &           a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
@@ -6736,29 +6664,21 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine flux1(shl   ,w     ,
-     &                 c     ,grav  ,
-     &                 ien   ,mat   ,
-     &                 id    ,lm    ,
-     &                 idiag ,ipar  ,
-     &                 x     ,lado  ,
-     &                 shlc  ,wc    ,
-     &                 shlpn ,wpn   ,
-     &                 shln  ,wn    ,
-     &                 shlb  ,shlp  ,
-     &                 wp    ,idside,
-c
-     &                 shsde ,
-c
-     &                 shlpsd,shlcsd,
-c
+      subroutine flux1(shl   ,w     ,c     ,
+     &                 grav  ,ien   ,mat   ,
+     &                 id    ,lm    ,ipar  ,
+     &                 x     ,lado  ,shlc  ,
+     &                 wc    ,shlpn ,wpn   ,
+     &                 shln  ,wn    ,shlb  ,
+     &                 shlp  ,wp    ,idside,
+     &                 shsde ,shlpsd,shlcsd,
      &                 ntype ,numel ,numat ,
      &                 nint  ,nrowsh,nesd  ,
      &                 nen   ,ndof  ,ned   ,
      &                 iprtin,numnp ,ncon  ,
      &                 nencon,necon ,nints ,
-     &                 nnods,nenlad ,npars ,
-     &                 nenp ,nside  ,nodsp)
+     &                 nnods ,nenlad,npars ,
+     &                 nenp  ,nside ,nodsp)
 c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
@@ -6766,7 +6686,7 @@ c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
       dimension c(10,*),grav(*),ien(nen,*),mat(*),
-     &          id(ndof,*),lm(ned,nodsp,*),idiag(*),
+     &          id(ndof,*),lm(ned,nodsp,*),
      &          ipar(nodsp,*),idside(nside,*),
      &          x(nesd,*),lado(nside,*)
 c
@@ -7014,7 +6934,8 @@ c
 c
 c     modification of idiag array
 c
-      call colht(idiag,lm,ned,nodsp,numel,neq)
+c     call colht(idiag,lm,ned,nodsp,numel,neq)
+      
 c
 c     Neumann BCs not implemented YET
 c
@@ -7938,8 +7859,7 @@ c------------------------------------------------------------------------------
       subroutine flux2(ien   ,x     ,xl    ,
      &                 d     ,dl    ,mat   ,
      &                 det   ,shl   ,shg   ,
-     &                 w     ,c     ,alhs  ,
-     &                 brhs  ,idiag ,lm    ,
+     &                 w     ,c     ,lm    ,
      &                 grav  ,ipar  ,lado  ,
      &                 detc  ,shlc  ,shgc  ,
      &                 eleffd,elresd,shln  ,
@@ -7995,7 +7915,7 @@ c
 c
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),mat(*)
       dimension d(ndof,*),dl(ned,*),dls(12)
-      dimension w(*),c(10,*),alhs(*),brhs(*),idiag(*),lm(ned,nodsp,*),
+      dimension w(*),c(10,*),lm(ned,nodsp,*),
      &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
      &     detc(*),eleffd(nee,*),elresd(*)
       dimension wn(*),idside(nside,*),xls(nesd,*),idlsd(*),
@@ -8548,11 +8468,10 @@ c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
 c     lm - prescritos
 c
-         write(*,*) "addlhs elem ", nel
-         call addlhs(alhs,eleffd,idiag,lm(1,1,nel),nee,diag,userctx)
+         call addlhs(eleffd,lm(1,1,nel),nee,diag,userctx)
 c        call addnsl(alhs,dlhs,eleffd,idiag,lm(1,1,nel),nee,diag)
 c
-         call addrhs(brhs,elresd,lm(1,1,nel),nee,userctx)
+         call addrhs(elresd,lm(1,1,nel),nee,userctx)
 c
  500  continue
 c
@@ -8564,14 +8483,7 @@ c
 
 c      write(*,*) "ASSEMBLY OK", nee     
 c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      write(*,*) "RHS MANUAL"
-c      do ii=1,48
-c         write(*,*) brhs(ii)
-c      end do
-      
-c      stop
-      
+c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)      
 c      
       return
       end
@@ -12036,7 +11948,7 @@ c
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
 c
-      dimension ra(4),sa(4)
+c      dimension ra(4),sa(4)
 c
       write(*,'(A,I5)') " nen  :", nen
       write(*,'(A,I5)') " nnods:", nnods
@@ -12080,7 +11992,7 @@ c
       if (nints.eq.3) then
          nintx=3
          ninty=3
-
+c
          raone(1)=-.774596669241483
          raone(2)= zero
          raone(3)= .774596669241483
@@ -12100,7 +12012,6 @@ c
          xaone(3)= zero
       endif
 c
-      write(*,*) nints
       if(nints.gt.3) then
          write(*,*) "error nints shlhxpbk AAA"
          stop
@@ -12133,14 +12044,14 @@ c
 c
 c     not in use
 c
-      l = 0
-      do ly = 1,ninty
-         do lx = 1,nintx
-            l = l + 1
-            ra(l) = raone(lx)
-            sa(l) = raone(ly)
-         end do
-      end do
+c$$$      l = 0
+c$$$      do ly = 1,ninty
+c$$$         do lx = 1,nintx
+c$$$            l = l + 1
+c$$$            ra(l) = raone(lx)
+c$$$            sa(l) = raone(ly)
+c$$$         end do
+c$$$      end do
 c
 c     loop on integration points
 c
@@ -12149,9 +12060,7 @@ c
          write(*,'(A,I5)') " face",ns
          do ly = 1, ninty
             do lx = 1, nintx
-
                lb = lb + 1
-
 c     frente
                if(ns.eq.1) then
                   r = raone(lx)

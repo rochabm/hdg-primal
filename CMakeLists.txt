@@ -16,9 +16,16 @@ link_directories ($ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
 # FFLAGS depend on the compiler
 get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 
+# make sure that the default is a RELEASE
+if (NOT CMAKE_BUILD_TYPE)
+  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
+      "Choose the type of build, options are: None Debug Release."
+      FORCE)
+endif (NOT CMAKE_BUILD_TYPE)
+
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -g -O3")
   set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
@@ -37,6 +44,11 @@ else (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 
 
+# show some messages
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Build flags: ${CMAKE_Fortran_FLAGS_RELEASE}")
+message(STATUS "Fortran compiler: ${Fortran_COMPILER_NAME}")
+
 #
 # begin of my programs
 #
@@ -49,11 +61,10 @@ foreach(p ${PROGRAMS})
   target_include_directories (${p} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
-    $ENV{PETSC_DIR}/include/mpiuni
+#    $ENV{PETSC_DIR}/include/mpiuni
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-  target_link_libraries (${p} LINK_PUBLIC petsc lapack blas)
+  target_link_libraries (${p} LINK_PUBLIC petsc mpich lapack blas)
 endforeach(p)
-
 
 #target_include_directories (primal-hdg-dc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 #			   $ENV{PETSC_DIR}/include
