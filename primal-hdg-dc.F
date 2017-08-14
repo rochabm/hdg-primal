@@ -18,13 +18,10 @@ c
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
-c     parameter (ndim=200000000)
       parameter (ndim=400000000)
 c
       common a(ndim)
       common /dictn/ ia(10000000)
-c     old    /dictn/ ia(100000000)
-
 c
 c     PETSC includes 
 c      
@@ -41,8 +38,8 @@ c
 
       external UserInitializeLinearSolver
       external UserFinalizeLinearSolver
-      external UserDoLinearSolver
-      
+      external UserTestPETSc
+      external UserDoLinearSolver     
 c
 c     mfirst = address of first available word in blank common
 c     mlast  = address of last available word in blank common
@@ -91,7 +88,7 @@ c
 c     test if PETSc is working fine
 c
 c$$$      call UserInitializeLinearSolver(10,10,userctx,ierr)
-c$$$      call tpetsc(userctx)
+c$$$      call UserTestPETSc(userctx)
 c$$$      call UserFinalizeLinearSolver(userctx,ierr)
 c$$$      call PetscFinalize(ierr)
 c$$$      stop
@@ -110,17 +107,11 @@ c
       close(interpl)
       close(ielmat)
 c
-c     open(unit=ilocal, file= 'erro-local-pp-misto-hdg.con')
-c     open(unit=ipmx, file= 'errofem-pp-misto-hdg.con')
-c     close(ipmx)
-c     close(ilocal)
-c
-
-c
 c     clean-up PETSc stuff and finalize
 c      
       call PetscFinalize(ierr)
       stop
+c     
       end
 
 c----------------------------------------------------------------------
@@ -299,7 +290,7 @@ c
       end      
      
 c----------------------------------------------------------------------
-      subroutine tpetsc(userctx)
+      subroutine UserTestPETSc(userctx)
 c----------------------------------------------------------------------
 c     Test PETSc by solving Ax=b
 c----------------------------------------------------------------------
