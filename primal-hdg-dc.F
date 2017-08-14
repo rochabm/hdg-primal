@@ -137,53 +137,52 @@ c----------------------------------------------------------------------
        PetscInt m,n
        PetscErrorCode ierr
        PetscFortranAddr userctx(*)
-
- !  Local variable declararions
        Mat      A
        Vec      b,x
        KSP      ksp
-       PetscInt Ntot,five,one
-
+       PetscInt tot,nnz,one
+c
        one  = 1
-       five = 1000
-       Ntot = n
-
-!     Create matrix.  When using MatCreate(), the matrix format can
-!     be specified at runtime.
-
-c      call MatCreate(PETSC_COMM_WORLD,A,ierr)
-c      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n,ierr)
-c      call MatSetFromOptions(A,ierr)
-c      call MatSetUp(A,ierr)
+       nnz = 100
+       tot = n
+c
+c     Create matrix.  When using MatCreate(), the matrix format can
+c     be specified at runtime.
+c       
+       call MatCreate(PETSC_COMM_WORLD,A,ierr)
+       call MatSetType(A,MATSEQAIJ,ierr)
+       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)
+       call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+       call MatSetUp(A,ierr)
+       call MatZeroEntries(A,ierr)
        
-      call MatCreateSeqAIJ(PETSC_COMM_SELF,Ntot,Ntot,five,              &
-     &      PETSC_NULL_INTEGER,A,ierr)
+c       call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
+c     &      PETSC_NULL_INTEGER,A,ierr)
 
-      call MatZeroEntries(A,ierr)      
-!
-!  Create vectors. Here we create vectors with no memory allocated.
-!  This way, we can use the data structures already in the program
-!  by using VecPlaceArray() subroutine at a later stage.
-!
-      call VecCreateSeq(PETSC_COMM_SELF,Ntot,b,ierr)
+c     
+c     Create vectors. Here we create vectors with no memory allocated.
+c     This way, we can use the data structures already in the program
+c     by using VecPlaceArray() subroutine at a later stage.
+c
+      call VecCreateSeq(PETSC_COMM_SELF,tot,b,ierr)
       call VecDuplicate(b,x,ierr)
 
-!  Create linear solver context. This will be used repeatedly for all
-!  the linear solves needed.
+c     Create linear solver context. This will be used repeatedly for all
+c     the linear solves needed.
 
       call KSPCreate(PETSC_COMM_SELF,ksp,ierr)
-
-       userctx(1) = x
-       userctx(2) = b
-       userctx(3) = A
-       userctx(4) = ksp
-       userctx(5) = m
-       userctx(6) = n
-
-       write(*,*) "PETSC: criando matriz OK"
-       
-       return
-       end
+c
+      userctx(1) = x
+      userctx(2) = b
+      userctx(3) = A
+      userctx(4) = ksp
+      userctx(5) = m
+      userctx(6) = n
+c      
+      write(*,*) "PETSC: criando matriz OK"
+c      
+      return
+      end
 
 c-----------------------------------------------------------------------
       subroutine UserFinalizeLinearSolver(userctx,ierr)
@@ -198,27 +197,24 @@ c-----------------------------------------------------------------------
 
       PetscErrorCode ierr
       PetscFortranAddr userctx(*)
-
-!  Local variable declararions
-
       Vec  x,b
       Mat  A
       KSP ksp
-!
-!     We are all done and don't need to solve any more linear systems, so
-!     we free the work space.  All PETSc objects should be destroyed when
-!     they are no longer needed.
-!
+c
+c     We are all done and don't need to solve any more linear systems, so
+c     we free the work space.  All PETSc objects should be destroyed when
+c     they are no longer needed.
+c     
       x    = userctx(1)
       b    = userctx(2)
       A    = userctx(3)
       ksp  = userctx(4)
-
+c
       call VecDestroy(x,ierr)
       call VecDestroy(b,ierr)
       call MatDestroy(A,ierr)
       call KSPDestroy(ksp,ierr)
-
+c
       return
       end
 
@@ -282,16 +278,11 @@ c     Set runtime options (override all previous definitions)
 
       write(*,*) "PETSC: resolvendo sistema"      
       call KSPSolve(ksp,b,x,ierr)
-
-      write(*,*)
-      write(*,*)
-      write(*,*)
-      write(*,*)     
 c
 c     show information
 c           
       write(*,*) "PETSC: solucao"
-      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)            
+      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
@@ -615,6 +606,7 @@ c     solution phase
 c
       write(*,'(A)') "subroutine driver"
       if (iexec.eq.1) call driver(neq,nalhs,userctx)
+      write(*,'(A)') "subroutine driver OK"
 c
 c     print memory-pointer dictionary
 c
@@ -677,9 +669,9 @@ c
 c
 c     clear left and right hand side
 c
-      call clear(a(mpalhs),nalhs)
-      call clear(a(mpdlhs),nalhs)
-      call clear(a(mpbrhs),neq)
+c$$$      call clear(a(mpalhs),nalhs)
+c$$$      call clear(a(mpdlhs),nalhs)
+c$$$      call clear(a(mpbrhs),neq)
 c
       call elemnt('form_stb',a(mpngrp),userctx)
 c
@@ -789,8 +781,9 @@ c
          do j=1,nee
             k = lm(j)
             if (k.gt.0) then
-               l = idiag(k)
-               alhs(l) = alhs(l) + eleffm(j,j)
+c$$$               l = idiag(k)
+c$$$               alhs(l) = alhs(l) + eleffm(j,j)
+               
                val = eleffm(j,j)
                call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)               
                if (ierr.ne.0) then
@@ -809,25 +802,23 @@ c
                   m = lm(i)
                   if (m.gt.0) then
                      
-                     if (k.ge.m) then
-                        l = idiag(k) - k + m
-                     else
-                        l = idiag(m) - m + k
-                     endif
-                     alhs(l) = alhs(l) + eleffm(i,j)
+c$$$                     if (k.ge.m) then
+c$$$                        l = idiag(k) - k + m
+c$$$                     else
+c$$$                        l = idiag(m) - m + k
+c$$$                     endif
+c$$$                     alhs(l) = alhs(l) + eleffm(i,j)
 
                      val = eleffm(i,j)
-                     write(*,*) "addlhs local ", k,m
+c                     write(*,*) "addlhs local ", k,m                     
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
-                     write(*,*) "addlhs local ", k,m, "OK"
                      if (ierr.ne.0) then
                         SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
                      endif
-                     
+
                      if(k.ne.m) then
-                        write(*,*) "addlhs sym local ", m,k
+c                        write(*,*) "ADDLHS sym", m, k
                         call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
-                        write(*,*) "addlhs sym local ", m,k, "OK"
                         if (ierr.ne.0) then
                            SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
                         endif                        
@@ -866,10 +857,10 @@ c
       do j=1,nee
          k = lm(j)
          if (k.gt.0) then
-            brhs(k) = brhs(k) + elresf(j)
+c$$$            brhs(k) = brhs(k) + elresf(j)
+            
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
-c            write(*,*) "VEC ADD",k-1,val
             if (ierr.ne.0) then
                SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
             endif            
@@ -949,9 +940,10 @@ c
       call igen3d(ideg,2*ndof)
 c      
 c     call igen(ideg,2*ndof)
-      do i=1,nedge
-         write(*,*) "face",i,ideg(1,i)
-      end do     
+c     do i=1,nedge
+c       write(*,*) "face",i,ideg(1,i)
+c     end do
+      
 c     
       if (iprtin.eq.0) then
          nn=0
@@ -2345,7 +2337,7 @@ c
 c
       if(ng2.eq.0) then
          do i=n,ne,ng1
-            write(*,*) "tratando simples",i
+c            write(*,*) "tratando simples",i
             call imove(ia(1,i),ib,m)
          end do
       end if
@@ -2359,8 +2351,7 @@ c         nk = n
             nki = nk
             do i=1,nfd
                nki = nk + (i-1)*ng1
-c               write(*,*) "NK,NKI",nk,nki,ng1,ng2
-               write(*,*) "tratando",nki
+c               write(*,*) "tratando",nki
                call imove(ia(1,nki),ib,m)
             end do
          end do
@@ -5898,7 +5889,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5925,7 +5916,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5952,7 +5943,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -5979,7 +5970,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6006,7 +5997,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6033,7 +6024,7 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-      write(*,'(4I10,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
+      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
       if(dotcn.lt.0.d0) then
          do nn=1,nints
             ng = (ns-1)*nints + nn
@@ -6048,8 +6039,7 @@ c$$$         end do
       end if
 c
 c     integration points
-
-c     
+c
       do l=1,nint
 c
          do j=1,3
@@ -9607,7 +9597,7 @@ c
 c
 c     loop on integration points (volume)
 c
-         write(*,'(A)') " exata  / variavel / erro no pt integracao"
+c$$$         write(*,'(A)') " exata  / variavel / erro no pt integracao"
          do l=1,nint
             ct=detc(l)*wt(l)
             call clear ( u, ncon )
@@ -9651,11 +9641,10 @@ c
                write(43,2424) n,l,u(1),ue(1),u(2),ue(2),pe,ue(3)
  2424          format(2i10,6e15.5)
             end if
-c
-c     DEBUG
-c            write(*,'(A,8F10.6)') "dlp       ",(dlp(1,kk),kk=1,nenp)
-c            write(*,'(A,4F10.6)') "ponto exa ",xint,yint,zint,ue(3)
-            write(*,'(6F8.4)') ue(3),pe,dabs(pe-ue(3))
+c$$$c
+c$$$c     DEBUG
+c$$$c
+c$$$            write(*,'(6F8.4)') ue(3),pe,dabs(pe-ue(3))
 c
          end do
 c
@@ -9676,16 +9665,14 @@ c     boundary terms - multiplier
 c
          xmlte = 0.d00
          do 4000 ns=1,nside
-            write(*,*) " "
-            write(*,*) "face ", ns
+c$$$            write(*,*) " "
+c$$$            write(*,*) "face ", ns
 c
 c     localiza os parametros do lado ns
 c
             do nn=1,npars
                nld = (ns-1)*npars + nn
                dls(nn) = dl(1,nld)
-c               write(*,*) "copia do DL de ", nld, " para DLS em ", nn
-c               write(*,'(I5)') nld
             end do
 c
 c     localiza os no's do lado ns
@@ -9704,7 +9691,7 @@ c
 c            write(*,'(A,4I5)') " local  ",ns1,ns2,ns3,ns4
 c            write(*,'(A,4I5)') " global ",nl1,nl2,nl3,nl4
 c            write(*,'(A)') " dls "
-c            write(*,'(10F8.4)') (dls(nn),nn=1,npars)
+c$$$            write(*,'(10F8.4)') (dls(nn),nn=1,npars)
 
 c     
 c     calcula sign para a aresta/face
@@ -9722,7 +9709,7 @@ c
                   idlsd(nn) = idside(ns,nn)
                end do
             else
-               write(*,'(A)') " trocou sinal"
+c               write(*,'(A)') " trocou sinal"
                sign = -1.d00
                do nn=1,nenlad
                   idlsd(nn) = idside(ns,nn)
@@ -9815,11 +9802,11 @@ c
 c
                xmlte = xmlte + cwn*(dhse-dhs)**2
 c
-               if(ls.eq.1) then
-                  write(*,'(A)',advance='no') "   x   /   y    /    z "
-                  write(*,'(A)') " / exato /  aprox  / erro"
-               end if
-               write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
+c$$$               if(ls.eq.1) then
+c$$$                  write(*,'(A)',advance='no') "   x   /   y    /    z "
+c$$$                  write(*,'(A)') " / exato /  aprox  / erro"
+c$$$               end if
+c$$$               write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
             end do
  4000    continue
 c
