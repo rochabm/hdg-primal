@@ -134,7 +134,7 @@ c----------------------------------------------------------------------
        PetscInt tot,nnz,one
 c
        one  = 1
-       nnz = 100
+       nnz = 50
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -144,7 +144,9 @@ c
        call MatSetType(A,MATSEQAIJ,ierr)
        call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)
        call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+       call MatSetFromOptions(A,ierr)
        call MatSetUp(A,ierr)
+c
        call MatZeroEntries(A,ierr)
        
 c       call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
@@ -232,6 +234,8 @@ c
       PetscBool        flg
       PetscScalar      none,one,value(3)     
       PetscFortranAddr userctx(*)
+      IS               isrow,iscol
+      PetscViewer      viewer
 
       PetscScalar xx_v(1)
       PetscOffset xx_i,yy_i      
@@ -265,18 +269,32 @@ c     Set linear solver defaults for this problem (optional).
 c     Set runtime options (override all previous definitions)
       
       call KSPSetFromOptions(ksp,ierr)
-
+c
+c     check ordering
+c
+c$$$      write(*,*) "PETSC: reordering"
+c$$$      call MatGetOrdering(A,MATORDERINGRCM,isrow,iscol,ierr)
+c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.rcm",viewer,ierr)
+c$$$      call ISView(isrow,viewer,ierr)
+c$$$      call PetscViewerDestroy(viewer,ierr)
+c$$$c
+c$$$      call MatGetOrdering(A,MATORDERINGND,isrow,iscol,ierr)
+c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.nd",viewer,ierr)
+c$$$      call ISView(isrow,viewer,ierr)
+c$$$      call PetscViewerDestroy(viewer,ierr)     
+c$$$
+      
       write(*,*) "PETSC: resolvendo sistema"      
       call KSPSolve(ksp,b,x,ierr)
 c
 c     show information
 c           
-      write(*,*) "PETSC: solucao"
-      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      write(*,*) "PETSC: solucao"
+c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E10.6,'Iterations = ',I5)
+ 100  format('Norm of residual = ',E16.8,'iterations = ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -7898,8 +7916,12 @@ c
 #include <finclude/petscmat.h>
 #include <finclude/petscksp.h>
 #include <finclude/petscpc.h>
+#include <finclude/petscviewer.h>
+#include <finclude/petscviewer.h90>
 c      
       PetscFortranAddr userctx(*)
+      PetscViewer viewer
+      PetscErrorCode ierr
       Mat A
       Vec b
 c
@@ -8461,7 +8483,6 @@ c
          if(.not.zerodl)
      &        call kdbc(eleffd,elresd,dl,nee)
 c
-c     TODO:
 c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
 c     lm - prescritos
@@ -8473,15 +8494,21 @@ c
 c
  500  continue
 c
-c
-      write(*,*) "FIM DA FLUX2"    
-      
+c     fim do loop em elementos na flux2
+c      
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
-
-c      write(*,*) "ASSEMBLY OK", nee     
-c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)      
+c
+c     write(*,*) "PETSC: salvando matrix"
+c     
+c     call PetscViewerBinaryOpen(PETSC_COMM_WORLD,'A.dat',
+c     &     FILE_MODE_WRITE,viewer,ierr)
+c     call MatView(A,viewer,ierr)
+c     call PetscViewerDestroy(viewer,ierr)
+c     call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.dat",viewer,ierr)
+c     call PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_DENSE,ierr)
+c     call MatView(A,viewer,ierr)
+c     call PetscViewerDestroy(viewer,ierr)     
 c      
       return
       end
@@ -8498,15 +8525,10 @@ c
       dimension elfbb(*),elresd(*)
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
-c
-c   condensa\E7\E3o do sitema
-c
-c
-c   Bb Xb   + Cb Xc    = Fbb
-c
-c   Bc Xb  + Cc Xc   = Fc
-c
-c   com elimina\E7\E3o das inciggnitas  Xb
+c   condensacao do sitema
+c   Bb Xb   + Cb Xc   = Fbb
+c   Bc Xb   + Cc Xc   = Fc
+c   com eliminacao das inciggnitas  Xb
 c
       call invmb(elmbb,neep,neep)
 c
@@ -8538,9 +8560,8 @@ c
           elresd(i) = elresd(i) - elmdb(i,k)*elfbb(k)
         end do
       end do
-
-      return
 c
+      return
       end
 
 c-------------------------------------------------------------------------------
