@@ -26,11 +26,11 @@ c
 c     PETSC includes 
 c      
       
-#include <finclude/petscsys.h>
-#include <finclude/petscvec.h>
-#include <finclude/petscmat.h>
-#include <finclude/petscksp.h>
-#include <finclude/petscpc.h>
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
 
       PetscErrorCode   ierr
       PetscMPIInt size,rank
@@ -122,11 +122,11 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------      
       implicit none
 
-#include <finclude/petscsys.h>
-#include <finclude/petscvec.h>
-#include <finclude/petscmat.h>
-#include <finclude/petscksp.h>
-#include <finclude/petscpc.h>
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
 
        PetscInt m,n
        PetscErrorCode ierr
@@ -137,7 +137,7 @@ c----------------------------------------------------------------------
        PetscInt tot,nnz,one
 c
        one  = 1
-       nnz = 100
+       nnz = 200
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -185,11 +185,11 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------      
       implicit none
 
-#include <finclude/petscsys.h>
-#include <finclude/petscvec.h>
-#include <finclude/petscmat.h>
-#include <finclude/petscksp.h>
-#include <finclude/petscpc.h>
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
 
       PetscErrorCode ierr
       PetscFortranAddr userctx(*)
@@ -221,7 +221,7 @@ c     Solve Ax=b
 c----------------------------------------------------------------------
       implicit none
 c      
-#include <finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
 c
 #define xx_a(ib) xx_v(xx_i + (ib))      
 c      
@@ -286,14 +286,16 @@ c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.nd",viewer,ierr)
 c$$$      call ISView(isrow,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
 c$$$
-      
+
       write(*,*) "PETSC: resolvendo sistema"
       call KSPSolve(ksp,b,x,ierr)
+      CHKERRQ(ierr)
 c
 c     show information
 c           
 c      write(*,*) "PETSC: solucao"
 c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
+      
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
@@ -314,7 +316,7 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Test PETSc by solving Ax=b
 c----------------------------------------------------------------------
-#include <finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
      
       Vec              x,b,u
       Mat              A
@@ -420,8 +422,8 @@ c     Set runtime options (override all previous definitions)
       call KSPSetFromOptions(ksp,ierr)
 
       write(*,*) "PETSC: resolvendo sistema"      
-      call KSPSolve(ksp,b,x,ierr)
-
+      call KSPSolve(ksp,b,x,ierr)    
+          
 c      write(*,*) "PETSC: solucao"
 c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       
@@ -455,7 +457,7 @@ c----------------------------------------------------------------------
 c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
-#include <finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
@@ -735,7 +737,7 @@ c        diag = .false, add upper triangle of full element matrix
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-#include <finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
 c            
       Vec              x,b
       Mat              A
@@ -819,7 +821,7 @@ c     global right-hand-side vector
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-#include <finclude/petsc.h>
+#include <petsc/finclude/petsc.h>
 c     
       Vec              b
       PetscScalar      val
@@ -3512,30 +3514,9 @@ c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
-c     TODO: preciso conferir aqui...mas vai ser um mapeamento 2d
-c     conforme o codigo abaixo
-c
-c     ADAPTACAO da subroutine oneshgp
+c     mapeamento 2d conforme o codigo abaixo
 c      
       call move(shgp,shlp,3*npars*nint)
-c
-c$$$      write(*,*) "TWOSHGP"
-c$$$      write(*,*) "nesd", nesd, "nen", nen, "npars", npars
-c$$$      do i=1,nen
-c$$$         write(*,*) xl(1,i), xl(2,i), xl(3,i)
-c$$$      end do
-c$$$      write(*,*) "SHLP deriv 1"
-c$$$      do l=1,nint
-c$$$         write(*,*) (shlp(1,i,l), i=1,npars)
-c$$$      end do
-c$$$      write(*,*) "SHLP deriv 2"
-c$$$      do l=1,nint
-c$$$         write(*,*) (shlp(2,i,l), i=1,npars)
-c$$$      end do
-c$$$      write(*,*) "SHLP func 3"
-c$$$      do l=1,nint
-c$$$         write(*,*) (shlp(3,i,l), i=1,npars)
-c$$$      end do
 c
       do l=1,nint
 c
@@ -3544,11 +3525,6 @@ c
                xst(i,j) = rowdot(shl(i,1,l),xl(j,1),3,3,nen)
             end do
          end do
-c
-c$$$         write(*,*) "MATRIZ XST"
-c$$$         do i=1,2
-c$$$            write(*,*) xst(i,1), xst(i,2), xst(i,3)
-c$$$         end do
 c
          do j=1,3
             do i=1,2
@@ -3560,8 +3536,6 @@ c
 c
          call cross(va,vb,vc)
          det(l) = sqrt(vc(1)*vc(1) + vc(2)*vc(2) + vc(3)*vc(3))
-c
-c      write(*,*) "det_twoshgp = ", det(l)
 c
          if (det(l).le.zero) then
             write(ieco,1000) nel,neg
@@ -6278,17 +6252,21 @@ c
 c
          write(*,'(A)') " elementos 3D"
 c
-         if(nen.eq.8) nenlad = 4
-         if(nencon.eq.8) then
+         nenlad = 4
+         if(nencon.eq.8.or.nencon.eq.27.or.nencon.eq.64) then
             nnods = 4
             nside = 6
          end if
 c
-         if(nen.eq.27) nenlad = 4
-         if(nencon.eq.27) then
-            nnods = 4
-            nside = 6
-         end if
+c         if(nencon.eq.27) then
+c            nnods = 4
+c            nside = 6
+c         end if
+c
+c         if(nencon.eq.64) then
+c            nnods = 4
+c            nside = 6
+c         end if
 c         
          nintb=nside*nints
 c
@@ -6321,6 +6299,8 @@ c
 c
 c     *** DEBUG ***
 c
+      write(*,'(A,I8)') " ned     ", ned
+      write(*,'(A,I8)') " nodsp   ", nodsp     
       write(*,'(A,I8)') " nnods   ", nnods
       write(*,'(A,I8)') " nside   ", nside
       write(*,'(A,I8)') " ntype   ", ntype
@@ -6334,7 +6314,8 @@ c
       write(*,'(A,I8)') " nints   ", nints
       write(*,'(A,I8)') " nintb   ", nintb
       write(*,'(A,I8)') " nface   ", nface
-      write(*,'(A,I8)') " neep    ", neep
+      write(*,'(A,I8)') " nee     ", nee
+      write(*,'(A,I8)') " neep    ", neep      
       write(*,'(A,I8)') " nrowsh  ", nrowsh
       write(*,'(A,I8)') " nrowsh3 ", nrowsh3
       write(*,'(A,I8)') " nsd     ",nsd
@@ -6847,6 +6828,8 @@ c
 
          if(nencon.eq.27) then
             nnods2 = 3
+         else if(nencon.eq.64) then
+            nnods2 = 4
          endif
 
          if(nints.eq.1) then
@@ -6855,7 +6838,9 @@ c
             nints2 = 2
          else if(nints.eq.9) then
             nints2 = 3
-         end if
+         else if(nints.eq.16) then
+            nints2 = 4
+         end if         
 c
          write(*,*)
          write(*,'(A)')  " integral em face/area"
@@ -7341,6 +7326,217 @@ c     face 6
             idside(6,8) = 16
             idside(6,9) = 26
          endif
+c
+c        
+         if(nen.eq.64) then
+
+c     face 1
+            idside(1,1)  = 1
+            idside(1,2)  = 2
+            idside(1,3)  = 6
+            idside(1,4)  = 5
+            idside(1,5)  = 9
+            idside(1,6)  = 10
+            idside(1,7)  = 26
+            idside(1,8)  = 30
+            idside(1,9)  = 17
+            idside(1,10) = 18
+            idside(1,11) = 29
+            idside(1,12) = 25
+            idside(1,13) = 33
+            idside(1,14) = 34
+            idside(1,15) = 42
+            idside(1,16) = 41
+c     face 2
+            idside(2,1)  = 1
+            idside(2,2)  = 4
+            idside(2,3)  = 8
+            idside(2,4)  = 5
+            idside(2,5)  = 16
+            idside(2,6)  = 15
+            idside(2,7)  = 28
+            idside(2,8)  = 32
+            idside(2,9)  = 23
+            idside(2,10) = 24
+            idside(2,11) = 29
+            idside(2,12) = 25
+            idside(2,13) = 40
+            idside(2,14) = 39
+            idside(2,15) = 47
+            idside(2,16) = 48
+c     face 3
+            idside(3,1)  = 2
+            idside(3,2)  = 3
+            idside(3,3)  = 7
+            idside(3,4)  = 6
+            idside(3,5)  = 11
+            idside(3,6)  = 12
+            idside(3,7)  = 27
+            idside(3,8)  = 31
+            idside(3,9)  = 20
+            idside(3,10) = 19
+            idside(3,11) = 30
+            idside(3,12) = 26
+            idside(3,13) = 35
+            idside(3,14) = 36
+            idside(3,15) = 44
+            idside(3,16) = 43
+c     face 4
+            idside(4,1)  = 4
+            idside(4,2)  = 3
+            idside(4,3)  = 7
+            idside(4,4)  = 8
+            idside(4,5)  = 14
+            idside(4,6)  = 13
+            idside(4,7)  = 27
+            idside(4,8)  = 31
+            idside(4,9)  = 21
+            idside(4,10) = 22
+            idside(4,11) = 32
+            idside(4,12) = 28
+            idside(4,13) = 38
+            idside(4,14) = 37
+            idside(4,15) = 45
+            idside(4,16) = 46
+c     face 5
+            idside(5,1)  = 1
+            idside(5,2)  = 2
+            idside(5,3)  = 3
+            idside(5,4)  = 4
+            idside(5,5)  = 9
+            idside(5,6)  = 10
+            idside(5,7)  = 11
+            idside(5,8)  = 12
+            idside(5,9)  = 13
+            idside(5,10) = 14
+            idside(5,11) = 15
+            idside(5,12) = 16
+            idside(5,13) = 49
+            idside(5,14) = 50
+            idside(5,15) = 51
+            idside(5,16) = 52
+c     face 6
+            idside(6,1)  = 5
+            idside(6,2)  = 6
+            idside(6,3)  = 7
+            idside(6,4)  = 8
+            idside(6,5)  = 17
+            idside(6,6)  = 18
+            idside(6,7)  = 19
+            idside(6,8)  = 20
+            idside(6,9)  = 21
+            idside(6,10) = 22
+            idside(6,11) = 23
+            idside(6,12) = 24
+            idside(6,13) = 53
+            idside(6,14) = 54
+            idside(6,15) = 55
+            idside(6,16) = 56
+            
+c$$$c     face 1
+c$$$            idside(1,1)  = 1
+c$$$            idside(1,2)  = 2
+c$$$            idside(1,3)  = 9
+c$$$            idside(1,4)  = 10
+c$$$            idside(1,5)  = 5
+c$$$            idside(1,6)  = 6
+c$$$            idside(1,7)  = 17
+c$$$            idside(1,8)  = 18
+c$$$            idside(1,9)  = 25
+c$$$            idside(1,10) = 26
+c$$$            idside(1,11) = 33
+c$$$            idside(1,12) = 34
+c$$$            idside(1,13) = 29
+c$$$            idside(1,14) = 30
+c$$$            idside(1,15) = 41
+c$$$            idside(1,16) = 42
+c$$$c     face 2
+c$$$            idside(2,1)  = 1
+c$$$            idside(2,2)  = 4
+c$$$            idside(2,3)  = 16
+c$$$            idside(2,4)  = 15
+c$$$            idside(2,5)  = 5
+c$$$            idside(2,6)  = 8
+c$$$            idside(2,7)  = 24
+c$$$            idside(2,8)  = 23
+c$$$            idside(2,9)  = 25
+c$$$            idside(2,10) = 28
+c$$$            idside(2,11) = 40
+c$$$            idside(2,12) = 39
+c$$$            idside(2,13) = 29
+c$$$            idside(2,14) = 32
+c$$$            idside(2,15) = 48
+c$$$            idside(2,16) = 47
+c$$$c     face 3
+c$$$            idside(3,1)  = 2
+c$$$            idside(3,2)  = 3
+c$$$            idside(3,3)  = 11
+c$$$            idside(3,4)  = 12
+c$$$            idside(3,5)  = 6
+c$$$            idside(3,6)  = 7
+c$$$            idside(3,7)  = 19
+c$$$            idside(3,8)  = 20
+c$$$            idside(3,9)  = 26
+c$$$            idside(3,10) = 27
+c$$$            idside(3,11) = 35
+c$$$            idside(3,12) = 36
+c$$$            idside(3,13) = 30
+c$$$            idside(3,14) = 31
+c$$$            idside(3,15) = 43
+c$$$            idside(3,16) = 44
+c$$$c     face 4
+c$$$            idside(4,1)  = 4
+c$$$            idside(4,2)  = 3
+c$$$            idside(4,3)  = 14
+c$$$            idside(4,4)  = 13
+c$$$            idside(4,5)  = 8
+c$$$            idside(4,6)  = 7
+c$$$            idside(4,7)  = 22
+c$$$            idside(4,8)  = 21
+c$$$            idside(4,9)  = 28
+c$$$            idside(4,10) = 27
+c$$$            idside(4,11) = 38
+c$$$            idside(4,12) = 37
+c$$$            idside(4,13) = 32
+c$$$            idside(4,14) = 31
+c$$$            idside(4,15) = 46
+c$$$            idside(4,16) = 45
+c$$$c     face 5
+c$$$            idside(5,1)  = 1
+c$$$            idside(5,2)  = 2
+c$$$            idside(5,3)  = 9
+c$$$            idside(5,4)  = 10
+c$$$            idside(5,5)  = 4
+c$$$            idside(5,6)  = 3
+c$$$            idside(5,7)  = 14
+c$$$            idside(5,8)  = 13
+c$$$            idside(5,9)  = 16
+c$$$            idside(5,10) = 11
+c$$$            idside(5,11) = 49
+c$$$            idside(5,12) = 50
+c$$$            idside(5,13) = 15
+c$$$            idside(5,14) = 12
+c$$$            idside(5,15) = 52
+c$$$            idside(5,16) = 51
+c$$$c     face 6
+c$$$            idside(6,1)  = 5
+c$$$            idside(6,2)  = 6
+c$$$            idside(6,3)  = 17
+c$$$            idside(6,4)  = 18
+c$$$            idside(6,5)  = 8
+c$$$            idside(6,6)  = 7
+c$$$            idside(6,7)  = 22
+c$$$            idside(6,8)  = 21
+c$$$            idside(6,9)  = 24
+c$$$            idside(6,10) = 19
+c$$$            idside(6,11) = 53
+c$$$            idside(6,12) = 54
+c$$$            idside(6,13) = 23
+c$$$            idside(6,14) = 20
+c$$$            idside(6,15) = 56
+c$$$            idside(6,16) = 55              
+         endif
+c         
        end if
 c
        return
@@ -7407,7 +7603,7 @@ c      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
       dimension wn(*),detn(*),detb(*),detpn(*),
      &          idside(nside,*),xls(nesd,*),idlsd(*),
      &          dsfl(ncon,nencon,*),ddis(ned,nenp,*)
-      dimension dls(12),detp(*)
+      dimension dls(16),detp(*)
 c
 c     geometria
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
@@ -7422,7 +7618,7 @@ c
       dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
       dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
 c
-      dimension solex(nen)
+      dimension solex(npars)
       dimension vab(3),vad(3),vc(3),xn(3),coo(3), xxn(3)
 c
       integer elfaces(nedge,nenlad)
@@ -7450,7 +7646,7 @@ c     element loop
 c     ------------------------------------------------------------------     
 
       do 500 nel=1,numel
-         write(*,"(//,A,I5)") "ELEMENTO",nel
+c         write(*,"(//,A,I5)") "ELEMENTO",nel
 c     
 c     clear stiffness matrix and force array
 c
@@ -7459,33 +7655,7 @@ c
 c
 c     localize coordinates and Dirichlet b.c.
 c
-         write(*,*) "COPIA DE COORDENADAS X->XL",nen,nsd,nesd
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
-
-         do kk=1,nen
-            write(*,*) kk,xl(1,kk),xl(2,kk),xl(3,kk),ien(kk,nel)
-         end do
-c
-         write(*,*) "DIRETO DE X"
-         do kk=1,nen
-            write(*,*) kk,x(1,ien(kk,nel)),x(2,ien(kk,nel)),
-     &           x(3,ien(kk,nel))
-         end do
-
-         write(*,*) "ALL NODES"
-         do kk=1,numnp
-            write(*,*) kk,x(1,kk),x(2,kk),x(3,kk)
-         end do
-c$$$         if(nel.eq.2) then
-c$$$            xl(1,1) = 0.5
-c$$$            xl(2,1) = 0.0
-c$$$            xl(3,1) = 0.0
-c$$$c
-c$$$            xl(1,2) = 1.0
-c$$$            xl(2,2) = 0.0
-c$$$            xl(3,2) = 0.0
-c$$$c            
-c$$$         endif
 c
 c     centroide
 c
@@ -7526,7 +7696,6 @@ c
 c
 c     form stiffness matrix
 c
-
 c
 c     calculo de h - caracteristico para cada elemento
 c
@@ -7638,19 +7807,19 @@ c
 c
 c     debug - stiffness and load vector
 c
-c         write(*,*) "matriz (poisson)"
-c         do ik=1,neep
-c            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
-c         end do
-c         write(*,*) "vetor (poisson)"
-c         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
+         write(*,*) "matriz (poisson)"
+         do ik=1,neep
+            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
+         end do
+         write(*,*) "vetor (poisson)"
+         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
 
 c     ------------------------------------------------------------------
 c     loop to compute area integrals - symmetrization - boundary terms 
 c     ------------------------------------------------------------------         
 
          do 4000 ns=1,nside
-            write(*,'(//,A,I5)') "face ", ns
+c           write(*,'(//,A,I5)') "face ", ns
 c
 c     localiza os no's do lado ns
 c
@@ -7662,11 +7831,7 @@ c
             nl1=ien(ns1,nel)
             nl2=ien(ns2,nel)
             nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)
-            write(*,'(A,4I5)') " nodes", ns1, ns2, ns3, ns4
-            write(*,'(A,4I5)') " nodes", nl1, nl2, nl3, nl4
-
-            
+            nl4=ien(ns4,nel)            
 c
 c$$$            if(nl2.gt.nl1) then
 c$$$               sign = 1.d00
@@ -7728,12 +7893,11 @@ c
 c
 c     localize the coordinates of the side nodes
 c
-            write(*,*) "COPIA LOCAL de XL para XLS",nenlad
-            write(*,*) nl1,nl2,nl3,nl4
-            write(*,*) "ELEM",nel
+c$$$            write(*,*) "COPIA LOCAL de XL para XLS",nenlad
+c$$$            write(*,*) nl1,nl2,nl3,nl4
+c$$$            write(*,*) "ELEM",nel
             do nn=1,nenlad
                nl=idlsd(nn)
-               write(*,*) "NL=",nl
                xls(1,nn)=xl(1,nl)
                xls(2,nn)=xl(2,nl)
                xls(3,nn)=xl(3,nl)
@@ -7758,22 +7922,22 @@ c
 c
 c     debug - confere projecao local do multiplicador
 c
-c$$$            write(*,'(A)') " proj l2 local "
-c$$$            do i=1,nenlad
-c$$$               axx = xls(1,i)
-c$$$               ayy = xls(2,i)
-c$$$               azz = xls(3,i)
-c$$$               sx=dsin(pi*axx)
-c$$$               sy=dsin(pi*ayy)
-c$$$               sz=dsin(pi*azz)
-c$$$               pi2=pi*pi
-c$$$               co=1.d00/(pi2*2.d00+gamas)
-c$$$               dhex = gf1*sx*sy*sz
-c$$$               solex(i) = dhex
-c$$$            end do
-c$$$            write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
-c$$$            write(*,'(A,10F8.4)') " proje ", (dls(i),i=1,npars)
-c$$$            write(*,'(A,10F8.4)') " exata ", (solex(i),i=1,nenlad)
+            write(*,'(A)') " proj l2 local "
+            do i=1,npars
+               axx = xls(1,i)
+               ayy = xls(2,i)
+               azz = xls(3,i)
+               sx=dsin(pi*axx)
+               sy=dsin(pi*ayy)
+               sz=dsin(pi*azz)
+               pi2=pi*pi
+               co=1.d00/(pi2*2.d00+gamas)
+               dhex = gf1*sx*sy*sz
+               solex(i) = dhex
+            end do
+c     write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
+            write(*,'(A,20F8.4)') " proje ", (dls(i),i=1,npars)
+            write(*,'(A,20F8.4)') " exata ", (solex(i),i=1,npars)
 c
             ngs = npars*(ndgs-1)
             nls = npars*(ns-1)
@@ -7949,13 +8113,13 @@ c------------------------------------------------------------------------------
 c     
       implicit real*8 (a-h,o-z)
 c
-#include <finclude/petscsys.h>
-#include <finclude/petscvec.h>
-#include <finclude/petscmat.h>
-#include <finclude/petscksp.h>
-#include <finclude/petscpc.h>
-#include <finclude/petscviewer.h>
-#include <finclude/petscviewer.h90>
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
+#include <petsc/finclude/petscviewer.h>
+#include <petsc/finclude/petscviewer.h90>
 c      
       PetscFortranAddr userctx(*)
       PetscViewer viewer
@@ -7972,7 +8136,7 @@ c
       dimension elfbb(*),elfcb(*)
 c
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),mat(*)
-      dimension d(ndof,*),dl(ned,*),dls(12)
+      dimension d(ndof,*),dl(ned,*),dls(16)
       dimension w(*),c(10,*),lm(ned,nodsp,*),
      &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
      &     detc(*),eleffd(nee,*),elresd(*)
@@ -8503,6 +8667,8 @@ c
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 c
+c     call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
+c     
 c     write(*,*) "PETSC: salvando matrix"
 c     call PetscViewerBinaryOpen(PETSC_COMM_WORLD,'A.dat',
 c     &     FILE_MODE_WRITE,viewer,ierr)
@@ -8623,7 +8789,7 @@ c
       dimension w(*),wn(*)
       dimension det(*),detc(*),detb(*),detpn(*),detp(*)
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*),dls(12)
+      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*),dls(16)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
@@ -9051,7 +9217,7 @@ c
       dimension detn(*),shlb(3,nenlad,*),shgb(3,nenlad,*),
      &     detpn(*),shlpn(3,npars,*),shgpn(3,npars,*),
      &     idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dls(12),grav(*),wn(*)
+      dimension dls(16),grav(*),wn(*)
       dimension shln(3,nnods,*),shgn(3,nnods,*)
       dimension sxlhp(64,64),sxlhv(64,64),xlpn(2,64),xlvn(2,64)
       dimension shlsd(8,8),xlps(2,8)
@@ -9416,7 +9582,7 @@ c
       dimension shlc(nrowsh+1,nencon,*),shgc(nrowsh+1,nencon,*)
 c
       dimension det(*),detn(*),detp(*),detc(*),detpn(*),wt(*),wn(*)
-      dimension dlp(ned,*), dls(12)
+      dimension dlp(ned,*), dls(16)
       dimension idside(nside,*),xls(nesd,*),idlsd(*),grav(*)
       dimension coo(3),vab(3),vad(3),vc(3),xn(3),xxn(3)
 c
@@ -9920,21 +10086,20 @@ c-----------------------------------------------------------------------
 c
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(3,*)
       dimension detpn(*),wn(*),dls(*)
-      dimension aa(10,10),bb(10)
+      dimension aa(20,20),bb(20)
 c
       do i=1,npars
-	    bb(i) = 0.d00
+         bb(i) = 0.d00
          do j=1,npars
             aa(i,j) = 0.d00
          end do
       end do
 c
-c      write(*,*) "NPARS=",npars
-c      write(*,*) "NENLAD=",nenlad
-c      do i=1,nenlad
-c         write(*,'(10F8.4)') (xls(k,i),k=1,3)
-c     end do
-
+c$$$      write(*,*) "NPARS=",npars
+c$$$      write(*,*) "NENLAD=",nenlad
+c$$$      do i=1,nenlad
+c$$$         write(*,'(10F8.4)') (xls(k,i),k=1,3)
+c$$$      end do
 c
       do ls=1,nints
 c
@@ -9989,7 +10154,7 @@ c
          end do
       end do
 c
-      call invmb(aa,10,npars)
+      call invmb(aa,20,npars)
 c
       do i=1,npars
          dls(i) = 0.d00
@@ -10732,6 +10897,16 @@ c
          paone(2)= .339981043584856
          paone(3)=-.339981043584856
          paone(4)=-.861136311594053
+c         
+c         raone(1)=-.861136311594053
+c         raone(2)= .861136311594053
+c         raone(3)=-.339981043584856
+c         raone(4)= .339981043584856
+c
+c         paone(1)= .861136311594053
+c         paone(2)=-.861136311594053         
+c         paone(3)= .339981043584856
+c         paone(4)=-.339981043584856
       endif
 c
       if (nnods.eq.4) then
@@ -11778,6 +11953,16 @@ c
          nenx=3
          neny=3
          nenz=3
+      endif
+
+      if(nen.eq.64) then
+         xaone(1) = -one
+         xaone(2) = one
+         xaone(3) = -1.d0/3.d0
+         xaone(4) =  1.d0/3.d0
+         nenx=4
+         neny=4
+         nenz=4
       endif      
 c
 c     integration data
@@ -11824,6 +12009,22 @@ c
          nintx=4
          ninty=4
          nintz=4
+      endif
+c
+      if (nint.eq.125) then
+         wone(1) = .236926885056189
+         wone(2) = .236926885056189
+         wone(3) = .478628670499366
+         wone(4) = .478628670499366
+         wone(5) = .568888888888888
+         raone(1)=-.906179845938664
+         raone(2)= .906179845938664
+         raone(3)=-.538469310105683
+         raone(4)= .538469310105683
+         raone(5)= zero
+         nintx=5
+         ninty=5
+         nintz=5
       endif
 c
 c     inod - specify the ordering of the nodes/shape functions
@@ -11880,7 +12081,89 @@ c
          inod(2,3,3) = 24
          inod(3,3,3) = 27
       endif
-      
+c
+      if (nen.eq.64) then
+c     z=1
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+c         
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 14
+         inod(4,2,1) = 13
+c         
+         inod(1,3,1) = 16
+         inod(2,3,1) = 11
+         inod(3,3,1) = 49
+         inod(4,3,1) = 50
+c
+         inod(1,4,1) = 15
+         inod(2,4,1) = 12
+         inod(3,4,1) = 52
+         inod(4,4,1) = 51    
+c     z=2
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 17
+         inod(4,1,2) = 18
+c         
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 22
+         inod(4,2,2) = 21
+c         
+         inod(1,3,2) = 24
+         inod(2,3,2) = 19
+         inod(3,3,2) = 53
+         inod(4,3,2) = 54
+c
+         inod(1,4,2) = 23
+         inod(2,4,2) = 20
+         inod(3,4,2) = 56
+         inod(4,4,2) = 55
+c     z=3
+         inod(1,1,3) = 25
+         inod(2,1,3) = 26
+         inod(3,1,3) = 33
+         inod(4,1,3) = 34
+c         
+         inod(1,2,3) = 28
+         inod(2,2,3) = 27
+         inod(3,2,3) = 38
+         inod(4,2,3) = 37
+c         
+         inod(1,3,3) = 40
+         inod(2,3,3) = 35
+         inod(3,3,3) = 57
+         inod(4,3,3) = 58
+c
+         inod(1,4,3) = 39
+         inod(2,4,3) = 36
+         inod(3,4,3) = 60
+         inod(4,4,3) = 59
+c     z=4
+         inod(1,1,4) = 29
+         inod(2,1,4) = 30
+         inod(3,1,4) = 41
+         inod(4,1,4) = 42
+c         
+         inod(1,2,4) = 32
+         inod(2,2,4) = 31
+         inod(3,2,4) = 46
+         inod(4,2,4) = 45
+c         
+         inod(1,3,4) = 48
+         inod(2,3,4) = 43
+         inod(3,3,4) = 61
+         inod(4,3,4) = 62
+c
+         inod(1,4,4) = 47
+         inod(2,4,4) = 44
+         inod(3,4,4) = 64
+         inod(4,4,4) = 63
+      endif            
 c
 c     generate 1d shape functions
 c
@@ -12035,6 +12318,7 @@ c
          xaone(1) = zero
       end if
 c
+c      
       if (nints.eq.2) then
          nintx=2
          ninty=2
@@ -12053,6 +12337,7 @@ c
          xaone(2) =  one
       endif
 c
+c      
       if (nints.eq.3) then
          nintx=3
          ninty=3
@@ -12076,6 +12361,7 @@ c
          xaone(3)= zero
       endif
 c
+c      
       if (nints.eq.4) then
          nintx=4
          ninty=4
@@ -12095,13 +12381,24 @@ c
          taone(3)=-.339981043584856
          taone(4)= .339981043584856                  
       endif      
-c      
+c
+      if(nnods.eq.4) then
+         xaone(1)= -one
+         xaone(2)= one
+         xaone(3)= -1.d0/3.d0
+         xaone(4)=  1.d0/3.d0
+      endif
+c
+      do ii=1,4
+         write(*,*) "DEBUG xaone", xaone(ii)
+      end do
+      
       if(nints.gt.4) then
          write(*,*) "error nints shlhxpbk, max nints=4"
          stop
       end if
-      if(nnods.gt.3) then
-         write(*,*) "error nnods shlhxpbk, max nnods=3"
+      if(nnods.gt.4) then
+         write(*,*) "error nnods shlhxpbk, max nnods=4"
          stop
       end if
 c
@@ -12158,6 +12455,90 @@ c
          inod(2,3,3) = 24
          inod(3,3,3) = 27
       end if
+c
+      if (nen.eq.64) then
+c     z=1
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+c         
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 14
+         inod(4,2,1) = 13
+c         
+         inod(1,3,1) = 16
+         inod(2,3,1) = 11
+         inod(3,3,1) = 49
+         inod(4,3,1) = 50
+c
+         inod(1,4,1) = 15
+         inod(2,4,1) = 12
+         inod(3,4,1) = 52
+         inod(4,4,1) = 51    
+c     z=2
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 17
+         inod(4,1,2) = 18
+c         
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 22
+         inod(4,2,2) = 21
+c         
+         inod(1,3,2) = 24
+         inod(2,3,2) = 19
+         inod(3,3,2) = 53
+         inod(4,3,2) = 54
+c
+         inod(1,4,2) = 23
+         inod(2,4,2) = 20
+         inod(3,4,2) = 56
+         inod(4,4,2) = 55
+c     z=3
+         inod(1,1,3) = 25
+         inod(2,1,3) = 26
+         inod(3,1,3) = 33
+         inod(4,1,3) = 34
+c         
+         inod(1,2,3) = 28
+         inod(2,2,3) = 27
+         inod(3,2,3) = 38
+         inod(4,2,3) = 37
+c         
+         inod(1,3,3) = 40
+         inod(2,3,3) = 35
+         inod(3,3,3) = 57
+         inod(4,3,3) = 58
+c
+         inod(1,4,3) = 39
+         inod(2,4,3) = 36
+         inod(3,4,3) = 60
+         inod(4,4,3) = 59
+c     z=4
+         inod(1,1,4) = 29
+         inod(2,1,4) = 30
+         inod(3,1,4) = 41
+         inod(4,1,4) = 42
+c         
+         inod(1,2,4) = 32
+         inod(2,2,4) = 31
+         inod(3,2,4) = 46
+         inod(4,2,4) = 45
+c         
+         inod(1,3,4) = 48
+         inod(2,3,4) = 43
+         inod(3,3,4) = 61
+         inod(4,3,4) = 62
+c
+         inod(1,4,4) = 47
+         inod(2,4,4) = 44
+         inod(3,4,4) = 64
+         inod(4,4,4) = 63
+      endif            
+      
 c
 c     build shape functions/derivatives
 c
