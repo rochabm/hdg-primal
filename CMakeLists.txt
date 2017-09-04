@@ -9,7 +9,6 @@ endif()
 message(STATUS "PETSC_ARCH $ENV{PETSC_ARCH}")
 message(STATUS "PETSC_DIR $ENV{PETSC_DIR}")
 
-
 link_directories ($ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib)
 
 # Stuff from CMake example
@@ -25,7 +24,8 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -g -O3")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+#  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
   set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
@@ -63,7 +63,7 @@ foreach(p ${PROGRAMS})
     $ENV{PETSC_DIR}/include
 #    $ENV{PETSC_DIR}/include/mpiuni
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-  target_link_libraries (${p} LINK_PUBLIC petsc mpich lapack blas)
+  target_link_libraries (${p} LINK_PUBLIC petsc mpifort lapack blas)
 endforeach(p)
 
 #target_include_directories (primal-hdg-dc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}

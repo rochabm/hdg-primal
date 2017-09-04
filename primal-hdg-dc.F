@@ -504,7 +504,7 @@ c
      $         6x,'-log(h)',7x,'log(k)',
      $         7x,'log(p)',2x,'log(grad p)', 4x,'log(mult)',//,
      $ 10x,'Estudo de convergencia das aproximacoes hibridas',/,
-     & 10x,'primal-pp-primal: (p, gard p, mult)',/)
+     & 10x,'primal-pp-primal: (p, grad p, mult)',/)
       write(ipp,3333) titlea
 c
 c     erro da projecao local (faces
@@ -514,7 +514,7 @@ c
      $         6x,'-log(h)',7x,'log(k)',
      $         7x,'log(p)',2x,'log(grad p)', 4x,'log(mult)',//,
      $ 10x,'Estudo de convergencia das projecoes locais',/,
-     & 10x,'primal-pp-primal: (p, gard p, mult)',/)
+     & 10x,'primal-pp-primal: (p, grad p, mult)',/)
       write(ilp,3333) titlea
 c
 c     erro da interpolacao
@@ -5706,12 +5706,6 @@ c
          xjinv(2,3) = -detinv*(xjac(1,1)*xjac(2,3)-xjac(1,3)*xjac(2,1))
          xjinv(3,3) = +detinv*(xjac(1,1)*xjac(2,2)-xjac(1,2)*xjac(2,1))
 c
-c         write(*,*) "NOVO INVERSA DO JACOBIANO"
-c         do i=1,3
-c            write(*,*) (xjinv(i,j),j=1,3)
-c         end do
-
-c
 c     calcula derivadas "globais" com rel. x y z
 c
          do i=1,nen
@@ -5779,7 +5773,7 @@ c
       dimension shl(4,nen,*),shg(4,nen,*),shlnode(4,nenode,*)
       dimension xs(3,3),xsinv(3,3)
       dimension co(3),vab(3),vad(3),xn(3),vc(3)
-      dimension igas(100)
+      dimension igas(200)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 
@@ -6006,16 +6000,16 @@ c
 c            lga=igas(l)
 c
             shg(1,i,l) = xsinv(1,1)*shl(1,i,l)
-     &                   + xsinv(1,2)*shl(2,i,l)
-     &                   + xsinv(1,3)*shl(3,i,l)
+     &                 + xsinv(1,2)*shl(2,i,l)
+     &                 + xsinv(1,3)*shl(3,i,l)
 
             shg(2,i,l) = xsinv(2,1)*shl(1,i,l)
-     &                   + xsinv(2,2)*shl(2,i,l)
-     &                   + xsinv(2,3)*shl(3,i,l)
+     &                 + xsinv(2,2)*shl(2,i,l)
+     &                 + xsinv(2,3)*shl(3,i,l)
 
             shg(3,i,l) = xsinv(3,1)*shl(1,i,l)
-     &                   + xsinv(3,2)*shl(2,i,l)
-     &                   + xsinv(3,3)*shl(3,i,l)
+     &                 + xsinv(3,2)*shl(2,i,l)
+     &                 + xsinv(3,3)*shl(3,i,l)
 
             shg(4,i,l) = shl(4,i,l)
          end do
@@ -6463,7 +6457,7 @@ c     &             nsd,nesd,npars,nside)
 c
 c     Esta rotina calcula projecoes locais:
 c     para a formulacao hibrida primal
-c     
+c
       write(*,'(A)') "subroutine flux0primal"
       call flux0primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6840,6 +6834,8 @@ c
             nints2 = 3
          else if(nints.eq.16) then
             nints2 = 4
+         else if(nints.eq.25) then
+            nints2 = 5
          end if         
 c
          write(*,*)
@@ -7600,10 +7596,11 @@ c      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
      &          mat(*),det(*),w(*),c(10,*),
      &          grav(*),ipar(nodsp,*),lado(nside,*),detc(*),
      &          eleffd(nee,*),elresd(*)
-      dimension wn(*),detn(*),detb(*),detpn(*),
+      dimension wn(*),detn(*),detb(*),detpn(*),detp(*),
      &          idside(nside,*),xls(nesd,*),idlsd(*),
      &          dsfl(ncon,nencon,*),ddis(ned,nenp,*)
-      dimension dls(16),detp(*)
+c      
+      dimension dls(64),solex(64)
 c
 c     geometria
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
@@ -7618,7 +7615,6 @@ c
       dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
       dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
 c
-      dimension solex(npars)
       dimension vab(3),vad(3),vc(3),xn(3),coo(3), xxn(3)
 c
       integer elfaces(nedge,nenlad)
@@ -7720,11 +7716,7 @@ c
          b1 = c(2,m)
          b2 = c(3,m)
          b3 = 0.d0
-         upwind = c(4,m)
-c         write(*,'(A,F8.4)') " h ",h
-c         write(*,'(A,F12.6)') " beta=",c(7,m)
-c         write(*,'(A,F8.4)') " beta/h ",betah
-         
+         upwind = c(4,m)        
 c
 c     loop on integration points
 c
@@ -7807,12 +7799,12 @@ c
 c
 c     debug - stiffness and load vector
 c
-         write(*,*) "matriz (poisson)"
-         do ik=1,neep
-            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
-         end do
-         write(*,*) "vetor (poisson)"
-         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
+c$$$         write(*,*) "matriz (poisson)"
+c$$$         do ik=1,neep
+c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
+c$$$         end do
+c$$$         write(*,*) "vetor (poisson)"
+c$$$  write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
 
 c     ------------------------------------------------------------------
 c     loop to compute area integrals - symmetrization - boundary terms 
@@ -7922,22 +7914,22 @@ c
 c
 c     debug - confere projecao local do multiplicador
 c
-            write(*,'(A)') " proj l2 local "
-            do i=1,npars
-               axx = xls(1,i)
-               ayy = xls(2,i)
-               azz = xls(3,i)
-               sx=dsin(pi*axx)
-               sy=dsin(pi*ayy)
-               sz=dsin(pi*azz)
-               pi2=pi*pi
-               co=1.d00/(pi2*2.d00+gamas)
-               dhex = gf1*sx*sy*sz
-               solex(i) = dhex
-            end do
-c     write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
-            write(*,'(A,20F8.4)') " proje ", (dls(i),i=1,npars)
-            write(*,'(A,20F8.4)') " exata ", (solex(i),i=1,npars)
+c$$$            write(*,'(A)') " proj l2 local "
+c$$$            do i=1,npars
+c$$$               axx = xls(1,i)
+c$$$               ayy = xls(2,i)
+c$$$               azz = xls(3,i)
+c$$$               sx=dsin(pi*axx)
+c$$$               sy=dsin(pi*ayy)
+c$$$               sz=dsin(pi*azz)
+c$$$               pi2=pi*pi
+c$$$               co=1.d00/(pi2*2.d00+gamas)
+c$$$               dhex = gf1*sx*sy*sz
+c$$$               solex(i) = dhex
+c$$$            end do
+c$$$            write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
+c$$$            write(*,'(A,20F8.4)') " proje ", (dls(i),i=1,npars)
+c$$$            write(*,'(A,20F8.4)') " exata ", (solex(i),i=1,npars)
 c
             ngs = npars*(ndgs-1)
             nls = npars*(ns-1)
@@ -7951,7 +7943,6 @@ c
 c     compute boundary integral - symmetrization
 c
             do 1000 ls = 1,nints
-c
                lb = (ns-1)*nints + ls
 c
 c     geometria
@@ -8040,21 +8031,26 @@ c
          do j=1,nenp
             ddis(1,j,nel) = elfbb(j)
          end do
+         
 c
 c     debug - confere valor nodal da flux0
 c
 c$$$         write(*,*)
-c$$$         write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
-c$$$         do i=1,nenp
-c$$$            xx = xl(1,i)
-c$$$            yy = xl(2,i)
-c$$$            zz = xl(3,i)
-c$$$            sx = sin(pi*xx)
-c$$$            sy = sin(pi*yy)
-c$$$            sz = sin(pi*zz)
-c$$$            exx = sx*sy*sz
-c$$$            write(*,'(10F8.4)') xx, yy, zz, exx, elfbb(i),
-c$$$     &                                  dabs(exx-elfbb(i))
+c$$$  write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
+c$$$c        tamanho do loop (conferir)          
+c$$$         do i=1,npars
+c$$$            axx = xls(1,i)
+c$$$            ayy = xls(2,i)
+c$$$            azz = xls(3,i)
+c$$$            pix = pi*axx
+c$$$            piy = pi*ayy
+c$$$            piz = pi*azz
+c$$$            sx = dsin(pix)
+c$$$            sy = dsin(piy)
+c$$$            sz = dsin(piz)
+c$$$            xexx = sx*sy*sz
+c$$$            write(*,'(10F8.4)') axx, ayy, azz, xexx, elfbb(i),
+c$$$     &                                  dabs(xexx-elfbb(i))
 c$$$         end do
 c
  500  continue
@@ -8136,7 +8132,7 @@ c
       dimension elfbb(*),elfcb(*)
 c
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),mat(*)
-      dimension d(ndof,*),dl(ned,*),dls(16)
+      dimension d(ndof,*),dl(ned,*),dls(64)
       dimension w(*),c(10,*),lm(ned,nodsp,*),
      &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
      &     detc(*),eleffd(nee,*),elresd(*)
@@ -8225,18 +8221,13 @@ c
          else if(nsd.eq.3) then
             quad = .false.
             hexa = .true.
-c            write(*,*) " subroutines shghx1 (shgc)"
             call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
-c            write(*,*) " subroutines shghx2 (shgp)"
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
             nintb=nside*nints
 c
-c            write(*,'(A)') " subroutines shghxd 1 (shgpsd)"
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-
-c            write(*,'(A)') " subroutines shghxd 2 (shgcsd)"
             call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
      &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
@@ -8281,7 +8272,6 @@ c
             xx = 0.d00
             yy = 0.d00
             zz = 0.d00
-c
             do i=1,nen
                xx = xx + shl(4,i,l)*xl(1,i)
                yy = yy + shl(4,i,l)*xl(2,i)
@@ -8789,7 +8779,9 @@ c
       dimension w(*),wn(*)
       dimension det(*),detc(*),detb(*),detpn(*),detp(*)
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*),dls(16)
+      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+c      
+      dimension dls(64)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
@@ -8820,7 +8812,6 @@ c
 c     clear stiffness matrix and force array
 c
          call clear(elmbb,neep*neep)
-c
          call clear(elfbb,neep)
 c
 c     localize coordinates and Dirichlet b.c.
@@ -8856,19 +8847,13 @@ c
 c
          else if(nsd.eq.3) then
 c            
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,
-     &           shl,nen)
-            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,
-     &           shl,nen)
+            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
+            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
             nintb=nside*nints
-c$$$            write(*,'(A,10I5)') " nintb,nints,nside=",nintb,nints,nside
 c
-c            write(*,'(A)') " subroutines shghxd 1 (shgpsd)"
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-
-c            write(*,'(A)') " subroutines shghxd 2 (shgcsd)"
             call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
      &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
@@ -9073,7 +9058,6 @@ c
                x1 = 0.d00
                x2 = 0.d00
                x3 = 0.d00
-c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
@@ -9109,7 +9093,16 @@ c
 c
 c     valor exato do multiplicador
 c
-c     dhs = gf1*sx*sy
+c               write(*,*) "mult aprox",dhs
+
+
+ccccc               dhs = gf1*sx*sy*sz
+
+
+               
+c               write(*,*) "mult exato",dhs
+c               write(*,*) ""
+               
 c      &    + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
 c      &          - 1.d00)*inveps))*(1.d00 - dexp((x2 - 1.d00)*inveps)))
 c      &    + gf3*1.d00
@@ -9217,7 +9210,7 @@ c
       dimension detn(*),shlb(3,nenlad,*),shgb(3,nenlad,*),
      &     detpn(*),shlpn(3,npars,*),shgpn(3,npars,*),
      &     idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dls(16),grav(*),wn(*)
+      dimension dls(64),grav(*),wn(*)
       dimension shln(3,nnods,*),shgn(3,nnods,*)
       dimension sxlhp(64,64),sxlhv(64,64),xlpn(2,64),xlvn(2,64)
       dimension shlsd(8,8),xlps(2,8)
@@ -9582,7 +9575,7 @@ c
       dimension shlc(nrowsh+1,nencon,*),shgc(nrowsh+1,nencon,*)
 c
       dimension det(*),detn(*),detp(*),detc(*),detpn(*),wt(*),wn(*)
-      dimension dlp(ned,*), dls(16)
+      dimension dlp(ned,*), dls(64)
       dimension idside(nside,*),xls(nesd,*),idlsd(*),grav(*)
       dimension coo(3),vab(3),vad(3),vc(3),xn(3),xxn(3)
 c
@@ -9913,84 +9906,84 @@ c
       
 c-------------------------------------------------------------------------------
       subroutine dualbc(shgpn,shlb,detpn,wn,
-     &            gf1,gf2,gf3,xls,elfc,eps,pi,sign,
-     &            nints,nenlad,ns,npars)
+     &     gf1,gf2,gf3,xls,elfc,eps,pi,sign,
+     &     nints,nenlad,ns,npars)
 c-------------------------------------------------------------------------------
 c     Dirichlet boundary conditions
 c-------------------------------------------------------------------------------
-c
+c     
       implicit real*8(a-h,o-z)
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(2,*)
       dimension detpn(*),wn(*),elfc(*)
-c
+c     
       do 1000 ls=1,nints
-c
+c     
 c     geometria
-c
+c     
          x1 = 0.d00
          x2 = 0.d00
          dx1 = 0.d00
          dx2 = 0.d00
-c
-        do i=1,nenlad
-          x1 = x1 +xls(1,i)*shlb(2,i,ls)
-          x2 = x2 +xls(2,i)*shlb(2,i,ls)
-          dx1 = dx1+xls(1,i)*shlb(1,i,ls)
-          dx2 = dx2+xls(2,i)*shlb(1,i,ls)
-        end do
-           dxx = dsqrt(dx1*dx1+dx2*dx2)
-           xn1 = sign*dx2/dxx
-           xn2 = -sign*dx1/dxx
-c
-c
-      pix=pi*x1
-      piy=pi*x2
-      sx=dsin(pix)
-      sy=dsin(piy)
-      cx=dcos(pix)
-      cy=dcos(piy)
-c
-      pi2=pi*pi
-      xinvpes = eps**(-1.0)
-      co=1.d00
-c
-c    valor exato do multiplicador
-c
-      dhse =  gf1*sx*sy
-     &    + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-     &          - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
-     &    + gf3*1.d00
-c
-c
-      dhsx= gf1*pi*cx*sy
-     &    + gf2*(dcos(pix/0.2D1)*pi*dsin(piy/0.2D1)*(0.1D1 - dexp((x1
-     & - 0.1D1)/eps))*(0.1D1 - dexp((x2 - 0.1D1)/eps))/0.2D1 -
+c     
+         do i=1,nenlad
+            x1 = x1 +xls(1,i)*shlb(2,i,ls)
+            x2 = x2 +xls(2,i)*shlb(2,i,ls)
+            dx1 = dx1+xls(1,i)*shlb(1,i,ls)
+            dx2 = dx2+xls(2,i)*shlb(1,i,ls)
+         end do
+         dxx = dsqrt(dx1*dx1+dx2*dx2)
+         xn1 = sign*dx2/dxx
+         xn2 = -sign*dx1/dxx
+c     
+c     
+         pix=pi*x1
+         piy=pi*x2
+         sx=dsin(pix)
+         sy=dsin(piy)
+         cx=dcos(pix)
+         cy=dcos(piy)
+c     
+         pi2=pi*pi
+         xinvpes = eps**(-1.0)
+         co=1.d00
+c     
+c     valor exato do multiplicador
+c     
+         dhse =  gf1*sx*sy
+     &        + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
+     &        - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
+     &        + gf3*1.d00
+c     
+c     
+         dhsx= gf1*pi*cx*sy
+     &     + gf2*(dcos(pix/0.2D1)*pi*dsin(piy/0.2D1)*(0.1D1 - dexp((x1
+     &        - 0.1D1)/eps))*(0.1D1 - dexp((x2 - 0.1D1)/eps))/0.2D1 -
      & dsin(pix/0.2D1)*dsin(piy/0.2D1)/eps*dexp((x1 - 0.1D1)/eps)*(0.1D1
-     &  - dexp((x2 - 0.1D1)/eps)))
-     &   +gf3*1.d00
-c
-      dhsy= gf1*pi*sx*cy
-     &    - gf2*(dsin(pix/0.2D1)*dcos(piy/0.2D1)*pi*(0.1D1 - dexp((x1
-     & - 0.1D1)/eps))*(0.1D1 - dexp((x2 - 0.1D1)/eps))/0.2D1 -
-     & dsin(pix/0.2D1)*dsin(piy/0.2D1)*(0.1D1 - dexp((x1 - 0.1D1)/eps
-     & ))/eps*dexp((x2 - 0.1D1)/eps))
-     &   +gf3*1.d00
-c
-       gradn=(dhsx*xn1+dhsy*xn2)
-c
-        do 1100 j=1,npars
-c
-          ncj1 = (ns-1)*npars + j
-c
-         djn=shgpn(2,j,ls)*detpn(ls)*wn(ls)
-c
-c    source term
-c
-         elfc(ncj1) = elfc(ncj1) + gradn*djn
-c
- 1100 continue
+     &        - dexp((x2 - 0.1D1)/eps)))
+     &        +gf3*1.d00
+c     
+         dhsy= gf1*pi*sx*cy
+     &      - gf2*(dsin(pix/0.2D1)*dcos(piy/0.2D1)*pi*(0.1D1 - dexp((x1
+     &        - 0.1D1)/eps))*(0.1D1 - dexp((x2 - 0.1D1)/eps))/0.2D1 -
+     &    dsin(pix/0.2D1)*dsin(piy/0.2D1)*(0.1D1 - dexp((x1 - 0.1D1)/eps
+     &        ))/eps*dexp((x2 - 0.1D1)/eps))
+     &        +gf3*1.d00
+c     
+         gradn=(dhsx*xn1+dhsy*xn2)
+c     
+         do 1100 j=1,npars
+c     
+            ncj1 = (ns-1)*npars + j
+c     
+            djn=shgpn(2,j,ls)*detpn(ls)*wn(ls)
+c     
+c     source term
+c     
+            elfc(ncj1) = elfc(ncj1) + gradn*djn
+c     
+ 1100    continue
  1000 continue
-c
+c     
       return
       end
 
@@ -10086,7 +10079,7 @@ c-----------------------------------------------------------------------
 c
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(3,*)
       dimension detpn(*),wn(*),dls(*)
-      dimension aa(20,20),bb(20)
+      dimension aa(16,16),bb(16)
 c
       do i=1,npars
          bb(i) = 0.d00
@@ -10154,7 +10147,7 @@ c
          end do
       end do
 c
-      call invmb(aa,20,npars)
+      call invmb(aa,16,npars)
 c
       do i=1,npars
          dls(i) = 0.d00
@@ -10177,7 +10170,7 @@ c
 c     resolve o sistema
 c
 c     B Xb = Fb
-c
+c      
       call invmb(elmbb,neep,neep)
 c
 c     Aa = A^{-1} Fa
@@ -10208,65 +10201,65 @@ c-----------------------------------------------------------------------
       ncoln=0
       det=1.0
       do 20 j=1,m
-20    ipi(j)=0
-      do 550 i=1,m
-      amax=0.0
-      do 105 j=1,m
-      if(ipi(j)-1)60,105,60
-   60 do 100 k=1,m
-      if(ipi(k)-1) 80,100,740
-   80 if(dabs(amax)-dabs(am(j,k)))85,100,100
-   85 irow=j
-      ico=k
-      amax=am(j,k)
-  100 continue
-  105 continue
-      ipi(ico)=ipi(ico)+1
-      if(irow-ico)140,260,140
-  140 det=-det
-      do 200 l=1,m
-      swap=am(irow,l)
-      am(irow,l)=am(ico,l)
-  200 am(ico,l)=swap
-      if(ncoln) 260,260,210
-  210 do 250 l=1,ncoln
-      swap=dis(irow,l)
-      dis(irow,l)=dis(ico,l)
-  250 dis(ico,l)=swap
-  260 ind(i,1)=irow
-      piv(i)=am(ico,ico)
-      ind(i,2)=ico
-      det=det*piv(i)
-      am(ico,ico)=1.0
-      do 350 l=1,m
-  350 am(ico,l)=am(ico,l)/piv(i)
-      if(ncoln) 380,380,360
-  360 do 370 l=1,ncoln
-  370 dis(ico,l)=dis(ico,l)/piv(i)
-  380 do 550 lz=1,m
-      if(lz-ico)400,550,400
-  400 t=am(lz,ico)
-      am(lz,ico)=0.0
-      do 450 l=1,m
-  450 am(lz,l)=am(lz,l)-am(ico,l)*t
-      if(ncoln)550,550,460
-  460 do 500 l=1,ncoln
-  500 dis(lz,l)=dis(lz,l)-dis(ico,l)*t
-  550 continue
-      do 710 i=1,m
-      l=m+1-i
-      if(ind(l,1)-ind(l,2))630,710,630
-  630 jrow=ind(l,1)
-      jco=ind(l,2)
-      do 705 k=1,m
-      swap=am(k,jrow)
-      am(k,jrow)=am(k,jco)
-      am(k,jco)=swap
-  705 continue
-  710 continue
-  740 continue
-      return
-      end
+ 20      ipi(j)=0
+         do 550 i=1,m
+            amax=0.0
+            do 105 j=1,m
+               if(ipi(j)-1)60,105,60
+ 60            do 100 k=1,m
+                  if(ipi(k)-1) 80,100,740
+ 80               if(dabs(amax)-dabs(am(j,k)))85,100,100
+ 85               irow=j
+                  ico=k
+                  amax=am(j,k)
+ 100           continue
+ 105        continue
+            ipi(ico)=ipi(ico)+1
+            if(irow-ico)140,260,140
+ 140        det=-det
+            do 200 l=1,m
+               swap=am(irow,l)
+               am(irow,l)=am(ico,l)
+ 200           am(ico,l)=swap
+               if(ncoln) 260,260,210
+ 210           do 250 l=1,ncoln
+                  swap=dis(irow,l)
+                  dis(irow,l)=dis(ico,l)
+ 250              dis(ico,l)=swap
+ 260              ind(i,1)=irow
+                  piv(i)=am(ico,ico)
+                  ind(i,2)=ico
+                  det=det*piv(i)
+                  am(ico,ico)=1.0
+                  do 350 l=1,m
+ 350                 am(ico,l)=am(ico,l)/piv(i)
+                     if(ncoln) 380,380,360
+ 360                 do 370 l=1,ncoln
+ 370                    dis(ico,l)=dis(ico,l)/piv(i)
+ 380                    do 550 lz=1,m
+                           if(lz-ico)400,550,400
+ 400                       t=am(lz,ico)
+                           am(lz,ico)=0.0
+                           do 450 l=1,m
+ 450                          am(lz,l)=am(lz,l)-am(ico,l)*t
+                              if(ncoln)550,550,460
+ 460                          do 500 l=1,ncoln
+ 500                             dis(lz,l)=dis(lz,l)-dis(ico,l)*t
+ 550                          continue
+                              do 710 i=1,m
+                                 l=m+1-i
+                                 if(ind(l,1)-ind(l,2))630,710,630
+ 630                             jrow=ind(l,1)
+                                 jco=ind(l,2)
+                                 do 705 k=1,m
+                                    swap=am(k,jrow)
+                                    am(k,jrow)=am(k,jco)
+                                    am(k,jco)=swap
+ 705                             continue
+ 710                          continue
+ 740                          continue
+                              return
+                              end
 
 c-----------------------------------------------------------------------
       subroutine fluxmx(c,numat)
@@ -11921,7 +11914,8 @@ c-----------------------------------------------------------------------
 c
       dimension wone(8),raone(8),xaone(8)
       dimension shlone(2,8,8),inod(8,8,8)
-      dimension shl(4,nen,*),w(*),ra(64),sa(64),ta(64)
+      dimension shl(4,nen,*),w(*)
+      dimension ra(125),sa(125),ta(125)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       data  five9/0.5555555555555555d0/,eight9/0.8888888888888888d0/
       data r1/0.d00/,w1/2.d00/,
@@ -12017,11 +12011,13 @@ c
          wone(3) = .478628670499366
          wone(4) = .478628670499366
          wone(5) = .568888888888888
+c         
          raone(1)=-.906179845938664
          raone(2)= .906179845938664
          raone(3)=-.538469310105683
          raone(4)= .538469310105683
          raone(5)= zero
+c         
          nintx=5
          ninty=5
          nintz=5
@@ -12196,10 +12192,10 @@ c
          end do
  100  continue
 
-      write(*,*) "debug shlone"
-      do i=1,nenx
-         write(*,'(10F8.4)') (shlone(2,i,l),l=1,nintx)
-      end do
+c$$$      write(*,*) "debug shlone"
+c$$$      do i=1,nenx
+c$$$         write(*,'(10F8.4)') (shlone(2,i,l),l=1,nintx)
+c$$$      end do
 
 c
 c     generates weights of the gauss quadrature / and local r,s,t nodes
@@ -12365,7 +12361,7 @@ c
       if (nints.eq.4) then
          nintx=4
          ninty=4
-c
+c         
          raone(1)=-.861136311594053
          raone(2)= .861136311594053
          raone(3)=-.339981043584856
@@ -12389,12 +12385,32 @@ c
          xaone(4)=  1.d0/3.d0
       endif
 c
-      do ii=1,4
-         write(*,*) "DEBUG xaone", xaone(ii)
-      end do
-      
-      if(nints.gt.4) then
-         write(*,*) "error nints shlhxpbk, max nints=4"
+c
+      if(nints.eq.5) then
+         nintx=5
+         ninty=5
+c
+         raone(1)=-.906179845938664
+         raone(2)= .906179845938664
+         raone(3)=-.538469310105683
+         raone(4)= .538469310105683
+         raone(5)= zero
+c
+         paone(1)=-.906179845938664
+         paone(2)= .906179845938664
+         paone(3)=-.538469310105683
+         paone(4)= .538469310105683
+         paone(5)= zero
+c
+         taone(1)=-.906179845938664
+         taone(2)= .906179845938664
+         taone(3)=-.538469310105683
+         taone(4)= .538469310105683
+         taone(5)= zero         
+      endif      
+c      
+      if(nints.gt.5) then
+         write(*,*) "error nints shlhxpbk, max nints=5"
          stop
       end if
       if(nnods.gt.4) then
