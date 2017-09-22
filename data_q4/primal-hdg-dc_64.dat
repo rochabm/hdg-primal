@@ -1,6 +1,6 @@
      0
-Poisson 3D Problem - Convergencia : u Q3 mult Q3
-         1         0         0         3       125         1         0         1       240        16
+Poisson 3D Problem - Convergencia : u Q4 mult Q4
+         1         0         0         3       125         1         0         1       240        25
          1         8       0.0       0.0        0.0
                            1.0       0.0        0.0
                            1.0       1.0        0.0
@@ -18,7 +18,7 @@ Poisson 3D Problem - Convergencia : u Q3 mult Q3
         37       208         4         1        56         1         0
         53       224         4         1        56         1         0
  
-         1        64         1        64         8        64        64        16       16         6
+         1        64         1       125         8       125       125        25        25         6
          1    1.d-00    0.d+00    0.d-00    0.d+00   0.0d+00    0.d+00    1.d+01   -1.d+00    0.d+00        
        1.0       0.0       0.0
          1         1         1         2         7         6        26        27        32        31         1

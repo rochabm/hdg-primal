@@ -137,7 +137,7 @@ c----------------------------------------------------------------------
        PetscInt tot,nnz,one
 c
        one  = 1
-       nnz = 200
+       nnz = 300
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -6247,21 +6247,12 @@ c
          write(*,'(A)') " elementos 3D"
 c
          nenlad = 4
-         if(nencon.eq.8.or.nencon.eq.27.or.nencon.eq.64) then
+         if(nencon.eq.8.or.nencon.eq.27.or.
+     &      nencon.eq.64.or.nencon.eq.125) then
             nnods = 4
             nside = 6
          end if
-c
-c         if(nencon.eq.27) then
-c            nnods = 4
-c            nside = 6
-c         end if
-c
-c         if(nencon.eq.64) then
-c            nnods = 4
-c            nside = 6
-c         end if
-c         
+c       
          nintb=nside*nints
 c
       end if
@@ -6496,7 +6487,6 @@ c
      &           nenp  ,nodsp ,index ,nface, nedge)
 
       write(*,'(A)') "fim da flux0primal"
-      write(*,*) " "
       write(*,*) " "
 c
 c     Esta rotina calcula os erros da projecao local
@@ -6824,6 +6814,8 @@ c
             nnods2 = 3
          else if(nencon.eq.64) then
             nnods2 = 4
+         else if(nencon.eq.125) then
+            nnods2 = 5
          endif
 
          if(nints.eq.1) then
@@ -6836,7 +6828,7 @@ c
             nints2 = 4
          else if(nints.eq.25) then
             nints2 = 5
-         end if         
+         end if
 c
          write(*,*)
          write(*,'(A)')  " integral em face/area"
@@ -6936,10 +6928,10 @@ c
       call genelad(lado,nside)
       if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
 c
-      write(*,*) "DEBUG LADO(,)"
-      do kk=1,numel
-         write(*,*) (lado(ll,kk),ll=1,6)
-      end do
+c$$$      write(*,*) "DEBUG LADO(,)"
+c$$$      do kk=1,numel
+c$$$         write(*,*) (lado(ll,kk),ll=1,6)
+c$$$      end do
 c
       write(*,'(A)') "subroutine genelpar"
       call genelpar(ipar,ien,lado,idside,
@@ -7260,279 +7252,514 @@ c     face 6
             idside(6,4) = 8
          end if
 c
-         if(nen.eq.27) then
-c     face 1
-            idside(1,1) = 1
-            idside(1,2) = 2
-            idside(1,3) = 6
-            idside(1,4) = 5
-            idside(1,5) = 9
-            idside(1,6) = 18
-            idside(1,7) = 13
-            idside(1,8) = 17
-            idside(1,9) = 22
-c     face 2
-            idside(2,1) = 1
-            idside(2,2) = 4
-            idside(2,3) = 8
-            idside(2,4) = 5
-            idside(2,5) = 12
-            idside(2,6) = 20
-            idside(2,7) = 16
-            idside(2,8) = 17
-            idside(2,9) = 23
-c     face 3
-            idside(3,1) = 2
-            idside(3,2) = 3
-            idside(3,3) = 7
-            idside(3,4) = 6
-            idside(3,5) = 10
-            idside(3,6) = 19
-            idside(3,7) = 14
-            idside(3,8) = 18
-            idside(3,9) = 24
-c     face 4
-            idside(4,1) = 4
-            idside(4,2) = 3
-            idside(4,3) = 7
-            idside(4,4) = 8
-            idside(4,5) = 11
-            idside(4,6) = 19
-            idside(4,7) = 15
-            idside(4,8) = 20
-            idside(4,9) = 21
-c     face 5
-            idside(5,1) = 1
-            idside(5,2) = 2
-            idside(5,3) = 3
-            idside(5,4) = 4
-            idside(5,5) = 9
-            idside(5,6) = 10
-            idside(5,7) = 11
-            idside(5,8) = 12
-            idside(5,9) = 25 
-c     face 6
-            idside(6,1) = 5
-            idside(6,2) = 6
-            idside(6,3) = 7
-            idside(6,4) = 8
-            idside(6,5) = 13
-            idside(6,6) = 14
-            idside(6,7) = 15
-            idside(6,8) = 16
-            idside(6,9) = 26
-         endif
-c
-c        
-         if(nen.eq.64) then
 
-c     face 1
-            idside(1,1)  = 1
-            idside(1,2)  = 2
-            idside(1,3)  = 6
-            idside(1,4)  = 5
-            idside(1,5)  = 9
-            idside(1,6)  = 10
-            idside(1,7)  = 26
-            idside(1,8)  = 30
-            idside(1,9)  = 17
-            idside(1,10) = 18
-            idside(1,11) = 29
-            idside(1,12) = 25
-            idside(1,13) = 33
-            idside(1,14) = 34
-            idside(1,15) = 42
-            idside(1,16) = 41
-c     face 2
-            idside(2,1)  = 1
-            idside(2,2)  = 4
-            idside(2,3)  = 8
-            idside(2,4)  = 5
-            idside(2,5)  = 16
-            idside(2,6)  = 15
-            idside(2,7)  = 28
-            idside(2,8)  = 32
-            idside(2,9)  = 23
-            idside(2,10) = 24
-            idside(2,11) = 29
-            idside(2,12) = 25
-            idside(2,13) = 40
-            idside(2,14) = 39
-            idside(2,15) = 47
-            idside(2,16) = 48
-c     face 3
-            idside(3,1)  = 2
-            idside(3,2)  = 3
-            idside(3,3)  = 7
-            idside(3,4)  = 6
-            idside(3,5)  = 11
-            idside(3,6)  = 12
-            idside(3,7)  = 27
-            idside(3,8)  = 31
-            idside(3,9)  = 20
-            idside(3,10) = 19
-            idside(3,11) = 30
-            idside(3,12) = 26
-            idside(3,13) = 35
-            idside(3,14) = 36
-            idside(3,15) = 44
-            idside(3,16) = 43
-c     face 4
-            idside(4,1)  = 4
-            idside(4,2)  = 3
-            idside(4,3)  = 7
-            idside(4,4)  = 8
-            idside(4,5)  = 14
-            idside(4,6)  = 13
-            idside(4,7)  = 27
-            idside(4,8)  = 31
-            idside(4,9)  = 21
-            idside(4,10) = 22
-            idside(4,11) = 32
-            idside(4,12) = 28
-            idside(4,13) = 38
-            idside(4,14) = 37
-            idside(4,15) = 45
-            idside(4,16) = 46
-c     face 5
-            idside(5,1)  = 1
-            idside(5,2)  = 2
-            idside(5,3)  = 3
-            idside(5,4)  = 4
-            idside(5,5)  = 9
-            idside(5,6)  = 10
-            idside(5,7)  = 11
-            idside(5,8)  = 12
-            idside(5,9)  = 13
-            idside(5,10) = 14
-            idside(5,11) = 15
-            idside(5,12) = 16
-            idside(5,13) = 49
-            idside(5,14) = 50
-            idside(5,15) = 51
-            idside(5,16) = 52
-c     face 6
-            idside(6,1)  = 5
-            idside(6,2)  = 6
-            idside(6,3)  = 7
-            idside(6,4)  = 8
-            idside(6,5)  = 17
-            idside(6,6)  = 18
-            idside(6,7)  = 19
-            idside(6,8)  = 20
-            idside(6,9)  = 21
-            idside(6,10) = 22
-            idside(6,11) = 23
-            idside(6,12) = 24
-            idside(6,13) = 53
-            idside(6,14) = 54
-            idside(6,15) = 55
-            idside(6,16) = 56
-            
+c     NEW ORDERING TEST FOR QUADRATIC
+         
+         if(nen.eq.27) then
+c     
+            idside(1,1) =  1
+            idside(1,2) =  2
+            idside(1,3) =  6
+            idside(1,4) =  5
+            idside(1,5) =  9
+            idside(1,6) =  18
+            idside(1,7) =  13
+            idside(1,8) =  17
+            idside(1,9) =  21
+c     
+            idside(2,1) =  1
+            idside(2,2) =  4
+            idside(2,3) =  8
+            idside(2,4) =  5
+            idside(2,5) =  12
+            idside(2,6) =  20
+            idside(2,7) =  16
+            idside(2,8) =  17
+            idside(2,9) =  24
+c     
+            idside(3,1) =  2
+            idside(3,2) =  3
+            idside(3,3) =  7
+            idside(3,4) =  6
+            idside(3,5) =  10
+            idside(3,6) =  19
+            idside(3,7) =  14
+            idside(3,8) =  18
+            idside(3,9) =  22
+c     
+            idside(4,1) =  4
+            idside(4,2) =  3
+            idside(4,3) =  7
+            idside(4,4) =  8
+            idside(4,5) =  11
+            idside(4,6) =  19
+            idside(4,7) =  15
+            idside(4,8) =  20
+            idside(4,9) =  23
+c     
+            idside(5,1) =  1
+            idside(5,2) =  2
+            idside(5,3) =  3
+            idside(5,4) =  4
+            idside(5,5) =  9
+            idside(5,6) =  10
+            idside(5,7) =  11
+            idside(5,8) =  12
+            idside(5,9) =  25
+c     
+            idside(6,1) =  5
+            idside(6,2) =  6
+            idside(6,3) =  7
+            idside(6,4) =  8
+            idside(6,5) =  13
+            idside(6,6) =  14
+            idside(6,7) =  15
+            idside(6,8) =  16
+            idside(6,9) =  26
+c     
+         end if
+         
+         
+c$$$         if(nen.eq.27) then
+c$$$c     face 1
+c$$$            idside(1,1) = 1
+c$$$            idside(1,2) = 2
+c$$$            idside(1,3) = 6
+c$$$            idside(1,4) = 5
+c$$$            idside(1,5) = 9
+c$$$            idside(1,6) = 18
+c$$$            idside(1,7) = 13
+c$$$            idside(1,8) = 17
+c$$$            idside(1,9) = 22
+c$$$c     face 2
+c$$$            idside(2,1) = 1
+c$$$            idside(2,2) = 4
+c$$$            idside(2,3) = 8
+c$$$            idside(2,4) = 5
+c$$$            idside(2,5) = 12
+c$$$            idside(2,6) = 20
+c$$$            idside(2,7) = 16
+c$$$            idside(2,8) = 17
+c$$$            idside(2,9) = 23
+c$$$c     face 3
+c$$$            idside(3,1) = 2
+c$$$            idside(3,2) = 3
+c$$$            idside(3,3) = 7
+c$$$            idside(3,4) = 6
+c$$$            idside(3,5) = 10
+c$$$            idside(3,6) = 19
+c$$$            idside(3,7) = 14
+c$$$            idside(3,8) = 18
+c$$$            idside(3,9) = 24
+c$$$c     face 4
+c$$$            idside(4,1) = 4
+c$$$            idside(4,2) = 3
+c$$$            idside(4,3) = 7
+c$$$            idside(4,4) = 8
+c$$$            idside(4,5) = 11
+c$$$            idside(4,6) = 19
+c$$$            idside(4,7) = 15
+c$$$            idside(4,8) = 20
+c$$$            idside(4,9) = 21
+c$$$c     face 5
+c$$$            idside(5,1) = 1
+c$$$            idside(5,2) = 2
+c$$$            idside(5,3) = 3
+c$$$            idside(5,4) = 4
+c$$$            idside(5,5) = 9
+c$$$            idside(5,6) = 10
+c$$$            idside(5,7) = 11
+c$$$            idside(5,8) = 12
+c$$$            idside(5,9) = 25 
+c$$$c     face 6
+c$$$            idside(6,1) = 5
+c$$$            idside(6,2) = 6
+c$$$            idside(6,3) = 7
+c$$$            idside(6,4) = 8
+c$$$            idside(6,5) = 13
+c$$$            idside(6,6) = 14
+c$$$            idside(6,7) = 15
+c$$$            idside(6,8) = 16
+c$$$            idside(6,9) = 26
+c$$$         endif
+c
+c
+
+c     NEW
+         if(nen.eq.64) then
+c     
+            idside(1,1) =  1
+            idside(1,2) =  2
+            idside(1,3) =  6
+            idside(1,4) =  5
+            idside(1,5) =  9
+            idside(1,6) =  10
+            idside(1,7) =  26
+            idside(1,8) =  30
+            idside(1,9) =  18
+            idside(1,10) =  17
+            idside(1,11) =  29
+            idside(1,12) =  25
+            idside(1,13) =  33
+            idside(1,14) =  34
+            idside(1,15) =  41
+            idside(1,16) =  42
+c     
+            idside(2,1) =  1
+            idside(2,2) =  4
+            idside(2,3) =  8
+            idside(2,4) =  5
+            idside(2,5) =  15
+            idside(2,6) =  16
+            idside(2,7) =  28
+            idside(2,8) =  32
+            idside(2,9) =  24
+            idside(2,10) =  23
+            idside(2,11) =  29
+            idside(2,12) =  25
+            idside(2,13) =  40
+            idside(2,14) =  39
+            idside(2,15) =  48
+            idside(2,16) =  47
+c     
+            idside(3,1) =  2
+            idside(3,2) =  3
+            idside(3,3) =  7
+            idside(3,4) =  6
+            idside(3,5) =  11
+            idside(3,6) =  12
+            idside(3,7) =  27
+            idside(3,8) =  31
+            idside(3,9) =  20
+            idside(3,10) =  19
+            idside(3,11) =  30
+            idside(3,12) =  26
+            idside(3,13) =  35
+            idside(3,14) =  36
+            idside(3,15) =  43
+            idside(3,16) =  44
+c     
+            idside(4,1) =  4
+            idside(4,2) =  3
+            idside(4,3) =  7
+            idside(4,4) =  8
+            idside(4,5) =  13
+            idside(4,6) =  14
+            idside(4,7) =  27
+            idside(4,8) =  31
+            idside(4,9) =  22
+            idside(4,10) =  21
+            idside(4,11) =  32
+            idside(4,12) =  28
+            idside(4,13) =  38
+            idside(4,14) =  37
+            idside(4,15) =  46
+            idside(4,16) =  45
+c     
+            idside(5,1) =  1
+            idside(5,2) =  2
+            idside(5,3) =  3
+            idside(5,4) =  4
+            idside(5,5) =  9
+            idside(5,6) =  10
+            idside(5,7) =  11
+            idside(5,8) =  12
+            idside(5,9) =  14
+            idside(5,10) =  13
+            idside(5,11) =  16
+            idside(5,12) =  15
+            idside(5,13) =  49
+            idside(5,14) =  50
+            idside(5,15) =  51
+            idside(5,16) =  52
+c     
+            idside(6,1) =  5
+            idside(6,2) =  6
+            idside(6,3) =  7
+            idside(6,4) =  8
+            idside(6,5) =  17
+            idside(6,6) =  18
+            idside(6,7) =  19
+            idside(6,8) =  20
+            idside(6,9) =  22
+            idside(6,10) =  21
+            idside(6,11) =  24
+            idside(6,12) =  23
+            idside(6,13) =  53
+            idside(6,14) =  54
+            idside(6,15) =  55
+            idside(6,16) =  56
+c     
+         end if
+         
+c$$$         if(nen.eq.64) then
+c$$$c     manual
 c$$$c     face 1
 c$$$            idside(1,1)  = 1
 c$$$            idside(1,2)  = 2
-c$$$            idside(1,3)  = 9
-c$$$            idside(1,4)  = 10
-c$$$            idside(1,5)  = 5
-c$$$            idside(1,6)  = 6
-c$$$            idside(1,7)  = 17
-c$$$            idside(1,8)  = 18
-c$$$            idside(1,9)  = 25
-c$$$            idside(1,10) = 26
-c$$$            idside(1,11) = 33
-c$$$            idside(1,12) = 34
-c$$$            idside(1,13) = 29
-c$$$            idside(1,14) = 30
-c$$$            idside(1,15) = 41
-c$$$            idside(1,16) = 42
+c$$$            idside(1,3)  = 6
+c$$$            idside(1,4)  = 5
+c$$$            idside(1,5)  = 9
+c$$$            idside(1,6)  = 10
+c$$$            idside(1,7)  = 26
+c$$$            idside(1,8)  = 30
+c$$$            idside(1,9)  = 17
+c$$$            idside(1,10) = 18
+c$$$            idside(1,11) = 29
+c$$$            idside(1,12) = 25
+c$$$            idside(1,13) = 33
+c$$$            idside(1,14) = 34
+c$$$            idside(1,15) = 42
+c$$$            idside(1,16) = 41
 c$$$c     face 2
 c$$$            idside(2,1)  = 1
 c$$$            idside(2,2)  = 4
-c$$$            idside(2,3)  = 16
-c$$$            idside(2,4)  = 15
-c$$$            idside(2,5)  = 5
-c$$$            idside(2,6)  = 8
-c$$$            idside(2,7)  = 24
-c$$$            idside(2,8)  = 23
-c$$$            idside(2,9)  = 25
-c$$$            idside(2,10) = 28
-c$$$            idside(2,11) = 40
-c$$$            idside(2,12) = 39
-c$$$            idside(2,13) = 29
-c$$$            idside(2,14) = 32
-c$$$            idside(2,15) = 48
-c$$$            idside(2,16) = 47
+c$$$            idside(2,3)  = 8
+c$$$            idside(2,4)  = 5
+c$$$            idside(2,5)  = 16
+c$$$            idside(2,6)  = 15
+c$$$            idside(2,7)  = 28
+c$$$            idside(2,8)  = 32
+c$$$            idside(2,9)  = 23
+c$$$            idside(2,10) = 24
+c$$$            idside(2,11) = 29
+c$$$            idside(2,12) = 25
+c$$$            idside(2,13) = 40
+c$$$            idside(2,14) = 39
+c$$$            idside(2,15) = 47
+c$$$            idside(2,16) = 48
 c$$$c     face 3
 c$$$            idside(3,1)  = 2
 c$$$            idside(3,2)  = 3
-c$$$            idside(3,3)  = 11
-c$$$            idside(3,4)  = 12
-c$$$            idside(3,5)  = 6
-c$$$            idside(3,6)  = 7
-c$$$            idside(3,7)  = 19
-c$$$            idside(3,8)  = 20
-c$$$            idside(3,9)  = 26
-c$$$            idside(3,10) = 27
-c$$$            idside(3,11) = 35
-c$$$            idside(3,12) = 36
-c$$$            idside(3,13) = 30
-c$$$            idside(3,14) = 31
-c$$$            idside(3,15) = 43
-c$$$            idside(3,16) = 44
+c$$$            idside(3,3)  = 7
+c$$$            idside(3,4)  = 6
+c$$$            idside(3,5)  = 11
+c$$$            idside(3,6)  = 12
+c$$$            idside(3,7)  = 27
+c$$$            idside(3,8)  = 31
+c$$$            idside(3,9)  = 20
+c$$$            idside(3,10) = 19
+c$$$            idside(3,11) = 30
+c$$$            idside(3,12) = 26
+c$$$            idside(3,13) = 35
+c$$$            idside(3,14) = 36
+c$$$            idside(3,15) = 44
+c$$$            idside(3,16) = 43
 c$$$c     face 4
 c$$$            idside(4,1)  = 4
 c$$$            idside(4,2)  = 3
-c$$$            idside(4,3)  = 14
-c$$$            idside(4,4)  = 13
-c$$$            idside(4,5)  = 8
-c$$$            idside(4,6)  = 7
-c$$$            idside(4,7)  = 22
-c$$$            idside(4,8)  = 21
-c$$$            idside(4,9)  = 28
-c$$$            idside(4,10) = 27
-c$$$            idside(4,11) = 38
-c$$$            idside(4,12) = 37
-c$$$            idside(4,13) = 32
-c$$$            idside(4,14) = 31
-c$$$            idside(4,15) = 46
-c$$$            idside(4,16) = 45
+c$$$            idside(4,3)  = 7
+c$$$            idside(4,4)  = 8
+c$$$            idside(4,5)  = 14
+c$$$            idside(4,6)  = 13
+c$$$            idside(4,7)  = 27
+c$$$            idside(4,8)  = 31
+c$$$            idside(4,9)  = 21
+c$$$            idside(4,10) = 22
+c$$$            idside(4,11) = 32
+c$$$            idside(4,12) = 28
+c$$$            idside(4,13) = 38
+c$$$            idside(4,14) = 37
+c$$$            idside(4,15) = 45
+c$$$            idside(4,16) = 46
 c$$$c     face 5
 c$$$            idside(5,1)  = 1
 c$$$            idside(5,2)  = 2
-c$$$            idside(5,3)  = 9
-c$$$            idside(5,4)  = 10
-c$$$            idside(5,5)  = 4
-c$$$            idside(5,6)  = 3
-c$$$            idside(5,7)  = 14
-c$$$            idside(5,8)  = 13
-c$$$            idside(5,9)  = 16
-c$$$            idside(5,10) = 11
-c$$$            idside(5,11) = 49
-c$$$            idside(5,12) = 50
-c$$$            idside(5,13) = 15
-c$$$            idside(5,14) = 12
-c$$$            idside(5,15) = 52
-c$$$            idside(5,16) = 51
+c$$$            idside(5,3)  = 3
+c$$$            idside(5,4)  = 4
+c$$$            idside(5,5)  = 9
+c$$$            idside(5,6)  = 10
+c$$$            idside(5,7)  = 11
+c$$$            idside(5,8)  = 12
+c$$$            idside(5,9)  = 13
+c$$$            idside(5,10) = 14
+c$$$            idside(5,11) = 15
+c$$$            idside(5,12) = 16
+c$$$            idside(5,13) = 49
+c$$$            idside(5,14) = 50
+c$$$            idside(5,15) = 51
+c$$$            idside(5,16) = 52
 c$$$c     face 6
 c$$$            idside(6,1)  = 5
 c$$$            idside(6,2)  = 6
-c$$$            idside(6,3)  = 17
-c$$$            idside(6,4)  = 18
-c$$$            idside(6,5)  = 8
-c$$$            idside(6,6)  = 7
-c$$$            idside(6,7)  = 22
-c$$$            idside(6,8)  = 21
-c$$$            idside(6,9)  = 24
-c$$$            idside(6,10) = 19
-c$$$            idside(6,11) = 53
-c$$$            idside(6,12) = 54
-c$$$            idside(6,13) = 23
-c$$$            idside(6,14) = 20
-c$$$            idside(6,15) = 56
-c$$$            idside(6,16) = 55              
-         endif
-c         
+c$$$            idside(6,3)  = 7
+c$$$            idside(6,4)  = 8
+c$$$            idside(6,5)  = 17
+c$$$            idside(6,6)  = 18
+c$$$            idside(6,7)  = 19
+c$$$            idside(6,8)  = 20
+c$$$            idside(6,9)  = 21
+c$$$            idside(6,10) = 22
+c$$$            idside(6,11) = 23
+c$$$            idside(6,12) = 24
+c$$$            idside(6,13) = 53
+c$$$            idside(6,14) = 54
+c$$$            idside(6,15) = 55
+c$$$            idside(6,16) = 56                       
+c$$$         endif
+c
+
+c     NEW ordem p=4
+         if(nen.eq.125) then
+c     
+            idside(1,1) =  1
+            idside(1,2) =  2
+            idside(1,3) =  6
+            idside(1,4) =  5
+            idside(1,5) =  9
+            idside(1,6) =  10
+            idside(1,7) =  11
+            idside(1,8) =  34
+            idside(1,9) =  38
+            idside(1,10) =  42
+            idside(1,11) =  23
+            idside(1,12) =  22
+            idside(1,13) =  21
+            idside(1,14) =  41
+            idside(1,15) =  37
+            idside(1,16) =  33
+            idside(1,17) =  45
+            idside(1,18) =  46
+            idside(1,19) =  47
+            idside(1,20) =  57
+            idside(1,21) =  58
+            idside(1,22) =  59
+            idside(1,23) =  69
+            idside(1,24) =  70
+            idside(1,25) =  71
+c     
+            idside(2,1) =  1
+            idside(2,2) =  4
+            idside(2,3) =  8
+            idside(2,4) =  5
+            idside(2,5) =  18
+            idside(2,6) =  19
+            idside(2,7) =  20
+            idside(2,8) =  36
+            idside(2,9) =  40
+            idside(2,10) =  44
+            idside(2,11) =  32
+            idside(2,12) =  31
+            idside(2,13) =  30
+            idside(2,14) =  41
+            idside(2,15) =  37
+            idside(2,16) =  33
+            idside(2,17) =  56
+            idside(2,18) =  55
+            idside(2,19) =  54
+            idside(2,20) =  68
+            idside(2,21) =  67
+            idside(2,22) =  66
+            idside(2,23) =  80
+            idside(2,24) =  79
+            idside(2,25) =  78
+c     
+            idside(3,1) =  2
+            idside(3,2) =  3
+            idside(3,3) =  7
+            idside(3,4) =  6
+            idside(3,5) =  12
+            idside(3,6) =  13
+            idside(3,7) =  14
+            idside(3,8) =  35
+            idside(3,9) =  39
+            idside(3,10) =  43
+            idside(3,11) =  26
+            idside(3,12) =  25
+            idside(3,13) =  24
+            idside(3,14) =  42
+            idside(3,15) =  38
+            idside(3,16) =  34
+            idside(3,17) =  48
+            idside(3,18) =  49
+            idside(3,19) =  50
+            idside(3,20) =  60
+            idside(3,21) =  61
+            idside(3,22) =  62
+            idside(3,23) =  72
+            idside(3,24) =  73
+            idside(3,25) =  74
+c     
+            idside(4,1) =  4
+            idside(4,2) =  3
+            idside(4,3) =  7
+            idside(4,4) =  8
+            idside(4,5) =  15
+            idside(4,6) =  16
+            idside(4,7) =  17
+            idside(4,8) =  35
+            idside(4,9) =  39
+            idside(4,10) =  43
+            idside(4,11) =  29
+            idside(4,12) =  28
+            idside(4,13) =  27
+            idside(4,14) =  44
+            idside(4,15) =  40
+            idside(4,16) =  36
+            idside(4,17) =  53
+            idside(4,18) =  52
+            idside(4,19) =  51
+            idside(4,20) =  65
+            idside(4,21) =  64
+            idside(4,22) =  63
+            idside(4,23) =  77
+            idside(4,24) =  76
+            idside(4,25) =  75
+c     
+            idside(5,1) =  1
+            idside(5,2) =  2
+            idside(5,3) =  3
+            idside(5,4) =  4
+            idside(5,5) =  9
+            idside(5,6) =  10
+            idside(5,7) =  11
+            idside(5,8) =  12
+            idside(5,9) =  13
+            idside(5,10) =  14
+            idside(5,11) =  17
+            idside(5,12) =  16
+            idside(5,13) =  15
+            idside(5,14) =  20
+            idside(5,15) =  19
+            idside(5,16) =  18
+            idside(5,17) =  81
+            idside(5,18) =  82
+            idside(5,19) =  83
+            idside(5,20) =  84
+            idside(5,21) =  85
+            idside(5,22) =  86
+            idside(5,23) =  87
+            idside(5,24) =  88
+            idside(5,25) =  89
+c     
+            idside(6,1) =  5
+            idside(6,2) =  6
+            idside(6,3) =  7
+            idside(6,4) =  8
+            idside(6,5) =  21
+            idside(6,6) =  22
+            idside(6,7) =  23
+            idside(6,8) =  24
+            idside(6,9) =  25
+            idside(6,10) =  26
+            idside(6,11) =  29
+            idside(6,12) =  28
+            idside(6,13) =  27
+            idside(6,14) =  32
+            idside(6,15) =  31
+            idside(6,16) =  30
+            idside(6,17) =  90
+            idside(6,18) =  91
+            idside(6,19) =  92
+            idside(6,20) =  93
+            idside(6,21) =  94
+            idside(6,22) =  95
+            idside(6,23) =  96
+            idside(6,24) =  97
+            idside(6,25) =  98
+c     
+         end if
+         
        end if
 c
        return
@@ -10074,12 +10301,13 @@ c-----------------------------------------------------------------------
      &                   nints,nenlad,npars)
 c-----------------------------------------------------------------------
 c     Dirichlet boundary conditions
+c     Currently it supports p=6 (7^2=49x49)
 c-----------------------------------------------------------------------
       implicit real*8(a-h,o-z)
 c
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(3,*)
-      dimension detpn(*),wn(*),dls(*)
-      dimension aa(16,16),bb(16)
+      dimension detpn(*),wn(*),dls(*)      
+      dimension aa(49,49),bb(49)
 c
       do i=1,npars
          bb(i) = 0.d00
@@ -10087,12 +10315,6 @@ c
             aa(i,j) = 0.d00
          end do
       end do
-c
-c$$$      write(*,*) "NPARS=",npars
-c$$$      write(*,*) "NENLAD=",nenlad
-c$$$      do i=1,nenlad
-c$$$         write(*,'(10F8.4)') (xls(k,i),k=1,3)
-c$$$      end do
 c
       do ls=1,nints
 c
@@ -10147,7 +10369,7 @@ c
          end do
       end do
 c
-      call invmb(aa,16,npars)
+      call invmb(aa,49,npars)
 c
       do i=1,npars
          dls(i) = 0.d00
@@ -11957,6 +12179,17 @@ c
          nenx=4
          neny=4
          nenz=4
+      endif
+
+      if(nen.eq.125) then
+         xaone(1) = -one
+         xaone(2) = one
+         xaone(3) = -pt5
+         xaone(4) = zero
+         xaone(5) = pt5
+         nenx=5
+         neny=5
+         nenz=5
       endif      
 c
 c     integration data
@@ -12040,127 +12273,374 @@ c
          inod(2,2,2) = 7
       end if
 c
+c$$$      if(nen.eq.27) then
+c$$$         inod(1,1,1) = 1
+c$$$         inod(2,1,1) = 2
+c$$$         inod(3,1,1) = 9
+c$$$c         
+c$$$         inod(1,2,1) = 4
+c$$$         inod(2,2,1) = 3
+c$$$         inod(3,2,1) = 11
+c$$$c         
+c$$$         inod(1,3,1) = 12
+c$$$         inod(2,3,1) = 10
+c$$$         inod(3,3,1) = 25
+c$$$c         
+c$$$         inod(1,1,2) = 5
+c$$$         inod(2,1,2) = 6
+c$$$         inod(3,1,2) = 13
+c$$$c         
+c$$$         inod(1,2,2) = 8
+c$$$         inod(2,2,2) = 7
+c$$$         inod(3,2,2) = 15
+c$$$c         
+c$$$         inod(1,3,2) = 16
+c$$$         inod(2,3,2) = 14
+c$$$         inod(3,3,2) = 26
+c$$$c
+c$$$         inod(1,1,3) = 17
+c$$$         inod(2,1,3) = 18
+c$$$         inod(3,1,3) = 22
+c$$$c         
+c$$$         inod(1,2,3) = 20
+c$$$         inod(2,2,3) = 19
+c$$$         inod(3,2,3) = 21
+c$$$c         
+c$$$         inod(1,3,3) = 23
+c$$$         inod(2,3,3) = 24
+c$$$         inod(3,3,3) = 27
+c$$$  endif
+
       if(nen.eq.27) then
+c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
-c         
          inod(1,2,1) = 4
          inod(2,2,1) = 3
          inod(3,2,1) = 11
-c         
          inod(1,3,1) = 12
          inod(2,3,1) = 10
          inod(3,3,1) = 25
-c         
+c     
          inod(1,1,2) = 5
          inod(2,1,2) = 6
          inod(3,1,2) = 13
-c         
          inod(1,2,2) = 8
          inod(2,2,2) = 7
          inod(3,2,2) = 15
-c         
          inod(1,3,2) = 16
          inod(2,3,2) = 14
          inod(3,3,2) = 26
-c
+c     
          inod(1,1,3) = 17
          inod(2,1,3) = 18
-         inod(3,1,3) = 22
-c         
+         inod(3,1,3) = 21
          inod(1,2,3) = 20
          inod(2,2,3) = 19
-         inod(3,2,3) = 21
-c         
-         inod(1,3,3) = 23
-         inod(2,3,3) = 24
+         inod(3,2,3) = 23
+         inod(1,3,3) = 24
+         inod(2,3,3) = 22
          inod(3,3,3) = 27
-      endif
-c
-      if (nen.eq.64) then
-c     z=1
+c     
+      end if
+
+      
+c     NEW
+      if(nen.eq.64) then
+c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
          inod(4,1,1) = 10
-c         
          inod(1,2,1) = 4
          inod(2,2,1) = 3
-         inod(3,2,1) = 14
-         inod(4,2,1) = 13
-c         
-         inod(1,3,1) = 16
+         inod(3,2,1) = 13
+         inod(4,2,1) = 14
+         inod(1,3,1) = 15
          inod(2,3,1) = 11
          inod(3,3,1) = 49
          inod(4,3,1) = 50
-c
-         inod(1,4,1) = 15
+         inod(1,4,1) = 16
          inod(2,4,1) = 12
-         inod(3,4,1) = 52
-         inod(4,4,1) = 51    
-c     z=2
+         inod(3,4,1) = 51
+         inod(4,4,1) = 52
+c     
          inod(1,1,2) = 5
          inod(2,1,2) = 6
          inod(3,1,2) = 17
          inod(4,1,2) = 18
-c         
          inod(1,2,2) = 8
          inod(2,2,2) = 7
-         inod(3,2,2) = 22
-         inod(4,2,2) = 21
-c         
-         inod(1,3,2) = 24
+         inod(3,2,2) = 21
+         inod(4,2,2) = 22
+         inod(1,3,2) = 23
          inod(2,3,2) = 19
          inod(3,3,2) = 53
          inod(4,3,2) = 54
-c
-         inod(1,4,2) = 23
+         inod(1,4,2) = 24
          inod(2,4,2) = 20
-         inod(3,4,2) = 56
-         inod(4,4,2) = 55
-c     z=3
+         inod(3,4,2) = 55
+         inod(4,4,2) = 56
+c     
          inod(1,1,3) = 25
          inod(2,1,3) = 26
          inod(3,1,3) = 33
          inod(4,1,3) = 34
-c         
          inod(1,2,3) = 28
          inod(2,2,3) = 27
          inod(3,2,3) = 38
          inod(4,2,3) = 37
-c         
          inod(1,3,3) = 40
          inod(2,3,3) = 35
          inod(3,3,3) = 57
          inod(4,3,3) = 58
-c
          inod(1,4,3) = 39
          inod(2,4,3) = 36
-         inod(3,4,3) = 60
-         inod(4,4,3) = 59
-c     z=4
+         inod(3,4,3) = 59
+         inod(4,4,3) = 60
+c     
          inod(1,1,4) = 29
          inod(2,1,4) = 30
          inod(3,1,4) = 41
          inod(4,1,4) = 42
-c         
          inod(1,2,4) = 32
          inod(2,2,4) = 31
          inod(3,2,4) = 46
          inod(4,2,4) = 45
-c         
          inod(1,3,4) = 48
          inod(2,3,4) = 43
          inod(3,3,4) = 61
          inod(4,3,4) = 62
-c
          inod(1,4,4) = 47
          inod(2,4,4) = 44
-         inod(3,4,4) = 64
-         inod(4,4,4) = 63
-      endif            
+         inod(3,4,4) = 63
+         inod(4,4,4) = 64
+c     
+      end if
+      
 c
+c$$$      if (nen.eq.64) then
+c$$$c     manual
+c$$$c     z=1
+c$$$         inod(1,1,1) = 1
+c$$$         inod(2,1,1) = 2
+c$$$         inod(3,1,1) = 9
+c$$$         inod(4,1,1) = 10
+c$$$c         
+c$$$         inod(1,2,1) = 4
+c$$$         inod(2,2,1) = 3
+c$$$         inod(3,2,1) = 14
+c$$$         inod(4,2,1) = 13
+c$$$c         
+c$$$         inod(1,3,1) = 16
+c$$$         inod(2,3,1) = 11
+c$$$         inod(3,3,1) = 49
+c$$$         inod(4,3,1) = 50
+c$$$c
+c$$$         inod(1,4,1) = 15
+c$$$         inod(2,4,1) = 12
+c$$$         inod(3,4,1) = 52
+c$$$         inod(4,4,1) = 51    
+c$$$c     z=2
+c$$$         inod(1,1,2) = 5
+c$$$         inod(2,1,2) = 6
+c$$$         inod(3,1,2) = 17
+c$$$         inod(4,1,2) = 18
+c$$$c         
+c$$$         inod(1,2,2) = 8
+c$$$         inod(2,2,2) = 7
+c$$$         inod(3,2,2) = 22
+c$$$         inod(4,2,2) = 21
+c$$$c         
+c$$$         inod(1,3,2) = 24
+c$$$         inod(2,3,2) = 19
+c$$$         inod(3,3,2) = 53
+c$$$         inod(4,3,2) = 54
+c$$$c
+c$$$         inod(1,4,2) = 23
+c$$$         inod(2,4,2) = 20
+c$$$         inod(3,4,2) = 56
+c$$$         inod(4,4,2) = 55
+c$$$c     z=3
+c$$$         inod(1,1,3) = 25
+c$$$         inod(2,1,3) = 26
+c$$$         inod(3,1,3) = 33
+c$$$         inod(4,1,3) = 34
+c$$$c         
+c$$$         inod(1,2,3) = 28
+c$$$         inod(2,2,3) = 27
+c$$$         inod(3,2,3) = 38
+c$$$         inod(4,2,3) = 37
+c$$$c         
+c$$$         inod(1,3,3) = 40
+c$$$         inod(2,3,3) = 35
+c$$$         inod(3,3,3) = 57
+c$$$         inod(4,3,3) = 58
+c$$$c
+c$$$         inod(1,4,3) = 39
+c$$$         inod(2,4,3) = 36
+c$$$         inod(3,4,3) = 60
+c$$$         inod(4,4,3) = 59
+c$$$c     z=4
+c$$$         inod(1,1,4) = 29
+c$$$         inod(2,1,4) = 30
+c$$$         inod(3,1,4) = 41
+c$$$         inod(4,1,4) = 42
+c$$$c         
+c$$$         inod(1,2,4) = 32
+c$$$         inod(2,2,4) = 31
+c$$$         inod(3,2,4) = 46
+c$$$         inod(4,2,4) = 45
+c$$$c         
+c$$$         inod(1,3,4) = 48
+c$$$         inod(2,3,4) = 43
+c$$$         inod(3,3,4) = 61
+c$$$         inod(4,3,4) = 62
+c$$$c
+c$$$         inod(1,4,4) = 47
+c$$$         inod(2,4,4) = 44
+c$$$         inod(3,4,4) = 64
+c$$$         inod(4,4,4) = 63
+c$$$      endif            
+
+c     NEW ordem p=4
+      if(nen.eq.125) then
+c     
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(5,1,1) = 11
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 15
+         inod(4,2,1) = 16
+         inod(5,2,1) = 17
+         inod(1,3,1) = 18
+         inod(2,3,1) = 12
+         inod(3,3,1) = 81
+         inod(4,3,1) = 82
+         inod(5,3,1) = 83
+         inod(1,4,1) = 19
+         inod(2,4,1) = 13
+         inod(3,4,1) = 84
+         inod(4,4,1) = 85
+         inod(5,4,1) = 86
+         inod(1,5,1) = 20
+         inod(2,5,1) = 14
+         inod(3,5,1) = 87
+         inod(4,5,1) = 88
+         inod(5,5,1) = 89
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 21
+         inod(4,1,2) = 22
+         inod(5,1,2) = 23
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 27
+         inod(4,2,2) = 28
+         inod(5,2,2) = 29
+         inod(1,3,2) = 30
+         inod(2,3,2) = 24
+         inod(3,3,2) = 90
+         inod(4,3,2) = 91
+         inod(5,3,2) = 92
+         inod(1,4,2) = 31
+         inod(2,4,2) = 25
+         inod(3,4,2) = 93
+         inod(4,4,2) = 94
+         inod(5,4,2) = 95
+         inod(1,5,2) = 32
+         inod(2,5,2) = 26
+         inod(3,5,2) = 96
+         inod(4,5,2) = 97
+         inod(5,5,2) = 98
+c     
+         inod(1,1,3) = 33
+         inod(2,1,3) = 34
+         inod(3,1,3) = 45
+         inod(4,1,3) = 46
+         inod(5,1,3) = 47
+         inod(1,2,3) = 36
+         inod(2,2,3) = 35
+         inod(3,2,3) = 53
+         inod(4,2,3) = 52
+         inod(5,2,3) = 51
+         inod(1,3,3) = 56
+         inod(2,3,3) = 48
+         inod(3,3,3) = 99
+         inod(4,3,3) = 100
+         inod(5,3,3) = 101
+         inod(1,4,3) = 55
+         inod(2,4,3) = 49
+         inod(3,4,3) = 102
+         inod(4,4,3) = 103
+         inod(5,4,3) = 104
+         inod(1,5,3) = 54
+         inod(2,5,3) = 50
+         inod(3,5,3) = 105
+         inod(4,5,3) = 106
+         inod(5,5,3) = 107
+c     
+         inod(1,1,4) = 37
+         inod(2,1,4) = 38
+         inod(3,1,4) = 57
+         inod(4,1,4) = 58
+         inod(5,1,4) = 59
+         inod(1,2,4) = 40
+         inod(2,2,4) = 39
+         inod(3,2,4) = 65
+         inod(4,2,4) = 64
+         inod(5,2,4) = 63
+         inod(1,3,4) = 68
+         inod(2,3,4) = 60
+         inod(3,3,4) = 108
+         inod(4,3,4) = 109
+         inod(5,3,4) = 110
+         inod(1,4,4) = 67
+         inod(2,4,4) = 61
+         inod(3,4,4) = 111
+         inod(4,4,4) = 112
+         inod(5,4,4) = 113
+         inod(1,5,4) = 66
+         inod(2,5,4) = 62
+         inod(3,5,4) = 114
+         inod(4,5,4) = 115
+         inod(5,5,4) = 116
+c     
+         inod(1,1,5) = 41
+         inod(2,1,5) = 42
+         inod(3,1,5) = 69
+         inod(4,1,5) = 70
+         inod(5,1,5) = 71
+         inod(1,2,5) = 44
+         inod(2,2,5) = 43
+         inod(3,2,5) = 77
+         inod(4,2,5) = 76
+         inod(5,2,5) = 75
+         inod(1,3,5) = 80
+         inod(2,3,5) = 72
+         inod(3,3,5) = 117
+         inod(4,3,5) = 118
+         inod(5,3,5) = 119
+         inod(1,4,5) = 79
+         inod(2,4,5) = 73
+         inod(3,4,5) = 120
+         inod(4,4,5) = 121
+         inod(5,4,5) = 122
+         inod(1,5,5) = 78
+         inod(2,5,5) = 74
+         inod(3,5,5) = 123
+         inod(4,5,5) = 124
+         inod(5,5,5) = 125
+c     
+      end if
+
+      
+c     
 c     generate 1d shape functions
 c
       do 100 l = 1, nintx
@@ -12407,14 +12887,22 @@ c
          taone(3)=-.538469310105683
          taone(4)= .538469310105683
          taone(5)= zero         
-      endif      
+      endif
+c
+      if(nnods.eq.5) then
+         xaone(1)= -one
+         xaone(2)= one
+         xaone(3)= -1.d0/2.d0
+         xaone(4)= 0.d0
+         xaone(5)= 1.d0/2.d0
+      endif
 c      
-      if(nints.gt.5) then
-         write(*,*) "error nints shlhxpbk, max nints=5"
+      if(nints.gt.6) then
+         write(*,*) "error nints shlhxpbk, max nints=6"
          stop
       end if
-      if(nnods.gt.4) then
-         write(*,*) "error nnods shlhxpbk, max nnods=4"
+      if(nnods.gt.5) then
+         write(*,*) "error nnods shlhxpbk, max nnods=5"
          stop
       end if
 c
@@ -12434,126 +12922,373 @@ c
          inod(2,2,2) = 7
       end if
 
+c     NEW
       if(nen.eq.27) then
+c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
-c         
          inod(1,2,1) = 4
          inod(2,2,1) = 3
          inod(3,2,1) = 11
-c         
          inod(1,3,1) = 12
          inod(2,3,1) = 10
          inod(3,3,1) = 25
-c         
+c     
          inod(1,1,2) = 5
          inod(2,1,2) = 6
          inod(3,1,2) = 13
-c         
          inod(1,2,2) = 8
          inod(2,2,2) = 7
          inod(3,2,2) = 15
-c         
          inod(1,3,2) = 16
          inod(2,3,2) = 14
          inod(3,3,2) = 26
-c
+c     
          inod(1,1,3) = 17
          inod(2,1,3) = 18
-         inod(3,1,3) = 22
-c         
+         inod(3,1,3) = 21
          inod(1,2,3) = 20
          inod(2,2,3) = 19
-         inod(3,2,3) = 21
-c         
-         inod(1,3,3) = 23
-         inod(2,3,3) = 24
+         inod(3,2,3) = 23
+         inod(1,3,3) = 24
+         inod(2,3,3) = 22
          inod(3,3,3) = 27
-      end if
-c
-      if (nen.eq.64) then
-c     z=1
+c     
+      end if     
+      
+c$$$      if(nen.eq.27) then
+c$$$c     gerado manualmente
+c$$$         inod(1,1,1) = 1
+c$$$         inod(2,1,1) = 2
+c$$$         inod(3,1,1) = 9
+c$$$c         
+c$$$         inod(1,2,1) = 4
+c$$$         inod(2,2,1) = 3
+c$$$         inod(3,2,1) = 11
+c$$$c         
+c$$$         inod(1,3,1) = 12
+c$$$         inod(2,3,1) = 10
+c$$$         inod(3,3,1) = 25
+c$$$c         
+c$$$         inod(1,1,2) = 5
+c$$$         inod(2,1,2) = 6
+c$$$         inod(3,1,2) = 13
+c$$$c         
+c$$$         inod(1,2,2) = 8
+c$$$         inod(2,2,2) = 7
+c$$$         inod(3,2,2) = 15
+c$$$c         
+c$$$         inod(1,3,2) = 16
+c$$$         inod(2,3,2) = 14
+c$$$         inod(3,3,2) = 26
+c$$$c
+c$$$         inod(1,1,3) = 17
+c$$$         inod(2,1,3) = 18
+c$$$         inod(3,1,3) = 22
+c$$$c         
+c$$$         inod(1,2,3) = 20
+c$$$         inod(2,2,3) = 19
+c$$$         inod(3,2,3) = 21
+c$$$c         
+c$$$         inod(1,3,3) = 23
+c$$$         inod(2,3,3) = 24
+c$$$         inod(3,3,3) = 27
+c$$$  end if
+
+
+c     NEW
+      if(nen.eq.64) then
+c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
          inod(4,1,1) = 10
-c         
          inod(1,2,1) = 4
          inod(2,2,1) = 3
-         inod(3,2,1) = 14
-         inod(4,2,1) = 13
-c         
-         inod(1,3,1) = 16
+         inod(3,2,1) = 13
+         inod(4,2,1) = 14
+         inod(1,3,1) = 15
          inod(2,3,1) = 11
          inod(3,3,1) = 49
          inod(4,3,1) = 50
-c
-         inod(1,4,1) = 15
+         inod(1,4,1) = 16
          inod(2,4,1) = 12
-         inod(3,4,1) = 52
-         inod(4,4,1) = 51    
-c     z=2
+         inod(3,4,1) = 51
+         inod(4,4,1) = 52
+c     
          inod(1,1,2) = 5
          inod(2,1,2) = 6
          inod(3,1,2) = 17
          inod(4,1,2) = 18
-c         
          inod(1,2,2) = 8
          inod(2,2,2) = 7
-         inod(3,2,2) = 22
-         inod(4,2,2) = 21
-c         
-         inod(1,3,2) = 24
+         inod(3,2,2) = 21
+         inod(4,2,2) = 22
+         inod(1,3,2) = 23
          inod(2,3,2) = 19
          inod(3,3,2) = 53
          inod(4,3,2) = 54
-c
-         inod(1,4,2) = 23
+         inod(1,4,2) = 24
          inod(2,4,2) = 20
-         inod(3,4,2) = 56
-         inod(4,4,2) = 55
-c     z=3
+         inod(3,4,2) = 55
+         inod(4,4,2) = 56
+c     
          inod(1,1,3) = 25
          inod(2,1,3) = 26
          inod(3,1,3) = 33
          inod(4,1,3) = 34
-c         
          inod(1,2,3) = 28
          inod(2,2,3) = 27
          inod(3,2,3) = 38
          inod(4,2,3) = 37
-c         
          inod(1,3,3) = 40
          inod(2,3,3) = 35
          inod(3,3,3) = 57
          inod(4,3,3) = 58
-c
          inod(1,4,3) = 39
          inod(2,4,3) = 36
-         inod(3,4,3) = 60
-         inod(4,4,3) = 59
-c     z=4
+         inod(3,4,3) = 59
+         inod(4,4,3) = 60
+c     
          inod(1,1,4) = 29
          inod(2,1,4) = 30
          inod(3,1,4) = 41
          inod(4,1,4) = 42
-c         
          inod(1,2,4) = 32
          inod(2,2,4) = 31
          inod(3,2,4) = 46
          inod(4,2,4) = 45
-c         
          inod(1,3,4) = 48
          inod(2,3,4) = 43
          inod(3,3,4) = 61
          inod(4,3,4) = 62
-c
          inod(1,4,4) = 47
          inod(2,4,4) = 44
-         inod(3,4,4) = 64
-         inod(4,4,4) = 63
-      endif            
+         inod(3,4,4) = 63
+         inod(4,4,4) = 64
+c     
+      end if    
+      
+c
+c$$$      if (nen.eq.64) then
+c$$$c     gerado manualmente
+c$$$c     z=1
+c$$$         inod(1,1,1) = 1
+c$$$         inod(2,1,1) = 2
+c$$$         inod(3,1,1) = 9
+c$$$         inod(4,1,1) = 10
+c$$$c         
+c$$$         inod(1,2,1) = 4
+c$$$         inod(2,2,1) = 3
+c$$$         inod(3,2,1) = 14
+c$$$         inod(4,2,1) = 13
+c$$$c         
+c$$$         inod(1,3,1) = 16
+c$$$         inod(2,3,1) = 11
+c$$$         inod(3,3,1) = 49
+c$$$         inod(4,3,1) = 50
+c$$$c
+c$$$         inod(1,4,1) = 15
+c$$$         inod(2,4,1) = 12
+c$$$         inod(3,4,1) = 52
+c$$$         inod(4,4,1) = 51    
+c$$$c     z=2
+c$$$         inod(1,1,2) = 5
+c$$$         inod(2,1,2) = 6
+c$$$         inod(3,1,2) = 17
+c$$$         inod(4,1,2) = 18
+c$$$c         
+c$$$         inod(1,2,2) = 8
+c$$$         inod(2,2,2) = 7
+c$$$         inod(3,2,2) = 22
+c$$$         inod(4,2,2) = 21
+c$$$c         
+c$$$         inod(1,3,2) = 24
+c$$$         inod(2,3,2) = 19
+c$$$         inod(3,3,2) = 53
+c$$$         inod(4,3,2) = 54
+c$$$c
+c$$$         inod(1,4,2) = 23
+c$$$         inod(2,4,2) = 20
+c$$$         inod(3,4,2) = 56
+c$$$         inod(4,4,2) = 55
+c$$$c     z=3
+c$$$         inod(1,1,3) = 25
+c$$$         inod(2,1,3) = 26
+c$$$         inod(3,1,3) = 33
+c$$$         inod(4,1,3) = 34
+c$$$c         
+c$$$         inod(1,2,3) = 28
+c$$$         inod(2,2,3) = 27
+c$$$         inod(3,2,3) = 38
+c$$$         inod(4,2,3) = 37
+c$$$c         
+c$$$         inod(1,3,3) = 40
+c$$$         inod(2,3,3) = 35
+c$$$         inod(3,3,3) = 57
+c$$$         inod(4,3,3) = 58
+c$$$c
+c$$$         inod(1,4,3) = 39
+c$$$         inod(2,4,3) = 36
+c$$$         inod(3,4,3) = 60
+c$$$         inod(4,4,3) = 59
+c$$$c     z=4
+c$$$         inod(1,1,4) = 29
+c$$$         inod(2,1,4) = 30
+c$$$         inod(3,1,4) = 41
+c$$$         inod(4,1,4) = 42
+c$$$c         
+c$$$         inod(1,2,4) = 32
+c$$$         inod(2,2,4) = 31
+c$$$         inod(3,2,4) = 46
+c$$$         inod(4,2,4) = 45
+c$$$c         
+c$$$         inod(1,3,4) = 48
+c$$$         inod(2,3,4) = 43
+c$$$         inod(3,3,4) = 61
+c$$$         inod(4,3,4) = 62
+c$$$c
+c$$$         inod(1,4,4) = 47
+c$$$         inod(2,4,4) = 44
+c$$$         inod(3,4,4) = 64
+c$$$         inod(4,4,4) = 63
+c$$$      endif
+
+c     NEW ordem p=4
+      if(nen.eq.125) then
+c     
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(5,1,1) = 11
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 15
+         inod(4,2,1) = 16
+         inod(5,2,1) = 17
+         inod(1,3,1) = 18
+         inod(2,3,1) = 12
+         inod(3,3,1) = 81
+         inod(4,3,1) = 82
+         inod(5,3,1) = 83
+         inod(1,4,1) = 19
+         inod(2,4,1) = 13
+         inod(3,4,1) = 84
+         inod(4,4,1) = 85
+         inod(5,4,1) = 86
+         inod(1,5,1) = 20
+         inod(2,5,1) = 14
+         inod(3,5,1) = 87
+         inod(4,5,1) = 88
+         inod(5,5,1) = 89
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 21
+         inod(4,1,2) = 22
+         inod(5,1,2) = 23
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 27
+         inod(4,2,2) = 28
+         inod(5,2,2) = 29
+         inod(1,3,2) = 30
+         inod(2,3,2) = 24
+         inod(3,3,2) = 90
+         inod(4,3,2) = 91
+         inod(5,3,2) = 92
+         inod(1,4,2) = 31
+         inod(2,4,2) = 25
+         inod(3,4,2) = 93
+         inod(4,4,2) = 94
+         inod(5,4,2) = 95
+         inod(1,5,2) = 32
+         inod(2,5,2) = 26
+         inod(3,5,2) = 96
+         inod(4,5,2) = 97
+         inod(5,5,2) = 98
+c     
+         inod(1,1,3) = 33
+         inod(2,1,3) = 34
+         inod(3,1,3) = 45
+         inod(4,1,3) = 46
+         inod(5,1,3) = 47
+         inod(1,2,3) = 36
+         inod(2,2,3) = 35
+         inod(3,2,3) = 53
+         inod(4,2,3) = 52
+         inod(5,2,3) = 51
+         inod(1,3,3) = 56
+         inod(2,3,3) = 48
+         inod(3,3,3) = 99
+         inod(4,3,3) = 100
+         inod(5,3,3) = 101
+         inod(1,4,3) = 55
+         inod(2,4,3) = 49
+         inod(3,4,3) = 102
+         inod(4,4,3) = 103
+         inod(5,4,3) = 104
+         inod(1,5,3) = 54
+         inod(2,5,3) = 50
+         inod(3,5,3) = 105
+         inod(4,5,3) = 106
+         inod(5,5,3) = 107
+c     
+         inod(1,1,4) = 37
+         inod(2,1,4) = 38
+         inod(3,1,4) = 57
+         inod(4,1,4) = 58
+         inod(5,1,4) = 59
+         inod(1,2,4) = 40
+         inod(2,2,4) = 39
+         inod(3,2,4) = 65
+         inod(4,2,4) = 64
+         inod(5,2,4) = 63
+         inod(1,3,4) = 68
+         inod(2,3,4) = 60
+         inod(3,3,4) = 108
+         inod(4,3,4) = 109
+         inod(5,3,4) = 110
+         inod(1,4,4) = 67
+         inod(2,4,4) = 61
+         inod(3,4,4) = 111
+         inod(4,4,4) = 112
+         inod(5,4,4) = 113
+         inod(1,5,4) = 66
+         inod(2,5,4) = 62
+         inod(3,5,4) = 114
+         inod(4,5,4) = 115
+         inod(5,5,4) = 116
+c     
+         inod(1,1,5) = 41
+         inod(2,1,5) = 42
+         inod(3,1,5) = 69
+         inod(4,1,5) = 70
+         inod(5,1,5) = 71
+         inod(1,2,5) = 44
+         inod(2,2,5) = 43
+         inod(3,2,5) = 77
+         inod(4,2,5) = 76
+         inod(5,2,5) = 75
+         inod(1,3,5) = 80
+         inod(2,3,5) = 72
+         inod(3,3,5) = 117
+         inod(4,3,5) = 118
+         inod(5,3,5) = 119
+         inod(1,4,5) = 79
+         inod(2,4,5) = 73
+         inod(3,4,5) = 120
+         inod(4,4,5) = 121
+         inod(5,4,5) = 122
+         inod(1,5,5) = 78
+         inod(2,5,5) = 74
+         inod(3,5,5) = 123
+         inod(4,5,5) = 124
+         inod(5,5,5) = 125
+c     
+      end if
       
 c
 c     build shape functions/derivatives
