@@ -299,7 +299,7 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E16.8,'iterations = ',I5)
+ 100  format('Norm of residual = ',E16.8,' iterations = ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -6828,6 +6828,8 @@ c
             nints2 = 4
          else if(nints.eq.25) then
             nints2 = 5
+         else if(nints.eq.36) then
+            nints2 = 6            
          end if
 c
          write(*,*)
@@ -8384,7 +8386,7 @@ c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c      
-      write(*,*) "begin subroutine flux2"
+      write(*,*) "begin subroutine flux2", npars,nee,neep
 c
 c     PETSC stuff
 c      
@@ -10505,9 +10507,12 @@ c
          c(4,m) = del4          ! apwind (ativa o termo upwind, ver Oikawa 2014)
          c(5,m) = del5
          c(6,m) = del6
-         c(7,m) = del7
+         c(7,m) = del7          ! beta
          c(8,m) = del8
          c(9,m) = del9
+c
+         write(*,*) "beta=", c(7,m)
+c         
          write(ieco,3000) m,del1,del2,del3,del4,
      &                    del5,del6,del7,del8,del9
 c
@@ -11168,6 +11173,10 @@ c
          paone(4)=-.238619186083197
          paone(5)=-.661209386466365
          paone(6)=-.932469514203152
+
+         write(*,*) "CAIU AQUI"
+         stop
+         
       endif
 c
       if(nnods.eq.6) then
@@ -11632,14 +11641,6 @@ c
       endif
 c
       if (nint.eq.9) then
-c$$$         wone(1) = five9
-c$$$         wone(2) = five9
-c$$$         wone(3) = eight9
-c$$$         raone(1)=-.774596669241483
-c$$$         raone(2)= .774596669241483
-c$$$         raone(3)= zero
-c$$$         nintx=3
-c$$$  ninty=3
          wone(1) = five9
          wone(2) = eight9
          wone(3) = five9
@@ -12147,10 +12148,7 @@ c
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
 c
-
-c     write(*,*) "SHL_HX_PK",nen,nint
-c     nint = 64
-      
+c      write(*,*) "SHL_HX_PK",nen,nint
 c      
       if (nen.eq.1) xaone(1) = zero      
 c
@@ -12254,7 +12252,8 @@ c
          nintx=5
          ninty=5
          nintz=5
-      endif
+      endif   
+
 c
 c     inod - specify the ordering of the nodes/shape functions
 c     it follows xaone
@@ -12892,10 +12891,38 @@ c
       if(nnods.eq.5) then
          xaone(1)= -one
          xaone(2)= one
-         xaone(3)= -1.d0/2.d0
-         xaone(4)= 0.d0
-         xaone(5)= 1.d0/2.d0
+         xaone(3)= -pt5
+         xaone(4)= zero
+         xaone(5)= pt5
       endif
+c
+c
+      if(nints.eq.6) then
+         nintx=6
+         ninty=6
+c        
+         raone(1)=-.932469514203152 
+         raone(2)= .932469514203152 
+         raone(3)=-.661209386466265 
+         raone(4)= .661209386466265 
+         raone(5)=-.238619186083197 
+         raone(6)= .238619186083197      
+c
+         paone(1)=-.932469514203152 
+         paone(2)= .932469514203152 
+         paone(3)=-.661209386466265 
+         paone(4)= .661209386466265 
+         paone(5)=-.238619186083197 
+         paone(6)= .238619186083197 
+c
+         taone(1)=-.932469514203152 
+         taone(2)= .932469514203152 
+         taone(3)=-.661209386466265 
+         taone(4)= .661209386466265 
+         taone(5)=-.238619186083197 
+         taone(6)= .238619186083197 
+      endif      
+c
 c      
       if(nints.gt.6) then
          write(*,*) "error nints shlhxpbk, max nints=6"
