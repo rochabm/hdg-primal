@@ -669,6 +669,8 @@ c
       common a(1)
       common /dictn/ ia(10000000)
 c
+#include <petsc/finclude/petscsys.h>      
+      PetscLogDouble t1, t2
       PetscFortranAddr userctx(*)
 c
 c     clear left and right hand side
@@ -707,7 +709,10 @@ c
 c     PETSC solver
 c
       write(*,*) "PETSC solving linear system"
+      call PetscGetCPUTime(t1,ierr)
       call UserDoLinearSolver(userctx,a(mpbrhs))
+      call PetscGetCPUTime(t2,ierr)
+      write(*,*) (t2-t1), " CPU seconds"
 c
  1111 continue
 c
@@ -753,11 +758,22 @@ c
 c
       logical diag
       dimension eleffm(nee,*),lm(*)
+c      dimension indx(nee)
 c
       x    = userctx(1)
       b    = userctx(2)
       A    = userctx(3)
 c
+c     TODO: implement this correctly, only assemble lm(j)>0        
+c     all local values at once
+c$$$      do j=1,nee
+c$$$         indx(j) = lm(j)-1
+c$$$      enddo      
+c$$$      call MatSetValues(A,nee,indx,nee,indx,eleffm,ADD_VALUES,ierr)
+c$$$      if (ierr.ne.0) then
+c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+c$$$      endif      
+      
       if (diag) then
 c
          do j=1,nee
@@ -829,12 +845,14 @@ c
       PetscFortranAddr userctx(*)
 c      
       dimension elresf(*),lm(*)
+      dimension indx(nee)
 c      
       b = userctx(2)
 c      
       do j=1,nee
          k = lm(j)
          if (k.gt.0) then
+c$$$c           old code
 c$$$            brhs(k) = brhs(k) + elresf(j)            
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
@@ -843,6 +861,15 @@ c$$$            brhs(k) = brhs(k) + elresf(j)
             endif            
          end if
       end do
+
+c     TODO: implement this correctly, only assemble lm(j)>0  
+c$$$      do j=1,nee
+c$$$         indx(j) = lm(j)-1
+c$$$      enddo       
+c$$$      call VecSetValues(b,nee,indx,elresf,ADD_VALUES,ierr)
+c$$$      if (ierr.ne.0) then
+c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+c$$$      endif
 c
       return
       end
@@ -1204,30 +1231,6 @@ c
       backspace(iin)
 c
       call genfl(x,nsd)
-c
-c$$$      ! Malhas trapezoidais
-c$$$      if (beta > 0.d0) then
-c$$$         do j=2,ninc(2),2
-c$$$            do i=1,ninc(1)+1,2
-c$$$               ! baixar
-c$$$               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
-c$$$               noAnty = no-inc(2)
-c$$$               noProxy = no+inc(2)
-c$$$               do isd=1,nsd
-c$$$              x(isd,no)=beta*x(isd,noProxy)+(1.d00-beta)*x(isd,noAnty)
-c$$$               end do
-c$$$            end do
-c$$$            do i=2,ninc(1)+1,2
-c$$$               ! subir
-c$$$               no = 1 + (j-1)*inc(2) + (i-1)*inc(1)
-c$$$               noAnty = no-inc(2)
-c$$$               noProxy = no+inc(2)
-c$$$               do isd=1,nsd
-c$$$              x(isd,no)=beta*x(isd,noAnty)+(1.d00-beta)*x(isd,noProxy)
-c$$$               end do
-c$$$            end do
-c$$$         end do
-c$$$      end if
 c
       if (iprtin.eq.1) return
 c
@@ -2298,7 +2301,7 @@ c-----------------------------------------------------------------------
 c
   100 continue
       read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
-      write(*,"(A,10I5)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+      write(*,"(A,10I10)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
 
       if (n.eq.0) return
 c
@@ -6046,6 +6049,7 @@ c     program to set storage and call tasks for the
 c     primal mixed Poisson  problem
 c     with continuous temperature and discontinuous flux
 c-----------------------------------------------------------------------
+c      
       PetscFortranAddr userctx(*)
 c      
       dimension npar(*),mp(*)
@@ -6551,7 +6555,7 @@ c     Esta rotina monta a matriz global (multiplicadores
 c     usando condensacao estatica dos graus de liberdade
 c     da variavel primalx
 c
-      write(*,'(A)') "subroutine flux2"      
+      write(*,'(A)') "subroutine flux2"
       call flux2(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
      &           a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
@@ -8877,12 +8881,13 @@ c     lm - prescritos
 c     addlhs, addrhs e addnsl
 c
          call addlhs(eleffd,lm(1,1,nel),nee,diag,userctx)
-         call addrhs(elresd,lm(1,1,nel),nee,userctx)
+         call addrhs(elresd,lm(1,1,nel),nee,userctx)         
 c
  500  continue
 c
 c     fim do loop em elementos na flux2
-c      
+c
+      write(*,*) "PETSc Matrix Assembly"
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 c
@@ -9322,20 +9327,8 @@ c
 c
 c     valor exato do multiplicador
 c
-c               write(*,*) "mult aprox",dhs
-
-
-ccccc               dhs = gf1*sx*sy*sz
-
-
-               
-c               write(*,*) "mult exato",dhs
-c               write(*,*) ""
-               
-c      &    + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-c      &          - 1.d00)*inveps))*(1.d00 - dexp((x2 - 1.d00)*inveps)))
-c      &    + gf3*1.d00
-c
+c$$$           dhs = gf1*sx*sy*sz
+c               
                do j=1,nenp
                   nbj  = ned*(j-1)
                   nbj1 = nbj+1
@@ -12253,7 +12246,6 @@ c
          ninty=5
          nintz=5
       endif   
-
 c
 c     inod - specify the ordering of the nodes/shape functions
 c     it follows xaone
@@ -12272,46 +12264,7 @@ c
          inod(2,2,2) = 7
       end if
 c
-c$$$      if(nen.eq.27) then
-c$$$         inod(1,1,1) = 1
-c$$$         inod(2,1,1) = 2
-c$$$         inod(3,1,1) = 9
-c$$$c         
-c$$$         inod(1,2,1) = 4
-c$$$         inod(2,2,1) = 3
-c$$$         inod(3,2,1) = 11
-c$$$c         
-c$$$         inod(1,3,1) = 12
-c$$$         inod(2,3,1) = 10
-c$$$         inod(3,3,1) = 25
-c$$$c         
-c$$$         inod(1,1,2) = 5
-c$$$         inod(2,1,2) = 6
-c$$$         inod(3,1,2) = 13
-c$$$c         
-c$$$         inod(1,2,2) = 8
-c$$$         inod(2,2,2) = 7
-c$$$         inod(3,2,2) = 15
-c$$$c         
-c$$$         inod(1,3,2) = 16
-c$$$         inod(2,3,2) = 14
-c$$$         inod(3,3,2) = 26
-c$$$c
-c$$$         inod(1,1,3) = 17
-c$$$         inod(2,1,3) = 18
-c$$$         inod(3,1,3) = 22
-c$$$c         
-c$$$         inod(1,2,3) = 20
-c$$$         inod(2,2,3) = 19
-c$$$         inod(3,2,3) = 21
-c$$$c         
-c$$$         inod(1,3,3) = 23
-c$$$         inod(2,3,3) = 24
-c$$$         inod(3,3,3) = 27
-c$$$  endif
-
       if(nen.eq.27) then
-c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
@@ -12343,11 +12296,9 @@ c
          inod(3,3,3) = 27
 c     
       end if
-
       
 c     NEW
       if(nen.eq.64) then
-c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
@@ -12635,10 +12586,7 @@ c
          inod(3,5,5) = 123
          inod(4,5,5) = 124
          inod(5,5,5) = 125
-c     
       end if
-
-      
 c     
 c     generate 1d shape functions
 c
@@ -12670,12 +12618,11 @@ c
             shlone(1,i,l) = aax/bb
          end do
  100  continue
-
+c
 c$$$      write(*,*) "debug shlone"
 c$$$      do i=1,nenx
 c$$$         write(*,'(10F8.4)') (shlone(2,i,l),l=1,nintx)
 c$$$      end do
-
 c
 c     generates weights of the gauss quadrature / and local r,s,t nodes
 c
@@ -12691,13 +12638,13 @@ c
             end do
          end do
       end do
-
-c      write(*,*) "debug gauss points"
-c      nl = nintx*ninty*nintz
-c      do l=1,nl
-c         write(*,*) ra(l), sa(l), ta(l)
-c      end do
-
+c
+c$$$      write(*,*) "debug gauss points"
+c$$$      nl = nintx*ninty*nintz
+c$$$      do l=1,nl
+c$$$         write(*,*) ra(l), sa(l), ta(l)
+c$$$      end do
+c
 c
 c     generates 3d shape functions by tensor product
 c
@@ -12728,9 +12675,6 @@ c
      &                               shlone(2,iy,ly)*
      &                               shlone(1,iz,lz)
 c
-c                  xaux = shlone(2,ix,lx)*shlone(2,iy,ly)*shlone(2,iz,lz)
-c                  write(*,*) l, j, xaux
-
                         shl(4,j,l) = shlone(2,ix,lx)*
      &                               shlone(2,iy,ly)*
      &                               shlone(2,iz,lz)
@@ -12781,53 +12725,15 @@ c
       write(*,'(A,I5)') " nnods:", nnods
       write(*,'(A,I5)') " nints:", nints
 c
-      if (nints.eq.1) then
-         nintx = 1
-         ninty = 1
-         raone(1) = zero
-         paone(1) = zero
-         taone(1) = zero
-      endif
+c     nodal data
 c
       if(nnods.eq.1) then
          xaone(1) = zero
       end if
 c
-c      
-      if (nints.eq.2) then
-         nintx=2
-         ninty=2
-         raone(1)=-.577350269189626
-         raone(2)= .577350269189625
-c
-         paone(1)=-.577350269189626
-         paone(2)= .577350269189625
-c
-         taone(1)=-.577350269189626
-         taone(2)= .577350269189625
-      endif
-c
       if (nnods.eq.2) then
          xaone(1) = -one
          xaone(2) =  one
-      endif
-c
-c      
-      if (nints.eq.3) then
-         nintx=3
-         ninty=3
-c
-         raone(1)=-.774596669241483
-         raone(2)= zero
-         raone(3)= .774596669241483
-c
-         paone(1)= -.774596669241483
-         paone(2)= zero
-         paone(3)= .774596669241483
-c
-         taone(1)= -.774596669241483
-         taone(2)= zero
-         taone(3)= .774596669241483
       endif
 c
       if(nnods.eq.3) then
@@ -12836,7 +12742,56 @@ c
          xaone(3)= zero
       endif
 c
+      if(nnods.eq.4) then
+         xaone(1)= -one
+         xaone(2)= one
+         xaone(3)= -1.d0/3.d0
+         xaone(4)=  1.d0/3.d0
+      endif
+c
+      if(nnods.eq.5) then
+         xaone(1)= -one
+         xaone(2)= one
+         xaone(3)= -pt5
+         xaone(4)= zero
+         xaone(5)= pt5
+      endif      
+c
+c     integration data
+c     
+      if (nints.eq.1) then
+         nintx = 1
+         ninty = 1
+         raone(1) = zero
+         paone(1) = zero
+         taone(1) = zero
+      endif
+c
+      if (nints.eq.2) then
+         nintx=2
+         ninty=2
+         raone(1)=-.577350269189626
+         raone(2)= .577350269189625
+         paone(1)=-.577350269189626
+         paone(2)= .577350269189625
+         taone(1)=-.577350269189626
+         taone(2)= .577350269189625
+      endif
 c      
+      if (nints.eq.3) then
+         nintx=3
+         ninty=3
+         raone(1)=-.774596669241483
+         raone(2)= zero
+         raone(3)= .774596669241483
+         paone(1)= -.774596669241483
+         paone(2)= zero
+         paone(3)= .774596669241483
+         taone(1)= -.774596669241483
+         taone(2)= zero
+         taone(3)= .774596669241483
+      endif
+c     
       if (nints.eq.4) then
          nintx=4
          ninty=4
@@ -12856,14 +12811,6 @@ c
          taone(3)=-.339981043584856
          taone(4)= .339981043584856                  
       endif      
-c
-      if(nnods.eq.4) then
-         xaone(1)= -one
-         xaone(2)= one
-         xaone(3)= -1.d0/3.d0
-         xaone(4)=  1.d0/3.d0
-      endif
-c
 c
       if(nints.eq.5) then
          nintx=5
@@ -12887,15 +12834,6 @@ c
          taone(4)= .538469310105683
          taone(5)= zero         
       endif
-c
-      if(nnods.eq.5) then
-         xaone(1)= -one
-         xaone(2)= one
-         xaone(3)= -pt5
-         xaone(4)= zero
-         xaone(5)= pt5
-      endif
-c
 c
       if(nints.eq.6) then
          nintx=6
@@ -12923,6 +12861,7 @@ c
          taone(6)= .238619186083197 
       endif      
 c
+c     treat errors
 c      
       if(nints.gt.6) then
          write(*,*) "error nints shlhxpbk, max nints=6"
