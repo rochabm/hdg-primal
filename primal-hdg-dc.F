@@ -134,10 +134,9 @@ c----------------------------------------------------------------------
        Mat      A
        Vec      b,x
        KSP      ksp
-       PetscInt tot,nnz,one
+       PetscInt tot,nnz
 c
-       one  = 1
-       nnz = 300
+       nnz = 400
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -175,7 +174,7 @@ c
       userctx(5) = m
       userctx(6) = n
 c      
-      write(*,*) "PETSC: criando matriz OK"
+      write(*,'(A)') "PETSC: matriz criada OK"
 c      
       return
       end
@@ -600,7 +599,7 @@ c      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
 c
 c     allocate matrices
 c
-      write(*,*) "PETSC: initialize",neq
+      write(*,'(A,I5)') "PETSC: initialize",neq
       call UserInitializeLinearSolver(neq,neq,userctx,ierr)      
 c
 c     write equation system data
@@ -709,10 +708,7 @@ c
 c     PETSC solver
 c
       write(*,*) "PETSC solving linear system"
-      call PetscGetCPUTime(t1,ierr)
       call UserDoLinearSolver(userctx,a(mpbrhs))
-      call PetscGetCPUTime(t2,ierr)
-      write(*,*) (t2-t1), " CPU seconds"
 c
  1111 continue
 c
@@ -1716,8 +1712,7 @@ c
 c     le a linha de conectividade exemplo do elemento
 c
       read(iin,1000) n,(itemp(i),i=1,nside),ng
-
-      write(*,*) "GENELAD", n, (itemp(i), i=1,nside), ng
+c      write(*,*) "GENELAD", n, (itemp(i), i=1,nside), ng
 
       if (n.eq.0) return
 c
@@ -1746,9 +1741,6 @@ c     *** OLD ***
      &        incf(3,4),incf(3,5),incf(3,6)
          call genelad1(lado,nside)
       endif
-
-c      write(*,*) "BLA",incf(3,1),incf(3,2),incf(3,3),incf(3,4),
-c     &    incf(3,5),incf(3,6)
 c
       go to 100
 c
@@ -1772,7 +1764,6 @@ c
 c
 c     generation algorithm
 c
-      write(*,*) "GENELAD1"
       ie = n
       je = n
       ke = n
@@ -5645,23 +5636,23 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
       call move(shg,shl,4*nen*nint)
-      
-c      write(*,*) "DADOS HEX -> shlnode em SHGHX funcao"
-c      do ii=1,nint
-c         write(*,999) (shlnode(4,in,ii),in=1,nen)
-c      end do
-c      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 1"
-c      do ii=1,nint
-c         write(*,999) (shlnode(1,in,ii),in=1,nen)
-c      end do
-c      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 2"
-c      do ii=1,nint
-c         write(*,999) (shlnode(2,in,ii),in=1,nen)
-c      end do
-c      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 3"
-c      do ii=1,nint
-c         write(*,999) (shlnode(3,in,ii),in=1,nen)
-c      end do
+c      
+c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX funcao"
+c$$$      do ii=1,nint
+c$$$         write(*,999) (shlnode(4,in,ii),in=1,nen)
+c$$$      end do
+c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 1"
+c$$$      do ii=1,nint
+c$$$         write(*,999) (shlnode(1,in,ii),in=1,nen)
+c$$$      end do
+c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 2"
+c$$$      do ii=1,nint
+c$$$         write(*,999) (shlnode(2,in,ii),in=1,nen)
+c$$$      end do
+c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 3"
+c$$$      do ii=1,nint
+c$$$         write(*,999) (shlnode(3,in,ii),in=1,nen)
+c$$$      end do
 c
 c     loop pontos integracao - calcula isoparametrico
 c
@@ -6249,10 +6240,13 @@ c
       if (nsd.eq.3) then
 c
          write(*,'(A)') " elementos 3D"
+         write(*,*) nnods
+         
 c
          nenlad = 4
          if(nencon.eq.8.or.nencon.eq.27.or.
-     &      nencon.eq.64.or.nencon.eq.125) then
+     &      nencon.eq.64.or.nencon.eq.125.or.
+     &      nencon.eq.216) then
             nnods = 4
             nside = 6
          end if
@@ -6433,7 +6427,7 @@ c
      &           nnods        ,nenlad        ,npars,
      &           nenp         ,nside         ,nodsp)
 c
-      write(*,*) "fim da flux1"
+      write(*,'(A)') "fim da flux1"
       return
 c
   200 continue
@@ -6762,7 +6756,7 @@ c     treat faces first (2D)
 c     obs: shlq and shlqpk compute the same functions
 c
          write(*,'(A)') " calculando shl do multiplicador"
-         write(*,'(A,3I5)') " nenlad,nnods,npars",nenlad,nnods,npars
+         write(*,'(4I5)') nenlad,nnods,npars,nints
 
          write(*,*)
          write(*,'(A)') " calculando shlb"
@@ -6819,7 +6813,9 @@ c
          else if(nencon.eq.64) then
             nnods2 = 4
          else if(nencon.eq.125) then
-            nnods2 = 5
+            nnods2 = 5         
+         else if(nencon.eq.216) then
+            nnods2 = 6
          endif
 
          if(nints.eq.1) then
@@ -6833,7 +6829,9 @@ c
          else if(nints.eq.25) then
             nints2 = 5
          else if(nints.eq.36) then
-            nints2 = 6            
+            nints2 = 6
+         else if(nints.eq.49) then
+            nints2 = 7
          end if
 c
          write(*,*)
@@ -6899,7 +6897,7 @@ c     shp on faces
             write(*,999) (shsde(4,in,ii),in=1,nen)
          end do
 c
- 999     format(' ',30F10.6)
+ 999     format(' ',30F8.4)
 c     *** DEBUG ***
       end if
 c
@@ -7258,9 +7256,9 @@ c     face 6
             idside(6,4) = 8
          end if
 c
-
-c     NEW ORDERING TEST FOR QUADRATIC
-         
+c
+c     p=2
+c
          if(nen.eq.27) then
 c     
             idside(1,1) =  1
@@ -7322,78 +7320,11 @@ c
             idside(6,7) =  15
             idside(6,8) =  16
             idside(6,9) =  26
-c     
          end if
-         
-         
-c$$$         if(nen.eq.27) then
-c$$$c     face 1
-c$$$            idside(1,1) = 1
-c$$$            idside(1,2) = 2
-c$$$            idside(1,3) = 6
-c$$$            idside(1,4) = 5
-c$$$            idside(1,5) = 9
-c$$$            idside(1,6) = 18
-c$$$            idside(1,7) = 13
-c$$$            idside(1,8) = 17
-c$$$            idside(1,9) = 22
-c$$$c     face 2
-c$$$            idside(2,1) = 1
-c$$$            idside(2,2) = 4
-c$$$            idside(2,3) = 8
-c$$$            idside(2,4) = 5
-c$$$            idside(2,5) = 12
-c$$$            idside(2,6) = 20
-c$$$            idside(2,7) = 16
-c$$$            idside(2,8) = 17
-c$$$            idside(2,9) = 23
-c$$$c     face 3
-c$$$            idside(3,1) = 2
-c$$$            idside(3,2) = 3
-c$$$            idside(3,3) = 7
-c$$$            idside(3,4) = 6
-c$$$            idside(3,5) = 10
-c$$$            idside(3,6) = 19
-c$$$            idside(3,7) = 14
-c$$$            idside(3,8) = 18
-c$$$            idside(3,9) = 24
-c$$$c     face 4
-c$$$            idside(4,1) = 4
-c$$$            idside(4,2) = 3
-c$$$            idside(4,3) = 7
-c$$$            idside(4,4) = 8
-c$$$            idside(4,5) = 11
-c$$$            idside(4,6) = 19
-c$$$            idside(4,7) = 15
-c$$$            idside(4,8) = 20
-c$$$            idside(4,9) = 21
-c$$$c     face 5
-c$$$            idside(5,1) = 1
-c$$$            idside(5,2) = 2
-c$$$            idside(5,3) = 3
-c$$$            idside(5,4) = 4
-c$$$            idside(5,5) = 9
-c$$$            idside(5,6) = 10
-c$$$            idside(5,7) = 11
-c$$$            idside(5,8) = 12
-c$$$            idside(5,9) = 25 
-c$$$c     face 6
-c$$$            idside(6,1) = 5
-c$$$            idside(6,2) = 6
-c$$$            idside(6,3) = 7
-c$$$            idside(6,4) = 8
-c$$$            idside(6,5) = 13
-c$$$            idside(6,6) = 14
-c$$$            idside(6,7) = 15
-c$$$            idside(6,8) = 16
-c$$$            idside(6,9) = 26
-c$$$         endif
-c
-c
-
-c     NEW
-         if(nen.eq.64) then
-c     
+c         
+c     p=3
+c         
+         if(nen.eq.64) then    
             idside(1,1) =  1
             idside(1,2) =  2
             idside(1,3) =  6
@@ -7495,119 +7426,11 @@ c
             idside(6,14) =  54
             idside(6,15) =  55
             idside(6,16) =  56
-c     
          end if
-         
-c$$$         if(nen.eq.64) then
-c$$$c     manual
-c$$$c     face 1
-c$$$            idside(1,1)  = 1
-c$$$            idside(1,2)  = 2
-c$$$            idside(1,3)  = 6
-c$$$            idside(1,4)  = 5
-c$$$            idside(1,5)  = 9
-c$$$            idside(1,6)  = 10
-c$$$            idside(1,7)  = 26
-c$$$            idside(1,8)  = 30
-c$$$            idside(1,9)  = 17
-c$$$            idside(1,10) = 18
-c$$$            idside(1,11) = 29
-c$$$            idside(1,12) = 25
-c$$$            idside(1,13) = 33
-c$$$            idside(1,14) = 34
-c$$$            idside(1,15) = 42
-c$$$            idside(1,16) = 41
-c$$$c     face 2
-c$$$            idside(2,1)  = 1
-c$$$            idside(2,2)  = 4
-c$$$            idside(2,3)  = 8
-c$$$            idside(2,4)  = 5
-c$$$            idside(2,5)  = 16
-c$$$            idside(2,6)  = 15
-c$$$            idside(2,7)  = 28
-c$$$            idside(2,8)  = 32
-c$$$            idside(2,9)  = 23
-c$$$            idside(2,10) = 24
-c$$$            idside(2,11) = 29
-c$$$            idside(2,12) = 25
-c$$$            idside(2,13) = 40
-c$$$            idside(2,14) = 39
-c$$$            idside(2,15) = 47
-c$$$            idside(2,16) = 48
-c$$$c     face 3
-c$$$            idside(3,1)  = 2
-c$$$            idside(3,2)  = 3
-c$$$            idside(3,3)  = 7
-c$$$            idside(3,4)  = 6
-c$$$            idside(3,5)  = 11
-c$$$            idside(3,6)  = 12
-c$$$            idside(3,7)  = 27
-c$$$            idside(3,8)  = 31
-c$$$            idside(3,9)  = 20
-c$$$            idside(3,10) = 19
-c$$$            idside(3,11) = 30
-c$$$            idside(3,12) = 26
-c$$$            idside(3,13) = 35
-c$$$            idside(3,14) = 36
-c$$$            idside(3,15) = 44
-c$$$            idside(3,16) = 43
-c$$$c     face 4
-c$$$            idside(4,1)  = 4
-c$$$            idside(4,2)  = 3
-c$$$            idside(4,3)  = 7
-c$$$            idside(4,4)  = 8
-c$$$            idside(4,5)  = 14
-c$$$            idside(4,6)  = 13
-c$$$            idside(4,7)  = 27
-c$$$            idside(4,8)  = 31
-c$$$            idside(4,9)  = 21
-c$$$            idside(4,10) = 22
-c$$$            idside(4,11) = 32
-c$$$            idside(4,12) = 28
-c$$$            idside(4,13) = 38
-c$$$            idside(4,14) = 37
-c$$$            idside(4,15) = 45
-c$$$            idside(4,16) = 46
-c$$$c     face 5
-c$$$            idside(5,1)  = 1
-c$$$            idside(5,2)  = 2
-c$$$            idside(5,3)  = 3
-c$$$            idside(5,4)  = 4
-c$$$            idside(5,5)  = 9
-c$$$            idside(5,6)  = 10
-c$$$            idside(5,7)  = 11
-c$$$            idside(5,8)  = 12
-c$$$            idside(5,9)  = 13
-c$$$            idside(5,10) = 14
-c$$$            idside(5,11) = 15
-c$$$            idside(5,12) = 16
-c$$$            idside(5,13) = 49
-c$$$            idside(5,14) = 50
-c$$$            idside(5,15) = 51
-c$$$            idside(5,16) = 52
-c$$$c     face 6
-c$$$            idside(6,1)  = 5
-c$$$            idside(6,2)  = 6
-c$$$            idside(6,3)  = 7
-c$$$            idside(6,4)  = 8
-c$$$            idside(6,5)  = 17
-c$$$            idside(6,6)  = 18
-c$$$            idside(6,7)  = 19
-c$$$            idside(6,8)  = 20
-c$$$            idside(6,9)  = 21
-c$$$            idside(6,10) = 22
-c$$$            idside(6,11) = 23
-c$$$            idside(6,12) = 24
-c$$$            idside(6,13) = 53
-c$$$            idside(6,14) = 54
-c$$$            idside(6,15) = 55
-c$$$            idside(6,16) = 56                       
-c$$$         endif
 c
-
-c     NEW ordem p=4
+c     p=4
+c         
          if(nen.eq.125) then
-c     
             idside(1,1) =  1
             idside(1,2) =  2
             idside(1,3) =  6
@@ -7763,8 +7586,233 @@ c
             idside(6,23) =  96
             idside(6,24) =  97
             idside(6,25) =  98
-c     
          end if
+c
+c     p=5
+c         
+         if(nen.eq.216) then     
+            idside(1,1) =  1
+            idside(1,2) =  2
+            idside(1,3) =  6
+            idside(1,4) =  5
+            idside(1,5) =  9
+            idside(1,6) =  10
+            idside(1,7) =  11
+            idside(1,8) =  12
+            idside(1,9) =  42
+            idside(1,10) =  46
+            idside(1,11) =  50
+            idside(1,12) =  54
+            idside(1,13) =  28
+            idside(1,14) =  27
+            idside(1,15) =  26
+            idside(1,16) =  25
+            idside(1,17) =  53
+            idside(1,18) =  49
+            idside(1,19) =  45
+            idside(1,20) =  41
+            idside(1,21) =  57
+            idside(1,22) =  58
+            idside(1,23) =  59
+            idside(1,24) =  60
+            idside(1,25) =  73
+            idside(1,26) =  74
+            idside(1,27) =  75
+            idside(1,28) =  76
+            idside(1,29) =  89
+            idside(1,30) =  90
+            idside(1,31) =  91
+            idside(1,32) =  92
+            idside(1,33) =  105
+            idside(1,34) =  106
+            idside(1,35) =  107
+            idside(1,36) =  108
+c     
+            idside(2,1) =  1
+            idside(2,2) =  4
+            idside(2,3) =  8
+            idside(2,4) =  5
+            idside(2,5) =  21
+            idside(2,6) =  22
+            idside(2,7) =  23
+            idside(2,8) =  24
+            idside(2,9) =  44
+            idside(2,10) =  48
+            idside(2,11) =  52
+            idside(2,12) =  56
+            idside(2,13) =  40
+            idside(2,14) =  39
+            idside(2,15) =  38
+            idside(2,16) =  37
+            idside(2,17) =  53
+            idside(2,18) =  49
+            idside(2,19) =  45
+            idside(2,20) =  41
+            idside(2,21) =  72
+            idside(2,22) =  71
+            idside(2,23) =  70
+            idside(2,24) =  69
+            idside(2,25) =  88
+            idside(2,26) =  87
+            idside(2,27) =  86
+            idside(2,28) =  85
+            idside(2,29) =  104
+            idside(2,30) =  103
+            idside(2,31) =  102
+            idside(2,32) =  101
+            idside(2,33) =  120
+            idside(2,34) =  119
+            idside(2,35) =  118
+            idside(2,36) =  117
+c     
+            idside(3,1) =  2
+            idside(3,2) =  3
+            idside(3,3) =  7
+            idside(3,4) =  6
+            idside(3,5) =  13
+            idside(3,6) =  14
+            idside(3,7) =  15
+            idside(3,8) =  16
+            idside(3,9) =  43
+            idside(3,10) =  47
+            idside(3,11) =  51
+            idside(3,12) =  55
+            idside(3,13) =  32
+            idside(3,14) =  31
+            idside(3,15) =  30
+            idside(3,16) =  29
+            idside(3,17) =  54
+            idside(3,18) =  50
+            idside(3,19) =  46
+            idside(3,20) =  42
+            idside(3,21) =  61
+            idside(3,22) =  62
+            idside(3,23) =  63
+            idside(3,24) =  64
+            idside(3,25) =  77
+            idside(3,26) =  78
+            idside(3,27) =  79
+            idside(3,28) =  80
+            idside(3,29) =  93
+            idside(3,30) =  94
+            idside(3,31) =  95
+            idside(3,32) =  96
+            idside(3,33) =  109
+            idside(3,34) =  110
+            idside(3,35) =  111
+            idside(3,36) =  112
+c     
+            idside(4,1) =  4
+            idside(4,2) =  3
+            idside(4,3) =  7
+            idside(4,4) =  8
+            idside(4,5) =  17
+            idside(4,6) =  18
+            idside(4,7) =  19
+            idside(4,8) =  20
+            idside(4,9) =  43
+            idside(4,10) =  47
+            idside(4,11) =  51
+            idside(4,12) =  55
+            idside(4,13) =  36
+            idside(4,14) =  35
+            idside(4,15) =  34
+            idside(4,16) =  33
+            idside(4,17) =  56
+            idside(4,18) =  52
+            idside(4,19) =  48
+            idside(4,20) =  44
+            idside(4,21) =  68
+            idside(4,22) =  67
+            idside(4,23) =  66
+            idside(4,24) =  65
+            idside(4,25) =  84
+            idside(4,26) =  83
+            idside(4,27) =  82
+            idside(4,28) =  81
+            idside(4,29) =  100
+            idside(4,30) =  99
+            idside(4,31) =  98
+            idside(4,32) =  97
+            idside(4,33) =  116
+            idside(4,34) =  115
+            idside(4,35) =  114
+            idside(4,36) =  113
+c     
+            idside(5,1) =  1
+            idside(5,2) =  2
+            idside(5,3) =  3
+            idside(5,4) =  4
+            idside(5,5) =  9
+            idside(5,6) =  10
+            idside(5,7) =  11
+            idside(5,8) =  12
+            idside(5,9) =  13
+            idside(5,10) =  14
+            idside(5,11) =  15
+            idside(5,12) =  16
+            idside(5,13) =  20
+            idside(5,14) =  19
+            idside(5,15) =  18
+            idside(5,16) =  17
+            idside(5,17) =  24
+            idside(5,18) =  23
+            idside(5,19) =  22
+            idside(5,20) =  21
+            idside(5,21) =  121
+            idside(5,22) =  122
+            idside(5,23) =  123
+            idside(5,24) =  124
+            idside(5,25) =  125
+            idside(5,26) =  126
+            idside(5,27) =  127
+            idside(5,28) =  128
+            idside(5,29) =  129
+            idside(5,30) =  130
+            idside(5,31) =  131
+            idside(5,32) =  132
+            idside(5,33) =  133
+            idside(5,34) =  134
+            idside(5,35) =  135
+            idside(5,36) =  136
+c     
+            idside(6,1) =  5
+            idside(6,2) =  6
+            idside(6,3) =  7
+            idside(6,4) =  8
+            idside(6,5) =  25
+            idside(6,6) =  26
+            idside(6,7) =  27
+            idside(6,8) =  28
+            idside(6,9) =  29
+            idside(6,10) =  30
+            idside(6,11) =  31
+            idside(6,12) =  32
+            idside(6,13) =  36
+            idside(6,14) =  35
+            idside(6,15) =  34
+            idside(6,16) =  33
+            idside(6,17) =  40
+            idside(6,18) =  39
+            idside(6,19) =  38
+            idside(6,20) =  37
+            idside(6,21) =  137
+            idside(6,22) =  138
+            idside(6,23) =  139
+            idside(6,24) =  140
+            idside(6,25) =  141
+            idside(6,26) =  142
+            idside(6,27) =  143
+            idside(6,28) =  144
+            idside(6,29) =  145
+            idside(6,30) =  146
+            idside(6,31) =  147
+            idside(6,32) =  148
+            idside(6,33) =  149
+            idside(6,34) =  150
+            idside(6,35) =  151
+            idside(6,36) =  152
+         end if         
          
        end if
 c
@@ -7875,7 +7923,6 @@ c     element loop
 c     ------------------------------------------------------------------     
 
       do 500 nel=1,numel
-c         write(*,"(//,A,I5)") "ELEMENTO",nel
 c     
 c     clear stiffness matrix and force array
 c
@@ -8037,7 +8084,7 @@ c$$$         do ik=1,neep
 c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
 c$$$         end do
 c$$$         write(*,*) "vetor (poisson)"
-c$$$  write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
+c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
 
 c     ------------------------------------------------------------------
 c     loop to compute area integrals - symmetrization - boundary terms 
@@ -8096,7 +8143,6 @@ c              write(*,'(A)') " trocou sinal"
                   idlsd(nn) = idside(ns,nn)
                end do
             end if
-c           write(*,'(A,F8.4)') " sinal", sign
 c
 c     confere nos globais depois que trocou
 c
@@ -8263,13 +8309,12 @@ c     projecao local do potencial
 c
          do j=1,nenp
             ddis(1,j,nel) = elfbb(j)
-         end do
-         
+         end do         
 c
 c     debug - confere valor nodal da flux0
 c
 c$$$         write(*,*)
-c$$$  write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
+c$$$         write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
 c$$$c        tamanho do loop (conferir)          
 c$$$         do i=1,npars
 c$$$            axx = xls(1,i)
@@ -8287,17 +8332,16 @@ c$$$     &                                  dabs(xexx-elfbb(i))
 c$$$         end do
 c
  500  continue
-
 c
-c      nm = nedge*npars
-c      write(*,*)
-c      write(*,*) "array de multiplicadores - pos flux0"
-c      do kk=1,nm
-c         write(*,'(I5,F8.4)') kk, d(1,kk)
-c         if(mod(kk,4).eq.0) then
-c            write(*,*) " "
-c         end if
-c      end do
+c$$$      nm = nedge*npars
+c$$$      write(*,*)
+c$$$      write(*,*) "array de multiplicadores - pos flux0"
+c$$$      do kk=1,nm
+c$$$         write(*,'(I5,F8.4)') kk, d(1,kk)
+c$$$         if(mod(kk,4).eq.0) then
+c$$$            write(*,*) " "
+c$$$         end if
+c$$$      end do
 c
       return
       end
@@ -8887,21 +8931,21 @@ c
 c
 c     fim do loop em elementos na flux2
 c
-      write(*,*) "PETSc Matrix Assembly"
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
 c
-c     call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c     
-c     write(*,*) "PETSC: salvando matrix"
-c     call PetscViewerBinaryOpen(PETSC_COMM_WORLD,'A.dat',
-c     &     FILE_MODE_WRITE,viewer,ierr)
-c     call MatView(A,viewer,ierr)
-c     call PetscViewerDestroy(viewer,ierr)
-c     call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.dat",viewer,ierr)
-c     call PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_DENSE,ierr)
-c     call MatView(A,viewer,ierr)
-c     call PetscViewerDestroy(viewer,ierr)     
+c     save matrix
+c      
+c$$$      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)     
+c$$$      write(*,*) "PETSC: salvando matrix"
+c$$$      call PetscViewerBinaryOpen(PETSC_COMM_WORLD,'A.dat',
+c$$$     &     FILE_MODE_WRITE,viewer,ierr)
+c$$$      call MatView(A,viewer,ierr)
+c$$$      call PetscViewerDestroy(viewer,ierr)
+c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.dat",viewer,ierr)
+c$$$      call PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_DENSE,ierr)
+c$$$      call MatView(A,viewer,ierr)
+c$$$      call PetscViewerDestroy(viewer,ierr)     
 c      
       return
       end
@@ -9843,23 +9887,21 @@ c
 c     loop on elements
 c
       do 50 n=1,numel
-c         write(*,'(//,A,I3)') "elemento ", n
-c
          call local(ien(1,n),x,xl,nen,nsd,nesd)
          call local(ipar(1,n),d,dl,nodsp,ndof,ned)
 c
 c     debug local
-c         write(*,*) "copia de D para DL (nos indices dados por IPAR)"
-c         write(*,*) nodsp, ndof, ned
-c         write(*,'(A)') " array dl"
-c         do kk=1,6
-c            write(*,'(24F8.4)') (dl(1,4*(kk-1)+jj),jj=1,4)
-c         end do
-c         write(*,'(A)') " elem nodes"
-c         do kk=1,nen
-c            write(*,'(3F8.4)') xl(1,kk), xl(2,kk), xl(3,kk)
-c         end do
-         
+c     
+c$$$         write(*,*) "copia de D para DL (nos indices dados por IPAR)"
+c$$$         write(*,*) nodsp, ndof, ned
+c$$$         write(*,'(A)') " array dl"
+c$$$         do kk=1,6
+c$$$            write(*,'(24F8.4)') (dl(1,4*(kk-1)+jj),jj=1,4)
+c$$$         end do
+c$$$         write(*,'(A)') " elem nodes"
+c$$$         do kk=1,nen
+c$$$            write(*,'(3F8.4)') xl(1,kk), xl(2,kk), xl(3,kk)
+c$$$         end do         
 c
 c     recupera multiplicador
 c
@@ -9895,7 +9937,6 @@ c
 c
 c     loop on integration points (volume)
 c
-c$$$         write(*,'(A)') " exata  / variavel / erro no pt integracao"
          do l=1,nint
             ct=detc(l)*wt(l)
             call clear ( u, ncon )
@@ -9961,7 +10002,6 @@ c     boundary terms - multiplier
 c
          xmlte = 0.d00
          do 4000 ns=1,nside
-c$$$            write(*,"(//,A,I5)") "face ", ns
 c
 c     localiza os parametros do lado ns
 c
@@ -9983,10 +10023,6 @@ c
             nl2 = ien(ns2,n)
             nl3 = ien(ns3,n)
             nl4 = ien(ns4,n)
-            
-c$$$        write(*,'(A)') " dls "
-c$$$        write(*,'(10F8.4)') (dls(nn),nn=1,npars)
-
 c     
 c     calcula sign para a aresta/face
 c
@@ -10110,10 +10146,10 @@ c
       gradp = dlog10(dsqrt(edpx+edpy))
       xmlt  = dlog10(dsqrt(xmlt))
 c
-c     log(h)
+c     log(h) - for 3D cases only
 c
-      xel = dfloat(numel)/dfloat(nnods-1)**3
-      xel = dlog10(xel)/2.d00
+      xel = 1.d0/(dfloat(numel)**(1.d0/3.d0))
+      xel = dlog10(xel)
 c
 c     log(k)
 c
@@ -10302,7 +10338,7 @@ c-----------------------------------------------------------------------
 c
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(3,*)
       dimension detpn(*),wn(*),dls(*)      
-      dimension aa(49,49),bb(49)
+      dimension aa(36,36),bb(36)
 c
       do i=1,npars
          bb(i) = 0.d00
@@ -10364,7 +10400,8 @@ c
          end do
       end do
 c
-      call invmb(aa,49,npars)
+      call invmb(aa,36,npars)
+c      call invmb(aa,npars,npars)      
 c
       do i=1,npars
          dls(i) = 0.d00
@@ -10376,12 +10413,14 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine solvetdg(elmbb,elfbb,neep)
+      subroutine solvetdg(elmbb,elfbb,neep)      
+c-----------------------------------------------------------------------
+c     max. size for fab is 343=7^3 -> polynomial order 6
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
       dimension elmbb(neep,*),elfbb(*)
-      dimension fab(200)
+      dimension fab(343)
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
 c     resolve o sistema
@@ -10412,9 +10451,10 @@ c-----------------------------------------------------------------------
       subroutine invmb(am,ndim,m)
 c-----------------------------------------------------------------------
 c     subrotina de inversao
+c     max. local size=300
 c-----------------------------------------------------------------------
       implicit real*8(a-h,o-z)
-      dimension ipi(200),ind(200,2),piv(200),dis(200,1),am(ndim,*)
+      dimension ipi(300),ind(300,2),piv(300),dis(300,1),am(ndim,*)
       ncoln=0
       det=1.0
       do 20 j=1,m
@@ -11165,11 +11205,7 @@ c
          paone(3)= .238619186083197
          paone(4)=-.238619186083197
          paone(5)=-.661209386466365
-         paone(6)=-.932469514203152
-
-         write(*,*) "CAIU AQUI"
-         stop
-         
+         paone(6)=-.932469514203152        
       endif
 c
       if(nnods.eq.6) then
@@ -12131,7 +12167,7 @@ c
       dimension wone(8),raone(8),xaone(8)
       dimension shlone(2,8,8),inod(8,8,8)
       dimension shl(4,nen,*),w(*)
-      dimension ra(125),sa(125),ta(125)
+      dimension ra(343),sa(343),ta(343)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       data  five9/0.5555555555555555d0/,eight9/0.8888888888888888d0/
       data r1/0.d00/,w1/2.d00/,
@@ -12140,8 +12176,11 @@ c
      &     r3b/0.d00/,w3b/0.888888888888889d00/,
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
+
+c     write(*,*) "SHL_HX_PK",nen,nint
+      
 c
-c      write(*,*) "SHL_HX_PK",nen,nint
+c     nodal data
 c      
       if (nen.eq.1) xaone(1) = zero      
 c
@@ -12181,9 +12220,21 @@ c
          nenx=5
          neny=5
          nenz=5
+      endif
+
+      if(nen.eq.216) then
+         xaone(1) = -one
+         xaone(2) =  one
+         xaone(3) = -.600000000000000
+         xaone(4) = -.200000000000000
+         xaone(5) =  .200000000000000
+         xaone(6) =  .600000000000000
+         nenx=6
+         neny=6
+         nenz=6         
       endif      
 c
-c     integration data
+c     integration data (max size of ra,ta,sa is 216)
 c      
       if (nint.eq.1) then
          wone(1)  = two
@@ -12245,13 +12296,62 @@ c
          nintx=5
          ninty=5
          nintz=5
-      endif   
+      endif
+c      
+      if(nint.eq.216) then
+         wone(1) = .171324492397170
+         wone(2) = .171324492397170
+         wone(3) = .360761573048139
+         wone(4) = .360761573048139
+         wone(5) = .467913934572691
+         wone(6) = .467913934572691
+c         
+         raone(1)=-.932469514203152
+         raone(2)= .932469514203152
+         raone(3)=-.661209386466265
+         raone(4)= .661209386466365
+         raone(5)=-.238619186083197
+         raone(6)= .238619186083197
+c
+         nintx=6
+         ninty=6
+         nintz=6
+      endif
+c
+      if(nint.eq.343) then
+         wone(1) = .129484966168870
+         wone(2) = .129484966168870
+         wone(3) = .279705391489277
+         wone(4) = .279705391489277
+         wone(5) = .381830050505119
+         wone(6) = .381830050505119
+         wone(7) = .417959183673469
+c         
+         raone(1)=-.949107912342759
+         raone(2)= .949107912342759
+         raone(3)=-.741531185599394
+         raone(4)= .741531185599394
+         raone(5)=-.405845151377397
+         raone(6)= .405845151377397
+         raone(7)= zero
+c
+         nintx=7
+         ninty=7
+         nintz=7
+        endif
+c
+      if(nint.gt.343) then
+         write(*,*) "erro in shlhxpk: nint>343 (7x7x7)"
+         stop
+      endif
 c
 c     inod - specify the ordering of the nodes/shape functions
 c     it follows xaone
 c
       if(nen.eq.1) inod(1,1,1) = 1
 c
+c     p=1
+c      
       if(nen.eq.8) then
          inod(1,1,1) = 1
          inod(2,1,1) = 2
@@ -12264,6 +12364,8 @@ c
          inod(2,2,2) = 7
       end if
 c
+c     p=2
+c      
       if(nen.eq.27) then
          inod(1,1,1) = 1
          inod(2,1,1) = 2
@@ -12294,10 +12396,10 @@ c
          inod(1,3,3) = 24
          inod(2,3,3) = 22
          inod(3,3,3) = 27
-c     
       end if
-      
-c     NEW
+c      
+c     p=3
+c      
       if(nen.eq.64) then
          inod(1,1,1) = 1
          inod(2,1,1) = 2
@@ -12366,97 +12468,11 @@ c
          inod(2,4,4) = 44
          inod(3,4,4) = 63
          inod(4,4,4) = 64
-c     
-      end if
-      
+      end if   
 c
-c$$$      if (nen.eq.64) then
-c$$$c     manual
-c$$$c     z=1
-c$$$         inod(1,1,1) = 1
-c$$$         inod(2,1,1) = 2
-c$$$         inod(3,1,1) = 9
-c$$$         inod(4,1,1) = 10
-c$$$c         
-c$$$         inod(1,2,1) = 4
-c$$$         inod(2,2,1) = 3
-c$$$         inod(3,2,1) = 14
-c$$$         inod(4,2,1) = 13
-c$$$c         
-c$$$         inod(1,3,1) = 16
-c$$$         inod(2,3,1) = 11
-c$$$         inod(3,3,1) = 49
-c$$$         inod(4,3,1) = 50
-c$$$c
-c$$$         inod(1,4,1) = 15
-c$$$         inod(2,4,1) = 12
-c$$$         inod(3,4,1) = 52
-c$$$         inod(4,4,1) = 51    
-c$$$c     z=2
-c$$$         inod(1,1,2) = 5
-c$$$         inod(2,1,2) = 6
-c$$$         inod(3,1,2) = 17
-c$$$         inod(4,1,2) = 18
-c$$$c         
-c$$$         inod(1,2,2) = 8
-c$$$         inod(2,2,2) = 7
-c$$$         inod(3,2,2) = 22
-c$$$         inod(4,2,2) = 21
-c$$$c         
-c$$$         inod(1,3,2) = 24
-c$$$         inod(2,3,2) = 19
-c$$$         inod(3,3,2) = 53
-c$$$         inod(4,3,2) = 54
-c$$$c
-c$$$         inod(1,4,2) = 23
-c$$$         inod(2,4,2) = 20
-c$$$         inod(3,4,2) = 56
-c$$$         inod(4,4,2) = 55
-c$$$c     z=3
-c$$$         inod(1,1,3) = 25
-c$$$         inod(2,1,3) = 26
-c$$$         inod(3,1,3) = 33
-c$$$         inod(4,1,3) = 34
-c$$$c         
-c$$$         inod(1,2,3) = 28
-c$$$         inod(2,2,3) = 27
-c$$$         inod(3,2,3) = 38
-c$$$         inod(4,2,3) = 37
-c$$$c         
-c$$$         inod(1,3,3) = 40
-c$$$         inod(2,3,3) = 35
-c$$$         inod(3,3,3) = 57
-c$$$         inod(4,3,3) = 58
-c$$$c
-c$$$         inod(1,4,3) = 39
-c$$$         inod(2,4,3) = 36
-c$$$         inod(3,4,3) = 60
-c$$$         inod(4,4,3) = 59
-c$$$c     z=4
-c$$$         inod(1,1,4) = 29
-c$$$         inod(2,1,4) = 30
-c$$$         inod(3,1,4) = 41
-c$$$         inod(4,1,4) = 42
-c$$$c         
-c$$$         inod(1,2,4) = 32
-c$$$         inod(2,2,4) = 31
-c$$$         inod(3,2,4) = 46
-c$$$         inod(4,2,4) = 45
-c$$$c         
-c$$$         inod(1,3,4) = 48
-c$$$         inod(2,3,4) = 43
-c$$$         inod(3,3,4) = 61
-c$$$         inod(4,3,4) = 62
-c$$$c
-c$$$         inod(1,4,4) = 47
-c$$$         inod(2,4,4) = 44
-c$$$         inod(3,4,4) = 64
-c$$$         inod(4,4,4) = 63
-c$$$      endif            
-
-c     NEW ordem p=4
+c     p=4
+c      
       if(nen.eq.125) then
-c     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
@@ -12587,6 +12603,232 @@ c
          inod(4,5,5) = 124
          inod(5,5,5) = 125
       end if
+c      
+c     p=5
+c      
+      if(nen.eq.216) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(5,1,1) = 11
+         inod(6,1,1) = 12
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 17
+         inod(4,2,1) = 18
+         inod(5,2,1) = 19
+         inod(6,2,1) = 20
+         inod(1,3,1) = 21
+         inod(2,3,1) = 13
+         inod(3,3,1) = 121
+         inod(4,3,1) = 122
+         inod(5,3,1) = 123
+         inod(6,3,1) = 124
+         inod(1,4,1) = 22
+         inod(2,4,1) = 14
+         inod(3,4,1) = 125
+         inod(4,4,1) = 126
+         inod(5,4,1) = 127
+         inod(6,4,1) = 128
+         inod(1,5,1) = 23
+         inod(2,5,1) = 15
+         inod(3,5,1) = 129
+         inod(4,5,1) = 130
+         inod(5,5,1) = 131
+         inod(6,5,1) = 132
+         inod(1,6,1) = 24
+         inod(2,6,1) = 16
+         inod(3,6,1) = 133
+         inod(4,6,1) = 134
+         inod(5,6,1) = 135
+         inod(6,6,1) = 136
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 25
+         inod(4,1,2) = 26
+         inod(5,1,2) = 27
+         inod(6,1,2) = 28
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 33
+         inod(4,2,2) = 34
+         inod(5,2,2) = 35
+         inod(6,2,2) = 36
+         inod(1,3,2) = 37
+         inod(2,3,2) = 29
+         inod(3,3,2) = 137
+         inod(4,3,2) = 138
+         inod(5,3,2) = 139
+         inod(6,3,2) = 140
+         inod(1,4,2) = 38
+         inod(2,4,2) = 30
+         inod(3,4,2) = 141
+         inod(4,4,2) = 142
+         inod(5,4,2) = 143
+         inod(6,4,2) = 144
+         inod(1,5,2) = 39
+         inod(2,5,2) = 31
+         inod(3,5,2) = 145
+         inod(4,5,2) = 146
+         inod(5,5,2) = 147
+         inod(6,5,2) = 148
+         inod(1,6,2) = 40
+         inod(2,6,2) = 32
+         inod(3,6,2) = 149
+         inod(4,6,2) = 150
+         inod(5,6,2) = 151
+         inod(6,6,2) = 152
+c     
+         inod(1,1,3) = 41
+         inod(2,1,3) = 42
+         inod(3,1,3) = 57
+         inod(4,1,3) = 58
+         inod(5,1,3) = 59
+         inod(6,1,3) = 60
+         inod(1,2,3) = 44
+         inod(2,2,3) = 43
+         inod(3,2,3) = 68
+         inod(4,2,3) = 67
+         inod(5,2,3) = 66
+         inod(6,2,3) = 65
+         inod(1,3,3) = 72
+         inod(2,3,3) = 61
+         inod(3,3,3) = 153
+         inod(4,3,3) = 154
+         inod(5,3,3) = 155
+         inod(6,3,3) = 156
+         inod(1,4,3) = 71
+         inod(2,4,3) = 62
+         inod(3,4,3) = 157
+         inod(4,4,3) = 158
+         inod(5,4,3) = 159
+         inod(6,4,3) = 160
+         inod(1,5,3) = 70
+         inod(2,5,3) = 63
+         inod(3,5,3) = 161
+         inod(4,5,3) = 162
+         inod(5,5,3) = 163
+         inod(6,5,3) = 164
+         inod(1,6,3) = 69
+         inod(2,6,3) = 64
+         inod(3,6,3) = 165
+         inod(4,6,3) = 166
+         inod(5,6,3) = 167
+         inod(6,6,3) = 168
+c     
+         inod(1,1,4) = 45
+         inod(2,1,4) = 46
+         inod(3,1,4) = 73
+         inod(4,1,4) = 74
+         inod(5,1,4) = 75
+         inod(6,1,4) = 76
+         inod(1,2,4) = 48
+         inod(2,2,4) = 47
+         inod(3,2,4) = 84
+         inod(4,2,4) = 83
+         inod(5,2,4) = 82
+         inod(6,2,4) = 81
+         inod(1,3,4) = 88
+         inod(2,3,4) = 77
+         inod(3,3,4) = 169
+         inod(4,3,4) = 170
+         inod(5,3,4) = 171
+         inod(6,3,4) = 172
+         inod(1,4,4) = 87
+         inod(2,4,4) = 78
+         inod(3,4,4) = 173
+         inod(4,4,4) = 174
+         inod(5,4,4) = 175
+         inod(6,4,4) = 176
+         inod(1,5,4) = 86
+         inod(2,5,4) = 79
+         inod(3,5,4) = 177
+         inod(4,5,4) = 178
+         inod(5,5,4) = 179
+         inod(6,5,4) = 180
+         inod(1,6,4) = 85
+         inod(2,6,4) = 80
+         inod(3,6,4) = 181
+         inod(4,6,4) = 182
+         inod(5,6,4) = 183
+         inod(6,6,4) = 184
+c     
+         inod(1,1,5) = 49
+         inod(2,1,5) = 50
+         inod(3,1,5) = 89
+         inod(4,1,5) = 90
+         inod(5,1,5) = 91
+         inod(6,1,5) = 92
+         inod(1,2,5) = 52
+         inod(2,2,5) = 51
+         inod(3,2,5) = 100
+         inod(4,2,5) = 99
+         inod(5,2,5) = 98
+         inod(6,2,5) = 97
+         inod(1,3,5) = 104
+         inod(2,3,5) = 93
+         inod(3,3,5) = 185
+         inod(4,3,5) = 186
+         inod(5,3,5) = 187
+         inod(6,3,5) = 188
+         inod(1,4,5) = 103
+         inod(2,4,5) = 94
+         inod(3,4,5) = 189
+         inod(4,4,5) = 190
+         inod(5,4,5) = 191
+         inod(6,4,5) = 192
+         inod(1,5,5) = 102
+         inod(2,5,5) = 95
+         inod(3,5,5) = 193
+         inod(4,5,5) = 194
+         inod(5,5,5) = 195
+         inod(6,5,5) = 196
+         inod(1,6,5) = 101
+         inod(2,6,5) = 96
+         inod(3,6,5) = 197
+         inod(4,6,5) = 198
+         inod(5,6,5) = 199
+         inod(6,6,5) = 200
+c     
+         inod(1,1,6) = 53
+         inod(2,1,6) = 54
+         inod(3,1,6) = 105
+         inod(4,1,6) = 106
+         inod(5,1,6) = 107
+         inod(6,1,6) = 108
+         inod(1,2,6) = 56
+         inod(2,2,6) = 55
+         inod(3,2,6) = 116
+         inod(4,2,6) = 115
+         inod(5,2,6) = 114
+         inod(6,2,6) = 113
+         inod(1,3,6) = 120
+         inod(2,3,6) = 109
+         inod(3,3,6) = 201
+         inod(4,3,6) = 202
+         inod(5,3,6) = 203
+         inod(6,3,6) = 204
+         inod(1,4,6) = 119
+         inod(2,4,6) = 110
+         inod(3,4,6) = 205
+         inod(4,4,6) = 206
+         inod(5,4,6) = 207
+         inod(6,4,6) = 208
+         inod(1,5,6) = 118
+         inod(2,5,6) = 111
+         inod(3,5,6) = 209
+         inod(4,5,6) = 210
+         inod(5,5,6) = 211
+         inod(6,5,6) = 212
+         inod(1,6,6) = 117
+         inod(2,6,6) = 112
+         inod(3,6,6) = 213
+         inod(4,6,6) = 214
+         inod(5,6,6) = 215
+         inod(6,6,6) = 216
+      end if      
 c     
 c     generate 1d shape functions
 c
@@ -12642,7 +12884,7 @@ c
 c$$$      write(*,*) "debug gauss points"
 c$$$      nl = nintx*ninty*nintz
 c$$$      do l=1,nl
-c$$$         write(*,*) ra(l), sa(l), ta(l)
+c$$$         write(*,*) l,ra(l), sa(l), ta(l)
 c$$$      end do
 c
 c
@@ -12755,7 +12997,21 @@ c
          xaone(3)= -pt5
          xaone(4)= zero
          xaone(5)= pt5
+      endif
+c
+      if(nnods.eq.6) then
+         xaone(1) = -one
+         xaone(2) =  one
+         xaone(3) = -.600000000000000
+         xaone(4) = -.200000000000000
+         xaone(5) =  .200000000000000
+         xaone(6) =  .600000000000000
       endif      
+c
+      if(nnods.gt.6) then
+         write(*,*) "error nnods shlhxpbk, max nnods=6"
+         stop
+      end if
 c
 c     integration data
 c     
@@ -12860,15 +13116,39 @@ c
          taone(5)=-.238619186083197 
          taone(6)= .238619186083197 
       endif      
+c     
+      if(nints.eq.7) then
+         nintx=7
+         ninty=7
+         nintz=7
+c         
+         raone(1)=-.949107912342759
+         raone(2)= .949107912342759
+         raone(3)=-.741531185599394
+         raone(4)= .741531185599394
+         raone(5)=-.405845151377397
+         raone(6)= .405845151377397
+         raone(7)= zero
 c
-c     treat errors
+         paone(1)=-.949107912342759
+         paone(2)= .949107912342759
+         paone(3)=-.741531185599394
+         paone(4)= .741531185599394
+         paone(5)=-.405845151377397
+         paone(6)= .405845151377397
+         paone(7)= zero
+c
+         taone(1)=-.949107912342759
+         taone(2)= .949107912342759
+         taone(3)=-.741531185599394
+         taone(4)= .741531185599394
+         taone(5)=-.405845151377397
+         taone(6)= .405845151377397
+         taone(7)= zero         
+      endif      
 c      
-      if(nints.gt.6) then
+      if(nints.gt.7) then
          write(*,*) "error nints shlhxpbk, max nints=6"
-         stop
-      end if
-      if(nnods.gt.5) then
-         write(*,*) "error nnods shlhxpbk, max nnods=5"
          stop
       end if
 c
@@ -12876,6 +13156,8 @@ c     trata nen
 c
       if(nen.eq.1) inod(1,1,1) = 1
 c
+c     p=1
+c      
       if(nen.eq.8) then
          inod(1,1,1) = 1
          inod(2,1,1) = 2
@@ -12887,8 +13169,9 @@ c
          inod(1,2,2) = 8
          inod(2,2,2) = 7
       end if
-
-c     NEW
+c
+c     p=2
+c     
       if(nen.eq.27) then
 c     
          inod(1,1,1) = 1
@@ -12920,50 +13203,10 @@ c
          inod(1,3,3) = 24
          inod(2,3,3) = 22
          inod(3,3,3) = 27
-c     
       end if     
-      
-c$$$      if(nen.eq.27) then
-c$$$c     gerado manualmente
-c$$$         inod(1,1,1) = 1
-c$$$         inod(2,1,1) = 2
-c$$$         inod(3,1,1) = 9
-c$$$c         
-c$$$         inod(1,2,1) = 4
-c$$$         inod(2,2,1) = 3
-c$$$         inod(3,2,1) = 11
-c$$$c         
-c$$$         inod(1,3,1) = 12
-c$$$         inod(2,3,1) = 10
-c$$$         inod(3,3,1) = 25
-c$$$c         
-c$$$         inod(1,1,2) = 5
-c$$$         inod(2,1,2) = 6
-c$$$         inod(3,1,2) = 13
-c$$$c         
-c$$$         inod(1,2,2) = 8
-c$$$         inod(2,2,2) = 7
-c$$$         inod(3,2,2) = 15
-c$$$c         
-c$$$         inod(1,3,2) = 16
-c$$$         inod(2,3,2) = 14
-c$$$         inod(3,3,2) = 26
-c$$$c
-c$$$         inod(1,1,3) = 17
-c$$$         inod(2,1,3) = 18
-c$$$         inod(3,1,3) = 22
-c$$$c         
-c$$$         inod(1,2,3) = 20
-c$$$         inod(2,2,3) = 19
-c$$$         inod(3,2,3) = 21
-c$$$c         
-c$$$         inod(1,3,3) = 23
-c$$$         inod(2,3,3) = 24
-c$$$         inod(3,3,3) = 27
-c$$$  end if
-
-
-c     NEW
+c
+c     p=3
+c     
       if(nen.eq.64) then
 c     
          inod(1,1,1) = 1
@@ -13032,98 +13275,12 @@ c
          inod(1,4,4) = 47
          inod(2,4,4) = 44
          inod(3,4,4) = 63
-         inod(4,4,4) = 64
-c     
+         inod(4,4,4) = 64     
       end if    
-      
-c
-c$$$      if (nen.eq.64) then
-c$$$c     gerado manualmente
-c$$$c     z=1
-c$$$         inod(1,1,1) = 1
-c$$$         inod(2,1,1) = 2
-c$$$         inod(3,1,1) = 9
-c$$$         inod(4,1,1) = 10
-c$$$c         
-c$$$         inod(1,2,1) = 4
-c$$$         inod(2,2,1) = 3
-c$$$         inod(3,2,1) = 14
-c$$$         inod(4,2,1) = 13
-c$$$c         
-c$$$         inod(1,3,1) = 16
-c$$$         inod(2,3,1) = 11
-c$$$         inod(3,3,1) = 49
-c$$$         inod(4,3,1) = 50
-c$$$c
-c$$$         inod(1,4,1) = 15
-c$$$         inod(2,4,1) = 12
-c$$$         inod(3,4,1) = 52
-c$$$         inod(4,4,1) = 51    
-c$$$c     z=2
-c$$$         inod(1,1,2) = 5
-c$$$         inod(2,1,2) = 6
-c$$$         inod(3,1,2) = 17
-c$$$         inod(4,1,2) = 18
-c$$$c         
-c$$$         inod(1,2,2) = 8
-c$$$         inod(2,2,2) = 7
-c$$$         inod(3,2,2) = 22
-c$$$         inod(4,2,2) = 21
-c$$$c         
-c$$$         inod(1,3,2) = 24
-c$$$         inod(2,3,2) = 19
-c$$$         inod(3,3,2) = 53
-c$$$         inod(4,3,2) = 54
-c$$$c
-c$$$         inod(1,4,2) = 23
-c$$$         inod(2,4,2) = 20
-c$$$         inod(3,4,2) = 56
-c$$$         inod(4,4,2) = 55
-c$$$c     z=3
-c$$$         inod(1,1,3) = 25
-c$$$         inod(2,1,3) = 26
-c$$$         inod(3,1,3) = 33
-c$$$         inod(4,1,3) = 34
-c$$$c         
-c$$$         inod(1,2,3) = 28
-c$$$         inod(2,2,3) = 27
-c$$$         inod(3,2,3) = 38
-c$$$         inod(4,2,3) = 37
-c$$$c         
-c$$$         inod(1,3,3) = 40
-c$$$         inod(2,3,3) = 35
-c$$$         inod(3,3,3) = 57
-c$$$         inod(4,3,3) = 58
-c$$$c
-c$$$         inod(1,4,3) = 39
-c$$$         inod(2,4,3) = 36
-c$$$         inod(3,4,3) = 60
-c$$$         inod(4,4,3) = 59
-c$$$c     z=4
-c$$$         inod(1,1,4) = 29
-c$$$         inod(2,1,4) = 30
-c$$$         inod(3,1,4) = 41
-c$$$         inod(4,1,4) = 42
-c$$$c         
-c$$$         inod(1,2,4) = 32
-c$$$         inod(2,2,4) = 31
-c$$$         inod(3,2,4) = 46
-c$$$         inod(4,2,4) = 45
-c$$$c         
-c$$$         inod(1,3,4) = 48
-c$$$         inod(2,3,4) = 43
-c$$$         inod(3,3,4) = 61
-c$$$         inod(4,3,4) = 62
-c$$$c
-c$$$         inod(1,4,4) = 47
-c$$$         inod(2,4,4) = 44
-c$$$         inod(3,4,4) = 64
-c$$$         inod(4,4,4) = 63
-c$$$      endif
-
-c     NEW ordem p=4
-      if(nen.eq.125) then
-c     
+c 
+c     p=4
+c      
+      if(nen.eq.125) then     
          inod(1,1,1) = 1
          inod(2,1,1) = 2
          inod(3,1,1) = 9
@@ -13252,26 +13409,240 @@ c
          inod(2,5,5) = 74
          inod(3,5,5) = 123
          inod(4,5,5) = 124
-         inod(5,5,5) = 125
-c     
+         inod(5,5,5) = 125    
       end if
+c
+c     p=5
+c      
+      if(nen.eq.216) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(5,1,1) = 11
+         inod(6,1,1) = 12
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 17
+         inod(4,2,1) = 18
+         inod(5,2,1) = 19
+         inod(6,2,1) = 20
+         inod(1,3,1) = 21
+         inod(2,3,1) = 13
+         inod(3,3,1) = 121
+         inod(4,3,1) = 122
+         inod(5,3,1) = 123
+         inod(6,3,1) = 124
+         inod(1,4,1) = 22
+         inod(2,4,1) = 14
+         inod(3,4,1) = 125
+         inod(4,4,1) = 126
+         inod(5,4,1) = 127
+         inod(6,4,1) = 128
+         inod(1,5,1) = 23
+         inod(2,5,1) = 15
+         inod(3,5,1) = 129
+         inod(4,5,1) = 130
+         inod(5,5,1) = 131
+         inod(6,5,1) = 132
+         inod(1,6,1) = 24
+         inod(2,6,1) = 16
+         inod(3,6,1) = 133
+         inod(4,6,1) = 134
+         inod(5,6,1) = 135
+         inod(6,6,1) = 136
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 25
+         inod(4,1,2) = 26
+         inod(5,1,2) = 27
+         inod(6,1,2) = 28
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 33
+         inod(4,2,2) = 34
+         inod(5,2,2) = 35
+         inod(6,2,2) = 36
+         inod(1,3,2) = 37
+         inod(2,3,2) = 29
+         inod(3,3,2) = 137
+         inod(4,3,2) = 138
+         inod(5,3,2) = 139
+         inod(6,3,2) = 140
+         inod(1,4,2) = 38
+         inod(2,4,2) = 30
+         inod(3,4,2) = 141
+         inod(4,4,2) = 142
+         inod(5,4,2) = 143
+         inod(6,4,2) = 144
+         inod(1,5,2) = 39
+         inod(2,5,2) = 31
+         inod(3,5,2) = 145
+         inod(4,5,2) = 146
+         inod(5,5,2) = 147
+         inod(6,5,2) = 148
+         inod(1,6,2) = 40
+         inod(2,6,2) = 32
+         inod(3,6,2) = 149
+         inod(4,6,2) = 150
+         inod(5,6,2) = 151
+         inod(6,6,2) = 152
+c     
+         inod(1,1,3) = 41
+         inod(2,1,3) = 42
+         inod(3,1,3) = 57
+         inod(4,1,3) = 58
+         inod(5,1,3) = 59
+         inod(6,1,3) = 60
+         inod(1,2,3) = 44
+         inod(2,2,3) = 43
+         inod(3,2,3) = 68
+         inod(4,2,3) = 67
+         inod(5,2,3) = 66
+         inod(6,2,3) = 65
+         inod(1,3,3) = 72
+         inod(2,3,3) = 61
+         inod(3,3,3) = 153
+         inod(4,3,3) = 154
+         inod(5,3,3) = 155
+         inod(6,3,3) = 156
+         inod(1,4,3) = 71
+         inod(2,4,3) = 62
+         inod(3,4,3) = 157
+         inod(4,4,3) = 158
+         inod(5,4,3) = 159
+         inod(6,4,3) = 160
+         inod(1,5,3) = 70
+         inod(2,5,3) = 63
+         inod(3,5,3) = 161
+         inod(4,5,3) = 162
+         inod(5,5,3) = 163
+         inod(6,5,3) = 164
+         inod(1,6,3) = 69
+         inod(2,6,3) = 64
+         inod(3,6,3) = 165
+         inod(4,6,3) = 166
+         inod(5,6,3) = 167
+         inod(6,6,3) = 168
+c     
+         inod(1,1,4) = 45
+         inod(2,1,4) = 46
+         inod(3,1,4) = 73
+         inod(4,1,4) = 74
+         inod(5,1,4) = 75
+         inod(6,1,4) = 76
+         inod(1,2,4) = 48
+         inod(2,2,4) = 47
+         inod(3,2,4) = 84
+         inod(4,2,4) = 83
+         inod(5,2,4) = 82
+         inod(6,2,4) = 81
+         inod(1,3,4) = 88
+         inod(2,3,4) = 77
+         inod(3,3,4) = 169
+         inod(4,3,4) = 170
+         inod(5,3,4) = 171
+         inod(6,3,4) = 172
+         inod(1,4,4) = 87
+         inod(2,4,4) = 78
+         inod(3,4,4) = 173
+         inod(4,4,4) = 174
+         inod(5,4,4) = 175
+         inod(6,4,4) = 176
+         inod(1,5,4) = 86
+         inod(2,5,4) = 79
+         inod(3,5,4) = 177
+         inod(4,5,4) = 178
+         inod(5,5,4) = 179
+         inod(6,5,4) = 180
+         inod(1,6,4) = 85
+         inod(2,6,4) = 80
+         inod(3,6,4) = 181
+         inod(4,6,4) = 182
+         inod(5,6,4) = 183
+         inod(6,6,4) = 184
+c     
+         inod(1,1,5) = 49
+         inod(2,1,5) = 50
+         inod(3,1,5) = 89
+         inod(4,1,5) = 90
+         inod(5,1,5) = 91
+         inod(6,1,5) = 92
+         inod(1,2,5) = 52
+         inod(2,2,5) = 51
+         inod(3,2,5) = 100
+         inod(4,2,5) = 99
+         inod(5,2,5) = 98
+         inod(6,2,5) = 97
+         inod(1,3,5) = 104
+         inod(2,3,5) = 93
+         inod(3,3,5) = 185
+         inod(4,3,5) = 186
+         inod(5,3,5) = 187
+         inod(6,3,5) = 188
+         inod(1,4,5) = 103
+         inod(2,4,5) = 94
+         inod(3,4,5) = 189
+         inod(4,4,5) = 190
+         inod(5,4,5) = 191
+         inod(6,4,5) = 192
+         inod(1,5,5) = 102
+         inod(2,5,5) = 95
+         inod(3,5,5) = 193
+         inod(4,5,5) = 194
+         inod(5,5,5) = 195
+         inod(6,5,5) = 196
+         inod(1,6,5) = 101
+         inod(2,6,5) = 96
+         inod(3,6,5) = 197
+         inod(4,6,5) = 198
+         inod(5,6,5) = 199
+         inod(6,6,5) = 200
+c     
+         inod(1,1,6) = 53
+         inod(2,1,6) = 54
+         inod(3,1,6) = 105
+         inod(4,1,6) = 106
+         inod(5,1,6) = 107
+         inod(6,1,6) = 108
+         inod(1,2,6) = 56
+         inod(2,2,6) = 55
+         inod(3,2,6) = 116
+         inod(4,2,6) = 115
+         inod(5,2,6) = 114
+         inod(6,2,6) = 113
+         inod(1,3,6) = 120
+         inod(2,3,6) = 109
+         inod(3,3,6) = 201
+         inod(4,3,6) = 202
+         inod(5,3,6) = 203
+         inod(6,3,6) = 204
+         inod(1,4,6) = 119
+         inod(2,4,6) = 110
+         inod(3,4,6) = 205
+         inod(4,4,6) = 206
+         inod(5,4,6) = 207
+         inod(6,4,6) = 208
+         inod(1,5,6) = 118
+         inod(2,5,6) = 111
+         inod(3,5,6) = 209
+         inod(4,5,6) = 210
+         inod(5,5,6) = 211
+         inod(6,5,6) = 212
+         inod(1,6,6) = 117
+         inod(2,6,6) = 112
+         inod(3,6,6) = 213
+         inod(4,6,6) = 214
+         inod(5,6,6) = 215
+         inod(6,6,6) = 216
+      end if       
       
 c
 c     build shape functions/derivatives
 c
       write(*,*)
       write(*,*) "building shl on faces"
-c
-c     not in use
-c
-c$$$      l = 0
-c$$$      do ly = 1,ninty
-c$$$         do lx = 1,nintx
-c$$$            l = l + 1
-c$$$            ra(l) = raone(lx)
-c$$$            sa(l) = raone(ly)
-c$$$         end do
-c$$$      end do
 c
 c     loop on integration points
 c
