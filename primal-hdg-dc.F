@@ -62,7 +62,7 @@ c
 c
       open(unit=iin,     file= 'primal-hdg-dc.dat',status='old')
       open(unit=ieco,    file= 'saida-hdg-dc.eco')
-      open(unit=ipp,     file= 'errofem-primal-dc-shdg.dat')
+      open(unit=ipp,     file= 'erro-fem-primal-dc-shdg.dat')
       open(unit=ilp,     file= 'erro-local-primal-shdg-dc.dat')
       open(unit=interpl, file= 'erro-interpolante.dat')
       open(unit=ielmat,  file= 'matriz-elemento-primal-shdg-dc.dat')
