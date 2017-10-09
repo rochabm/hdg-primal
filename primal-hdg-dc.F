@@ -599,7 +599,7 @@ c      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
 c
 c     allocate matrices
 c
-      write(*,'(A,I5)') "PETSC: initialize",neq
+      write(*,'(A,I10)') "PETSC: initialize",neq
       call UserInitializeLinearSolver(neq,neq,userctx,ierr)      
 c
 c     write equation system data
@@ -10421,6 +10421,9 @@ c-----------------------------------------------------------------------
 c
       dimension elmbb(neep,*),elfbb(*)
       dimension fab(343)
+c
+      dimension :: ipiv(343) ! pivot indices       
+c      
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
 c     resolve o sistema
@@ -10428,6 +10431,17 @@ c
 c     B Xb = Fb
 c      
       call invmb(elmbb,neep,neep)
+
+c
+c     TESTs using LAPACK
+c                  
+c      call myinv(elmbb,neep)
+c      write(*,*) "neep",neep
+c      do i=1,neep
+c         write(*,"(20F10.6)") (elmbb(i,j),j=1,neep)
+c      end do         
+c      stop
+      
 c
 c     Aa = A^{-1} Fa
 c
@@ -10446,7 +10460,43 @@ c
 c
       return
       end
-
+      
+c-----------------------------------------------------------------------      
+      subroutine myinv(A,n)
+c-----------------------------------------------------------------------
+c     Returns the inverse of a matrix calculated by finding the LU
+c     decomposition.  Depends on LAPACK.
+c-----------------------------------------------------------------------
+      implicit real*8 (a-h,o-z)
+      real*8 dimension Ainv(n,n)
+      real*8 dimension work(n)  ! work array for LAPACK
+      dimension ipiv(n)         ! pivot indices
+c     External procedures defined in LAPACK      
+      external DGETRF
+      external DGETRI     
+c     Store A in Ainv to prevent it from being overwritten by LAPACK
+c     Ainv = A      
+c      
+c     DGETRF computes an LU factorization of a general M-by-N matrix A
+c     using partial pivoting with row interchanges.
+c      
+      call DGETRF(n, n, A, n, ipiv, info)      
+c      
+      if (info /= 0) then
+         stop 'Matrix is numerically singular!'
+      end if
+c      
+c     DGETRI computes the inverse of a matrix using the LU factorization
+c     computed by DGETRF.
+c      
+      call DGETRI(n, A, n, ipiv, work, n, info)
+c
+      if (info /= 0) then
+         stop 'Matrix inversion failed!'
+      end if
+c      
+      end
+      
 c-----------------------------------------------------------------------
       subroutine invmb(am,ndim,m)
 c-----------------------------------------------------------------------
@@ -10454,7 +10504,9 @@ c     subrotina de inversao
 c     max. local size=300
 c-----------------------------------------------------------------------
       implicit real*8(a-h,o-z)
-      dimension ipi(300),ind(300,2),piv(300),dis(300,1),am(ndim,*)
+c     dimension ipi(300),ind(300,2),piv(300),dis(300,1),am(ndim,*)
+      dimension ipi(343),ind(343,2),piv(343),dis(343,1),am(ndim,*)
+c      
       ncoln=0
       det=1.0
       do 20 j=1,m

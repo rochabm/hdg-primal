@@ -1,0 +1,13 @@
+  -0.2641E+00   0.1380E+01  -0.2977E+01  -0.1717E+01  -0.2524E+01
+   0.1874E+00   0.1792E+01  -0.4162E+01  -0.2619E+01  -0.3560E+01
+   0.6390E+00   0.2221E+01  -0.5360E+01  -0.3521E+01  -0.4607E+01
+   0.1090E+01   0.2660E+01  -0.6563E+01  -0.4424E+01  -0.5660E+01
+   0.1542E+01   0.3105E+01  -0.7766E+01  -0.5328E+01  -0.6713E+01
+
+      -log(h)       log(k)       log(p)  log(grad p)    log(mult)
+
+          Estudo de convergencia das aproximacoes hibridas
+          primal-pp-primal: (p, grad p, mult)
+
+
+Poisson 3D Problem - Convergencia : u Q3 mult Q3                                
