@@ -74,9 +74,8 @@ c
       mtot   = ndim
       iprec  = 2
 c
-c     test PETSc
-c
-      
+c     start PETSc
+c      
       call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
       call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
       if (size .ne. 1) then
@@ -136,7 +135,7 @@ c----------------------------------------------------------------------
        KSP      ksp
        PetscInt tot,nnz
 c
-       nnz = 400
+       nnz = 450
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -144,14 +143,19 @@ c     be specified at runtime.
 c       
        call MatCreate(PETSC_COMM_WORLD,A,ierr)
        call MatSetType(A,MATSEQAIJ,ierr)
-       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)
+       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)      
        call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+
+c     For debugging this option should use: PETSC_TRUE
+       call MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR,
+     &      PETSC_FALSE, ierr)
+      
        call MatSetFromOptions(A,ierr)
        call MatSetUp(A,ierr)
 c
        call MatZeroEntries(A,ierr)
        
-c       call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
+c     call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
 c     &      PETSC_NULL_INTEGER,A,ierr)
 
 c     
@@ -8950,15 +8954,13 @@ c
       return
       end
 
-c-----------------------------------------------------------------------
+c-------------------------------------------------------------------------------
        subroutine condtdg(elmbb,elmcb,elmbc,elmdb,
-     &            elfbb,eleffd,elresd,
-     &            neep,nee)
-c
+     &     elfbb,eleffd,elresd,neep,nee)
+c-------------------------------------------------------------------------------       
       implicit real*8 (a-h,o-z)
-c
-      dimension elmbb(neep,*),elmcb(neep,*),elmdb(nee,*),
-     &          eleffd(nee,*),elmbc(nee,*)
+      dimension elmbb(neep,*),elmcb(neep,*),elmdb(nee,*)
+      dimension eleffd(nee,*),elmbc(nee,*)
       dimension elfbb(*),elresd(*)
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
@@ -10462,25 +10464,28 @@ c
       end
       
 c-----------------------------------------------------------------------      
-      subroutine myinv(A,n)
+      subroutine myinv(am,n)
 c-----------------------------------------------------------------------
 c     Returns the inverse of a matrix calculated by finding the LU
 c     decomposition.  Depends on LAPACK.
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
-      real*8 dimension Ainv(n,n)
-      real*8 dimension work(n)  ! work array for LAPACK
-      dimension ipiv(n)         ! pivot indices
-c     External procedures defined in LAPACK      
+      dimension am(n,n)
+      dimension work(n)  ! work array for LAPACK
+      dimension ipiv(n)  ! pivot indices
+c      
+c     External procedures defined in LAPACK
+c      
       external DGETRF
-      external DGETRI     
+      external DGETRI
+c      
 c     Store A in Ainv to prevent it from being overwritten by LAPACK
 c     Ainv = A      
 c      
 c     DGETRF computes an LU factorization of a general M-by-N matrix A
 c     using partial pivoting with row interchanges.
 c      
-      call DGETRF(n, n, A, n, ipiv, info)      
+      call DGETRF(n, n, am, n, ipiv, info)      
 c      
       if (info /= 0) then
          stop 'Matrix is numerically singular!'
@@ -10489,7 +10494,7 @@ c
 c     DGETRI computes the inverse of a matrix using the LU factorization
 c     computed by DGETRF.
 c      
-      call DGETRI(n, A, n, ipiv, work, n, info)
+      call DGETRI(n, am, n, ipiv, work, n, info)
 c
       if (info /= 0) then
          stop 'Matrix inversion failed!'
@@ -10832,8 +10837,8 @@ c
       if (nint.eq.4) then
          wone(1) = one
          wone(2) = one
-         raone(1)=-.577350269189626
-         raone(2)= .577350269189625
+         raone(1)=-0.577350269189626d0
+         raone(2)= 0.577350269189625d0
          nintx=2
          ninty=2
       endif
@@ -10842,101 +10847,101 @@ c
          wone(1) = five9
          wone(2) = five9
          wone(3) = eight9
-         raone(1)=-.774596669241483
-         raone(2)= .774596669241483
+         raone(1)=-0.774596669241483d0
+         raone(2)= 0.774596669241483d0
          raone(3)= zero
          nintx=3
          ninty=3
       endif
 c
       if (nint.eq.16) then
-         wone(1) = .347854845137454
-         wone(2) = .347854845137454
-         wone(3) = .652145154862546
-         wone(4) = .652145154862546
-         raone(1)=-.861136311594053
-         raone(2)= .861136311594053
-         raone(3)=-.339981043584856
-         raone(4)= .339981043584856
+         wone(1) = 0.347854845137454d0
+         wone(2) = 0.347854845137454d0
+         wone(3) = 0.652145154862546d0
+         wone(4) = 0.652145154862546d0
+         raone(1)=-0.861136311594053d0
+         raone(2)= 0.861136311594053d0
+         raone(3)=-0.339981043584856d0
+         raone(4)= 0.339981043584856d0
          nintx=4
          ninty=4
       endif
 c
 c
       if(nint.eq.25) then
-         wone(1) = .236926885056189
-         wone(2) = .236926885056189
-         wone(3) = .478628670499366
-         wone(4) = .478628670499366
-         wone(5) = .568888888888888
-         raone(1)=-.906179845938664
-         raone(2)= .906179845938664
-         raone(3)=-.538469310105683
-         raone(4)= .538469310105683
+         wone(1) = 0.236926885056189d0
+         wone(2) = 0.236926885056189d0
+         wone(3) = 0.478628670499366d0
+         wone(4) = 0.478628670499366d0
+         wone(5) = 0.568888888888888d0
+         raone(1)=-0.906179845938664d0
+         raone(2)= 0.906179845938664d0
+         raone(3)=-0.538469310105683d0
+         raone(4)= 0.538469310105683d0
          raone(5)= zero
          nintx=5
          ninty=5
       endif
 c
       if(nint.eq.36) then
-         wone(1) = .171324492397170
-         wone(2) = .171324492397170
-         wone(3) = .360761573048139
-         wone(4) = .360761573048139
-         wone(5) = .467913934572691
-         wone(6) = .467913934572691
-         raone(1)=-.932469514203152
-         raone(2)= .932469514203152
-         raone(3)=-.661209386466265
-         raone(4)= .661209386466365
-         raone(5)=-.238619186083197
-         raone(6)= .238619186083197
+         wone(1) = 0.171324492397170d0
+         wone(2) = 0.171324492397170d0
+         wone(3) = 0.360761573048139d0
+         wone(4) = 0.360761573048139d0
+         wone(5) = 0.467913934572691d0
+         wone(6) = 0.467913934572691d0
+         raone(1)=-0.932469514203152d0
+         raone(2)= 0.932469514203152d0
+         raone(3)=-0.661209386466265d0
+         raone(4)= 0.661209386466365d0
+         raone(5)=-0.238619186083197d0
+         raone(6)= 0.238619186083197d0
          nintx=6
          ninty=6
       endif
 c
       if(nint.eq.49) then
-         wone(1) = .129484966168870
-         wone(2) = .129484966168870
-         wone(3) = .279705391489277
-         wone(4) = .279705391489277
-         wone(5) = .381830050505119
-         wone(6) = .381830050505119
-         wone(7) = .417959183673469
-         raone(1)=-.949107912342759
-         raone(2)= .949107912342759
-         raone(3)=-.741531185599394
-         raone(4)= .741531185599394
-         raone(5)=-.405845151377397
-         raone(6)= .405845151377397
+         wone(1) = 0.129484966168870d0
+         wone(2) = 0.129484966168870d0
+         wone(3) = 0.279705391489277d0
+         wone(4) = 0.279705391489277d0
+         wone(5) = 0.381830050505119d0
+         wone(6) = 0.381830050505119d0
+         wone(7) = 0.417959183673469d0
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
          raone(7)= zero
          nintx=7
          ninty=7
       endif
 c
-c
       if(nint.eq.64) then
-         wone(1) = .101228536290376
-         wone(2) = .101228536290376
-         wone(3) = .222381034453374
-         wone(4) = .222381034453374
-         wone(5) = .313706645877887
-         wone(6) = .313706645877887
-         wone(7) = .362683783378362
-         wone(8) = .362683783378362
-         raone(1)=-.960289856497536
-         raone(2)= .960289856497536
-         raone(3)=-.796666477413627
-         raone(4)= .796666477413627
-         raone(5)=-.525532409916329
-         raone(6)= .525532409916329
-         raone(7)=-.183434642495650
-         raone(8)= .183434642495650
+         wone(1) = 0.101228536290376d0
+         wone(2) = 0.101228536290376d0
+         wone(3) = 0.222381034453374d0
+         wone(4) = 0.222381034453374d0
+         wone(5) = 0.313706645877887d0
+         wone(6) = 0.313706645877887d0
+         wone(7) = 0.362683783378362d0
+         wone(8) = 0.362683783378362d0
+         raone(1)=-0.960289856497536d0
+         raone(2)= 0.960289856497536d0
+         raone(3)=-0.796666477413627d0
+         raone(4)= 0.796666477413627d0
+         raone(5)=-0.525532409916329d0
+         raone(6)= 0.525532409916329d0
+         raone(7)=-0.183434642495650d0
+         raone(8)= 0.183434642495650d0
          nintx=8
          ninty=8
       endif
 c
-c
+c     build shl
+c      
       l=0
       do ly=1,ninty
          do lx=1,nintx
@@ -10975,12 +10980,12 @@ c
             shl(3,4,l)=f1*g2
          end if
 c
-c
+c     nen=9
+c     
          if(nen.eq.9) then
             f1 = -pt5*(one-r)*r
             f2 =  pt5*(one+r)*r
             f3 = (one+r)*(one-r)
-c
 c
             f1x = pt5*r - pt5*(one-r)
             f2x = pt5*r + pt5*(one+r)
@@ -10993,7 +10998,6 @@ c
             g1x = pt5*s - pt5*(one-s)
             g2x = pt5*s + pt5*(one+s)
             g3x =-two*s
-c
 c
             shl(3,1,l)=f1*g1
             shl(3,2,l)=f2*g1
@@ -11027,9 +11031,9 @@ c
             shl(2,7,l)=f3*g2x
             shl(2,8,l)=f1*g3x
             shl(2,9,l)=f3*g3x
-c
          end if
 c
+c     nen=16
 c
          if (nen.eq.16) then
             onemrsq=one-r*r
@@ -11120,7 +11124,6 @@ c
             shl(2,14,l)=f3*g2x
             shl(2,15,l)=f3*g3x
             shl(2,16,l)=f2*g3x
-c
          end if
  200  continue
 c
@@ -11165,10 +11168,10 @@ c
       end if
 c
       if (nints.eq.2) then
-         raone(1)=-.577350269189626
-         raone(2)= .577350269189625
-         paone(1)= .577350269189626
-         paone(2)=-.577350269189625
+         raone(1)=-0.577350269189626d0
+         raone(2)= 0.577350269189625d0
+         paone(1)= 0.577350269189626d0
+         paone(2)=-0.577350269189625d0
       endif
 c
       if (nnods.eq.2) then
@@ -11177,13 +11180,13 @@ c
       endif
 c
       if (nints.eq.3) then
-         raone(1)=-.774596669241483
+         raone(1)=-0.774596669241483d0
          raone(2)= zero
-         raone(3)= .774596669241483
+         raone(3)= 0.774596669241483d0
 c
-         paone(1)= .774596669241483
+         paone(1)= 0.774596669241483d0
          paone(2)= zero
-         paone(3)=-.774596669241483
+         paone(3)=-0.774596669241483d0
       endif
 c
       if(nnods.eq.3) then
@@ -11193,15 +11196,17 @@ c
       endif
 c
       if (nints.eq.4) then
-         raone(1)=-.861136311594053
-         raone(2)=-.339981043584856
-         raone(3)= .339981043584856
-         raone(4)= .861136311594053
+         raone(1)=-0.861136311594053d0
+         raone(2)=-0.339981043584856d0
+         raone(3)= 0.339981043584856d0
+         raone(4)= 0.861136311594053d0
 c
-         paone(1)= .861136311594053
-         paone(2)= .339981043584856
-         paone(3)=-.339981043584856
-         paone(4)=-.861136311594053
+         paone(1)= 0.861136311594053d0
+         paone(2)= 0.339981043584856d0
+         paone(3)=-0.339981043584856d0
+         paone(4)=-0.861136311594053d0
+c
+c     old scheme (why?)
 c         
 c         raone(1)=-.861136311594053
 c         raone(2)= .861136311594053
@@ -11212,27 +11217,28 @@ c         paone(1)= .861136311594053
 c         paone(2)=-.861136311594053         
 c         paone(3)= .339981043584856
 c         paone(4)=-.339981043584856
+c         
       endif
 c
       if (nnods.eq.4) then
          xaone(1) = -one
          xaone(2) = one
-         xaone(3) = -.333333333333333
-         xaone(4) =  .333333333333333
+         xaone(3) = -0.333333333333333d0
+         xaone(4) =  0.333333333333333d0
       endif
 c
       if(nints.eq.5) then
-         raone(1)=-.906179845938664
-         raone(2)=-.538469310105683
+         raone(1)=-0.906179845938664d0
+         raone(2)=-0.538469310105683d0
          raone(3)= zero
-         raone(4)= .538469310105683
-         raone(5)= .906179845938664
+         raone(4)= 0.538469310105683d0
+         raone(5)= 0.906179845938664d0
 c
-         paone(1)= .906179845938664
-         paone(2)= .538469310105683
+         paone(1)= 0.906179845938664d0
+         paone(2)= 0.538469310105683d0
          paone(3)= zero
-         paone(4)=-.538469310105683
-         paone(5)=-.906179845938664
+         paone(4)=-0.538469310105683d0
+         paone(5)=-0.906179845938664d0
 c
       endif
 c
@@ -11245,88 +11251,88 @@ c
       endif
 c
       if(nints.eq.6) then
-         raone(1)=-.932469514203152
-         raone(2)=-.661209386466265
-         raone(3)=-.238619186083197
-         raone(4)= .238619186083197
-         raone(5)= .661209386466365
-         raone(6)= .932469514203152
+         raone(1)=-0.932469514203152d0
+         raone(2)=-0.661209386466265d0
+         raone(3)=-0.238619186083197d0
+         raone(4)= 0.238619186083197d0
+         raone(5)= 0.661209386466365d0
+         raone(6)= 0.932469514203152d0
 c
-         paone(1)= .932469514203152
-         paone(2)= .661209386466265
-         paone(3)= .238619186083197
-         paone(4)=-.238619186083197
-         paone(5)=-.661209386466365
-         paone(6)=-.932469514203152        
+         paone(1)= 0.932469514203152d0
+         paone(2)= 0.661209386466265d0
+         paone(3)= 0.238619186083197d0
+         paone(4)=-0.238619186083197d0
+         paone(5)=-0.661209386466365d0
+         paone(6)=-0.932469514203152d0
       endif
 c
       if(nnods.eq.6) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(3) = -0.6d0
+         xaone(4) = -0.2d0
+         xaone(5) =  0.2d0
+         xaone(6) =  0.6d0
       endif
 c
       if(nints.eq.7) then
-         raone(1)=-.949107912342759
-         raone(2)=-.741531185599394
-         raone(3)=-.405845151377397
+         raone(1)=-0.949107912342759d0
+         raone(2)=-0.741531185599394d0
+         raone(3)=-0.405845151377397d0
          raone(4)= zero
-         raone(5)= .405845151377397
-         raone(6)= .741531185599394
-         raone(7)= .949107912342759
+         raone(5)= 0.405845151377397d0
+         raone(6)= 0.741531185599394d0
+         raone(7)= 0.949107912342759d0
 c
-         paone(1)= .949107912342759
-         paone(2)= .741531185599394
-         paone(3)= .405845151377397
+         paone(1)= 0.949107912342759d0
+         paone(2)= 0.741531185599394d0
+         paone(3)= 0.405845151377397d0
          paone(4)= zero
-         paone(5)=-.405845151377397
-         paone(6)=-0.741531185599394
-         paone(7)=-.949107912342759
+         paone(5)=-0.405845151377397d0
+         paone(6)=-0.741531185599394d0
+         paone(7)=-0.949107912342759d0
 c
       endif
 c
       if(nnods.eq.7) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -.666666666666666
-         xaone(4) = -.333333333333333
-         xaone(5) = zero
-         xaone(6) =  .333333333333333
-         xaone(7) =  .666666666666666
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.666666666666666d0
+         xaone(4) =-0.333333333333333d0
+         xaone(5) =zero
+         xaone(6) =0.333333333333333d0
+         xaone(7) =0.666666666666666d0
       endif
 c
       if(nints.eq.8) then
-         raone(1)=-.960289856497536
-         raone(2)=-.796666477413627
-         raone(3)=-.525532409916329
-         raone(4)=-.183434642495650
-         raone(5)= .183434642495650
-         raone(6)= .525532409916329
-         raone(7)= .796666477413627
-         raone(8)= .960289856497536
+         raone(1)=-0.960289856497536d0
+         raone(2)=-0.796666477413627d0
+         raone(3)=-0.525532409916329d0
+         raone(4)=-0.183434642495650d0
+         raone(5)= 0.183434642495650d0
+         raone(6)= 0.525532409916329d0
+         raone(7)= 0.796666477413627d0
+         raone(8)= 0.960289856497536d0
 c
-         paone(1)= .960289856497536
-         paone(2)= .796666477413627
-         paone(3)= .525532409916329
-         paone(4)= .183434642495650
-         paone(5)=-.183434642495650
-         paone(6)=-.525532409916329
-         paone(7)=-.796666477413627
-         paone(8)=-.960289856497536
+         paone(1)= 0.960289856497536d0
+         paone(2)= 0.796666477413627d0
+         paone(3)= 0.525532409916329d0
+         paone(4)= 0.183434642495650d0
+         paone(5)=-0.183434642495650d0
+         paone(6)=-0.525532409916329d0
+         paone(7)=-0.796666477413627d0
+         paone(8)=-0.960289856497536d0
 c
       endif
       if(nnods.eq.8) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.71428571428571
-         xaone(4) = -0.42857142857143
-         xaone(5) = -0.14285714285714
-         xaone(6) = 0.14285714285714
-         xaone(7) = 0.42857142857143
-         xaone(8) = 0.71428571428571
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.71428571428571d0
+         xaone(4) =-0.42857142857143d0
+         xaone(5) =-0.14285714285714d0
+         xaone(6) = 0.14285714285714d0
+         xaone(7) = 0.42857142857143d0
+         xaone(8) = 0.71428571428571d0
       endif
 c
 c     trata nen
@@ -11708,8 +11714,8 @@ c
       if (nint.eq.4) then
          wone(1) = one
          wone(2) = one
-         raone(1)=-.577350269189626
-         raone(2)= .577350269189625
+         raone(1)=-0.577350269189626d0
+         raone(2)= 0.577350269189625d0
          nintx=2
          ninty=2
       endif
@@ -11725,9 +11731,9 @@ c
          wone(1) = five9
          wone(2) = eight9
          wone(3) = five9
-         raone(1)=-.774596669241483
+         raone(1)=-0.774596669241483d0
          raone(2)= zero
-         raone(3)= .774596669241483
+         raone(3)= 0.774596669241483d0
          nintx=3
          ninty=3
       endif
@@ -11741,37 +11747,37 @@ c
       endif
 c
       if (nint.eq.16) then
-         wone(1) = .347854845137454
-         wone(2) = .347854845137454
-         wone(3) = .652145154862546
-         wone(4) = .652145154862546
-         raone(1)=-.861136311594053
-         raone(2)= .861136311594053
-         raone(3)=-.339981043584856
-         raone(4)= .339981043584856
+         wone(1) = 0.347854845137454d0
+         wone(2) = 0.347854845137454d0
+         wone(3) = 0.652145154862546d0
+         wone(4) = 0.652145154862546d0
+         raone(1)=-0.861136311594053d0
+         raone(2)= 0.861136311594053d0
+         raone(3)=-0.339981043584856d0
+         raone(4)= 0.339981043584856d0
          nintx=4
          ninty=4
       endif
 c
       if (nen.eq.16) then
-         xaone(1) = -one
+         xaone(1) =-one
          xaone(2) = one
-         xaone(3) = -.333333333333333
-         xaone(4) =  .333333333333333
+         xaone(3) =-0.333333333333333d0
+         xaone(4) = 0.333333333333333d0
          nenx=4
          neny=4
       endif
 c
       if(nint.eq.25) then
-         wone(1) = .236926885056189
-         wone(2) = .236926885056189
-         wone(3) = .478628670499366
-         wone(4) = .478628670499366
-         wone(5) = .568888888888888
-         raone(1)=-.906179845938664
-         raone(2)= .906179845938664
-         raone(3)=-.538469310105683
-         raone(4)= .538469310105683
+         wone(1) = 0.236926885056189d0
+         wone(2) = 0.236926885056189d0
+         wone(3) = 0.478628670499366d0
+         wone(4) = 0.478628670499366d0
+         wone(5) = 0.568888888888888d0
+         raone(1)=-0.906179845938664d0
+         raone(2)= 0.906179845938664d0
+         raone(3)=-0.538469310105683d0
+         raone(4)= 0.538469310105683d0
          raone(5)= zero
          nintx=5
          ninty=5
@@ -11788,18 +11794,18 @@ c
       endif
 c
       if(nint.eq.36) then
-         wone(1) = .171324492397170
-         wone(2) = .171324492397170
-         wone(3) = .360761573048139
-         wone(4) = .360761573048139
-         wone(5) = .467913934572691
-         wone(6) = .467913934572691
-         raone(1)=-.932469514203152
-         raone(2)= .932469514203152
-         raone(3)=-.661209386466265
-         raone(4)= .661209386466365
-         raone(5)=-.238619186083197
-         raone(6)= .238619186083197
+         wone(1) = 0.171324492397170d0
+         wone(2) = 0.171324492397170d0
+         wone(3) = 0.360761573048139d0
+         wone(4) = 0.360761573048139d0
+         wone(5) = 0.467913934572691d0
+         wone(6) = 0.467913934572691d0
+         raone(1)=-0.932469514203152d0
+         raone(2)= 0.932469514203152d0
+         raone(3)=-0.661209386466265d0
+         raone(4)= 0.661209386466365d0
+         raone(5)=-0.238619186083197d0
+         raone(6)= 0.238619186083197d0
          nintx=6
          ninty=6
       endif
@@ -11807,28 +11813,28 @@ c
       if(nen.eq.36) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(3) = -0.6d0
+         xaone(4) = -0.2d0
+         xaone(5) =  0.2d0
+         xaone(6) =  0.6d0
          nenx=6
          neny=6
       endif
 c
       if(nint.eq.49) then
-         wone(1) = .129484966168870
-         wone(2) = .129484966168870
-         wone(3) = .279705391489277
-         wone(4) = .279705391489277
-         wone(5) = .381830050505119
-         wone(6) = .381830050505119
-         wone(7) = .417959183673469
-         raone(1)=-.949107912342759
-         raone(2)= .949107912342759
-         raone(3)=-.741531185599394
-         raone(4)= .741531185599394
-         raone(5)=-.405845151377397
-         raone(6)= .405845151377397
+         wone(1) = 0.129484966168870d0
+         wone(2) = 0.129484966168870d0
+         wone(3) = 0.279705391489277d0
+         wone(4) = 0.279705391489277d0
+         wone(5) = 0.381830050505119d0
+         wone(6) = 0.381830050505119d0
+         wone(7) = 0.417959183673469d0
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
          raone(7)= zero
          nintx=7
          ninty=7
@@ -11837,45 +11843,45 @@ c
       if(nen.eq.49) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.666666666666666
-         xaone(4) = -.333333333333333
+         xaone(3) = -0.666666666666666d0
+         xaone(4) = -0.333333333333333d0
          xaone(5) = zero
-         xaone(6) =  .333333333333333
-         xaone(7) =  .666666666666666
+         xaone(6) =  0.333333333333333d0
+         xaone(7) =  0.666666666666666d0
          nenx=7
          neny=7
       endif
 c
       if(nint.eq.64) then
-         wone(1) = .101228536290376
-         wone(2) = .101228536290376
-         wone(3) = .222381034453374
-         wone(4) = .222381034453374
-         wone(5) = .313706645877887
-         wone(6) = .313706645877887
-         wone(7) = .362683783378362
-         wone(8) = .362683783378362
-         raone(1)=-.960289856497536
-         raone(2)= .960289856497536
-         raone(3)=-.796666477413627
-         raone(4)= .796666477413627
-         raone(5)=-.525532409916329
-         raone(6)= .525532409916329
-         raone(7)=-.183434642495650
-         raone(8)= .183434642495650
+         wone(1) = 0.101228536290376d0
+         wone(2) = 0.101228536290376d0
+         wone(3) = 0.222381034453374d0
+         wone(4) = 0.222381034453374d0
+         wone(5) = 0.313706645877887d0
+         wone(6) = 0.313706645877887d0
+         wone(7) = 0.362683783378362d0
+         wone(8) = 0.362683783378362d0
+         raone(1)=-0.960289856497536d0
+         raone(2)= 0.960289856497536d0
+         raone(3)=-0.796666477413627d0
+         raone(4)= 0.796666477413627d0
+         raone(5)=-0.525532409916329d0
+         raone(6)= 0.525532409916329d0
+         raone(7)=-0.183434642495650d0
+         raone(8)= 0.183434642495650d0
          nintx=8
          ninty=8
       endif
 c
       if(nen.eq.64) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.71428571428571
-         xaone(4) = -0.42857142857143
-         xaone(5) = -0.14285714285714
-         xaone(6) = 0.14285714285714
-         xaone(7) = 0.42857142857143
-         xaone(8) = 0.71428571428571
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.71428571428571d0
+         xaone(4) =-0.42857142857143d0
+         xaone(5) =-0.14285714285714d0
+         xaone(6) = 0.14285714285714d0
+         xaone(7) = 0.42857142857143d0
+         xaone(8) = 0.71428571428571d0
          nenx=8
          neny=8
       endif
@@ -12228,9 +12234,6 @@ c
      &     r3b/0.d00/,w3b/0.888888888888889d00/,
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
-
-c     write(*,*) "SHL_HX_PK",nen,nint
-      
 c
 c     nodal data
 c      
@@ -12277,10 +12280,10 @@ c
       if(nen.eq.216) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(3) = -0.6d0
+         xaone(4) = -0.2d0
+         xaone(5) =  0.2d0
+         xaone(6) =  0.6d0
          nenx=6
          neny=6
          nenz=6         
@@ -12299,8 +12302,8 @@ c
       if (nint.eq.8) then
          wone(1) = one
          wone(2) = one
-         raone(1) =-.577350269189626
-         raone(2) = .577350269189625
+         raone(1) =-0.577350269189626d0
+         raone(2) = 0.577350269189625d0
          nintx = 2
          ninty = 2
          nintz = 2
@@ -12310,39 +12313,39 @@ c
          wone(1) = five9
          wone(2) = eight9
          wone(3) = five9
-         raone(1) = -.774596669241483
+         raone(1) = -0.774596669241483d0
          raone(2) = zero
-         raone(3) = .774596669241483
+         raone(3) =  0.774596669241483d0
          nintx = 3
          ninty = 3
          nintz = 3
       end if
 c
       if (nint.eq.64) then
-         wone(1) = .347854845137454
-         wone(2) = .347854845137454
-         wone(3) = .652145154862546
-         wone(4) = .652145154862546
-         raone(1)=-.861136311594053
-         raone(2)= .861136311594053
-         raone(3)=-.339981043584856
-         raone(4)= .339981043584856
+         wone(1) = 0.347854845137454d0
+         wone(2) = 0.347854845137454d0
+         wone(3) = 0.652145154862546d0
+         wone(4) = 0.652145154862546d0
+         raone(1)=-0.861136311594053d0
+         raone(2)= 0.861136311594053d0
+         raone(3)=-0.339981043584856d0
+         raone(4)= 0.339981043584856d0
          nintx=4
          ninty=4
          nintz=4
       endif
 c
       if (nint.eq.125) then
-         wone(1) = .236926885056189
-         wone(2) = .236926885056189
-         wone(3) = .478628670499366
-         wone(4) = .478628670499366
-         wone(5) = .568888888888888
+         wone(1) = 0.236926885056189d0
+         wone(2) = 0.236926885056189d0
+         wone(3) = 0.478628670499366d0
+         wone(4) = 0.478628670499366d0
+         wone(5) = 0.568888888888888d0
 c         
-         raone(1)=-.906179845938664
-         raone(2)= .906179845938664
-         raone(3)=-.538469310105683
-         raone(4)= .538469310105683
+         raone(1)=-0.906179845938664d0
+         raone(2)= 0.906179845938664d0
+         raone(3)=-0.538469310105683d0
+         raone(4)= 0.538469310105683d0
          raone(5)= zero
 c         
          nintx=5
@@ -12351,19 +12354,19 @@ c
       endif
 c      
       if(nint.eq.216) then
-         wone(1) = .171324492397170
-         wone(2) = .171324492397170
-         wone(3) = .360761573048139
-         wone(4) = .360761573048139
-         wone(5) = .467913934572691
-         wone(6) = .467913934572691
+         wone(1) = 0.171324492397170d0
+         wone(2) = 0.171324492397170d0
+         wone(3) = 0.360761573048139d0
+         wone(4) = 0.360761573048139d0
+         wone(5) = 0.467913934572691d0
+         wone(6) = 0.467913934572691d0
 c         
-         raone(1)=-.932469514203152
-         raone(2)= .932469514203152
-         raone(3)=-.661209386466265
-         raone(4)= .661209386466365
-         raone(5)=-.238619186083197
-         raone(6)= .238619186083197
+         raone(1)=-0.932469514203152d0
+         raone(2)= 0.932469514203152d0
+         raone(3)=-0.661209386466265d0
+         raone(4)= 0.661209386466365d0
+         raone(5)=-0.238619186083197d0
+         raone(6)= 0.238619186083197d0
 c
          nintx=6
          ninty=6
@@ -12371,25 +12374,25 @@ c
       endif
 c
       if(nint.eq.343) then
-         wone(1) = .129484966168870
-         wone(2) = .129484966168870
-         wone(3) = .279705391489277
-         wone(4) = .279705391489277
-         wone(5) = .381830050505119
-         wone(6) = .381830050505119
-         wone(7) = .417959183673469
+         wone(1) = 0.129484966168870d0
+         wone(2) = 0.129484966168870d0
+         wone(3) = 0.279705391489277d0
+         wone(4) = 0.279705391489277d0
+         wone(5) = 0.381830050505119d0
+         wone(6) = 0.381830050505119d0
+         wone(7) = 0.417959183673469d0
 c         
-         raone(1)=-.949107912342759
-         raone(2)= .949107912342759
-         raone(3)=-.741531185599394
-         raone(4)= .741531185599394
-         raone(5)=-.405845151377397
-         raone(6)= .405845151377397
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
          raone(7)= zero
 c
          nintx=7
          ninty=7
-         nintz=7
+         nintz=7         
         endif
 c
       if(nint.gt.343) then
@@ -13014,7 +13017,6 @@ c
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
 c
-      
       write(*,'(A,I5)') " nen  :", nen
       write(*,'(A,I5)') " nnods:", nnods
       write(*,'(A,I5)') " nints:", nints
@@ -13054,10 +13056,10 @@ c
       if(nnods.eq.6) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(3) = -0.6d0
+         xaone(4) = -0.2d0
+         xaone(5) =  0.2d0
+         xaone(6) =  0.6d0
       endif      
 c
       if(nnods.gt.6) then
@@ -13078,68 +13080,68 @@ c
       if (nints.eq.2) then
          nintx=2
          ninty=2
-         raone(1)=-.577350269189626
-         raone(2)= .577350269189625
-         paone(1)=-.577350269189626
-         paone(2)= .577350269189625
-         taone(1)=-.577350269189626
-         taone(2)= .577350269189625
+         raone(1)=-0.577350269189626d0
+         raone(2)= 0.577350269189625d0
+         paone(1)=-0.577350269189626d0
+         paone(2)= 0.577350269189625d0
+         taone(1)=-0.577350269189626d0
+         taone(2)= 0.577350269189625d0
       endif
 c      
       if (nints.eq.3) then
          nintx=3
          ninty=3
-         raone(1)=-.774596669241483
-         raone(2)= zero
-         raone(3)= .774596669241483
-         paone(1)= -.774596669241483
-         paone(2)= zero
-         paone(3)= .774596669241483
-         taone(1)= -.774596669241483
-         taone(2)= zero
-         taone(3)= .774596669241483
+         raone(1)=-0.774596669241483d0
+         raone(2)=zero
+         raone(3)= 0.774596669241483d0
+         paone(1)=-0.774596669241483d0
+         paone(2)=zero
+         paone(3)= 0.774596669241483d0
+         taone(1)=-0.774596669241483d0
+         taone(2)=zero
+         taone(3)= 0.774596669241483d0
       endif
 c     
       if (nints.eq.4) then
          nintx=4
          ninty=4
 c         
-         raone(1)=-.861136311594053
-         raone(2)= .861136311594053
-         raone(3)=-.339981043584856
-         raone(4)= .339981043584856         
+         raone(1)=-0.861136311594053d0
+         raone(2)= 0.861136311594053d0
+         raone(3)=-0.339981043584856d0
+         raone(4)= 0.339981043584856d0       
 c
-         paone(1)=-.861136311594053
-         paone(2)= .861136311594053
-         paone(3)=-.339981043584856
-         paone(4)= .339981043584856
+         paone(1)=-0.861136311594053d0
+         paone(2)= 0.861136311594053d0
+         paone(3)=-0.339981043584856d0
+         paone(4)= 0.339981043584856d0
 c
-         taone(1)=-.861136311594053
-         taone(2)= .861136311594053
-         taone(3)=-.339981043584856
-         taone(4)= .339981043584856                  
+         taone(1)=-0.861136311594053d0
+         taone(2)= 0.861136311594053d0
+         taone(3)=-0.339981043584856d0
+         taone(4)= 0.339981043584856d0                
       endif      
 c
       if(nints.eq.5) then
          nintx=5
          ninty=5
 c
-         raone(1)=-.906179845938664
-         raone(2)= .906179845938664
-         raone(3)=-.538469310105683
-         raone(4)= .538469310105683
+         raone(1)=-0.906179845938664d0
+         raone(2)= 0.906179845938664d0
+         raone(3)=-0.538469310105683d0
+         raone(4)= 0.538469310105683d0
          raone(5)= zero
 c
-         paone(1)=-.906179845938664
-         paone(2)= .906179845938664
-         paone(3)=-.538469310105683
-         paone(4)= .538469310105683
+         paone(1)=-0.906179845938664d0
+         paone(2)= 0.906179845938664d0
+         paone(3)=-0.538469310105683d0
+         paone(4)= 0.538469310105683d0
          paone(5)= zero
 c
-         taone(1)=-.906179845938664
-         taone(2)= .906179845938664
-         taone(3)=-.538469310105683
-         taone(4)= .538469310105683
+         taone(1)=-0.906179845938664d0
+         taone(2)= 0.906179845938664d0
+         taone(3)=-0.538469310105683d0
+         taone(4)= 0.538469310105683d0
          taone(5)= zero         
       endif
 c
@@ -13147,26 +13149,26 @@ c
          nintx=6
          ninty=6
 c        
-         raone(1)=-.932469514203152 
-         raone(2)= .932469514203152 
-         raone(3)=-.661209386466265 
-         raone(4)= .661209386466265 
-         raone(5)=-.238619186083197 
-         raone(6)= .238619186083197      
+         raone(1)=-0.932469514203152d0
+         raone(2)= 0.932469514203152d0
+         raone(3)=-0.661209386466265d0 
+         raone(4)= 0.661209386466265d0
+         raone(5)=-0.238619186083197d0
+         raone(6)= 0.238619186083197d0    
 c
-         paone(1)=-.932469514203152 
-         paone(2)= .932469514203152 
-         paone(3)=-.661209386466265 
-         paone(4)= .661209386466265 
-         paone(5)=-.238619186083197 
-         paone(6)= .238619186083197 
+         paone(1)=-0.932469514203152d0
+         paone(2)= 0.932469514203152d0
+         paone(3)=-0.661209386466265d0
+         paone(4)= 0.661209386466265d0
+         paone(5)=-0.238619186083197d0
+         paone(6)= 0.238619186083197d0
 c
-         taone(1)=-.932469514203152 
-         taone(2)= .932469514203152 
-         taone(3)=-.661209386466265 
-         taone(4)= .661209386466265 
-         taone(5)=-.238619186083197 
-         taone(6)= .238619186083197 
+         taone(1)=-0.932469514203152d0
+         taone(2)= 0.932469514203152d0
+         taone(3)=-0.661209386466265d0
+         taone(4)= 0.661209386466265d0
+         taone(5)=-0.238619186083197d0
+         taone(6)= 0.238619186083197d0
       endif      
 c     
       if(nints.eq.7) then
@@ -13174,28 +13176,28 @@ c
          ninty=7
          nintz=7
 c         
-         raone(1)=-.949107912342759
-         raone(2)= .949107912342759
-         raone(3)=-.741531185599394
-         raone(4)= .741531185599394
-         raone(5)=-.405845151377397
-         raone(6)= .405845151377397
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
          raone(7)= zero
 c
-         paone(1)=-.949107912342759
-         paone(2)= .949107912342759
-         paone(3)=-.741531185599394
-         paone(4)= .741531185599394
-         paone(5)=-.405845151377397
-         paone(6)= .405845151377397
+         paone(1)=-0.949107912342759d0
+         paone(2)= 0.949107912342759d0
+         paone(3)=-0.741531185599394d0
+         paone(4)= 0.741531185599394d0
+         paone(5)=-0.405845151377397d0
+         paone(6)= 0.405845151377397d0
          paone(7)= zero
 c
-         taone(1)=-.949107912342759
-         taone(2)= .949107912342759
-         taone(3)=-.741531185599394
-         taone(4)= .741531185599394
-         taone(5)=-.405845151377397
-         taone(6)= .405845151377397
+         taone(1)=-0.949107912342759d0
+         taone(2)= 0.949107912342759d0
+         taone(3)=-0.741531185599394d0
+         taone(4)= 0.741531185599394d0
+         taone(5)=-0.405845151377397d0
+         taone(6)= 0.405845151377397d0
          taone(7)= zero         
       endif      
 c      
@@ -14278,19 +14280,19 @@ c
 c
 c
       if (nen.eq.16) then
-         xaone(1) = -one
-         xaone(2) = one
-         xaone(3) = -.333333333333333
-         xaone(4) =  .333333333333333
+         xaone(1) =-one
+         xaone(2) =one
+         xaone(3) =-0.333333333333333d0
+         xaone(4) = 0.333333333333333d0
          nenx = 4
          neny = 4
       endif
 c
       if (nenc.eq.16) then
-         raone(1) = -one
-         raone(2) = one
-         raone(3) = -.333333333333333
-         raone(4) =  .333333333333333
+         raone(1) =-one
+         raone(2) =one
+         raone(3) =-0.333333333333333d0
+         raone(4) = 0.333333333333333d0
          nenrx = 4
          nenry = 4
       endif
@@ -14316,79 +14318,79 @@ c
       endif
 c
       if(nen.eq.36) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.6d0
+         xaone(4) =-0.2d0
+         xaone(5) = 0.2d0
+         xaone(6) = 0.6d0
          nenx=6
          neny=6
       endif
 c
       if(nenc.eq.36) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -.600000000000000
-         raone(4) = -.200000000000000
-         raone(5) =  .200000000000000
-         raone(6) =  .600000000000000
+         raone(1) =-one
+         raone(2) = one
+         raone(3) =-0.6d0
+         raone(4) =-0.2d0
+         raone(5) = 0.2d0
+         raone(6) = 0.6d0
          nenrx=6
          nenry=6
       endif
 c
 c
       if(nen.eq.49) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -.666666666666666
-         xaone(4) = -.333333333333333
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.666666666666666d0
+         xaone(4) =-0.333333333333333d0
          xaone(5) = zero
-         xaone(6) =  .333333333333333
-         xaone(7) =  .666666666666666
+         xaone(6) = 0.333333333333333d0
+         xaone(7) = 0.666666666666666d0
          nenx=7
          neny=7
       endif
 c
       if(nenc.eq.49) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -.666666666666666
-         raone(4) = -.333333333333333
+         raone(1) =-one
+         raone(2) = one
+         raone(3) =-0.666666666666666d0
+         raone(4) =-0.333333333333333d0
          raone(5) = zero
-         raone(6) =  .333333333333333
-         raone(7) =  .666666666666666
+         raone(6) = 0.333333333333333d0
+         raone(7) = 0.666666666666666d0
          nenrx=7
          nenry=7
       endif
 c
       if(nen.eq.64) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.71428571428571
-         xaone(4) = -0.42857142857143
-         xaone(5) = -0.14285714285714
-         xaone(6) = 0.14285714285714
-         xaone(7) = 0.42857142857143
-         xaone(8) = 0.71428571428571
+         xaone(1) =-one
+         xaone(2) = one
+         xaone(3) =-0.71428571428571d0
+         xaone(4) =-0.42857142857143d0
+         xaone(5) =-0.14285714285714d0
+         xaone(6) = 0.14285714285714d0
+         xaone(7) = 0.42857142857143d0
+         xaone(8) = 0.71428571428571d0
          nenx=8
          neny=8
       endif
 c
       if(nenc.eq.64) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -0.71428571428571
-         raone(4) = -0.42857142857143
-         raone(5) = -0.14285714285714
-         raone(6) = 0.14285714285714
-         raone(7) = 0.42857142857143
-         raone(8) = 0.71428571428571
+         raone(1) =-one
+         raone(2) = one
+         raone(3) =-0.71428571428571d0
+         raone(4) =-0.42857142857143d0
+         raone(5) =-0.14285714285714d0
+         raone(6) = 0.14285714285714d0
+         raone(7) = 0.42857142857143d0
+         raone(8) = 0.71428571428571d0
          nenrx=8
          nenry=8
       endif
 c
-c
+c     nodal information
 c
       if(nen.eq.1) inod(1,1) = 1
 c
@@ -14975,15 +14977,15 @@ c
       if (nen.eq.4) then
          xaone(1) = -one
          xaone(2) = one
-         xaone(3) = -.333333333333333
-         xaone(4) =  .333333333333333
+         xaone(3) = -0.333333333333333d0
+         xaone(4) =  0.333333333333333d0
       endif
 c
       if (nenc.eq.4) then
          raone(1) = -one
          raone(2) = one
-         raone(3) = -.333333333333333
-         raone(4) =  .333333333333333
+         raone(3) = -0.333333333333333d0
+         raone(4) =  0.333333333333333d0
       endif
 c
       if(nen.eq.5) then
@@ -15006,61 +15008,61 @@ c
       if(nen.eq.6) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.600000000000000
-         xaone(4) = -.200000000000000
-         xaone(5) =  .200000000000000
-         xaone(6) =  .600000000000000
+         xaone(3) = -0.6d0
+         xaone(4) = -0.2d0
+         xaone(5) =  0.2d0
+         xaone(6) =  0.6d0
       endif
 c
       if(nenc.eq.6) then
          raone(1) = -one
          raone(2) =  one
-         raone(3) = -.600000000000000
-         raone(4) = -.200000000000000
-         raone(5) =  .200000000000000
-         raone(6) =  .600000000000000
+         raone(3) = -0.6d0
+         raone(4) = -0.2d0
+         raone(5) =  0.2d0
+         raone(6) =  0.6d0
       endif
 c
       if(nen.eq.7) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -.666666666666666
-         xaone(4) = -.333333333333333
+         xaone(3) = -0.666666666666666d0
+         xaone(4) = -0.333333333333333d0
          xaone(5) = zero
-         xaone(6) =  .333333333333333
-         xaone(7) =  .666666666666666
+         xaone(6) =  0.333333333333333d0
+         xaone(7) =  0.666666666666666d0
       endif
 c
       if(nenc.eq.7) then
          raone(1) = -one
          raone(2) =  one
-         raone(3) = -.666666666666666
-         raone(4) = -.333333333333333
+         raone(3) = -0.666666666666666d0
+         raone(4) = -0.333333333333333d0
          raone(5) = zero
-         raone(6) =  .333333333333333
-         raone(7) =  .666666666666666
+         raone(6) =  0.333333333333333d0
+         raone(7) =  0.666666666666666d0
       endif
 c
       if(nen.eq.8) then
          xaone(1) = -one
          xaone(2) =  one
-         xaone(3) = -0.71428571428571
-         xaone(4) = -0.42857142857143
-         xaone(5) = -0.14285714285714
-         xaone(6) = 0.14285714285714
-         xaone(7) = 0.42857142857143
-         xaone(8) = 0.71428571428571
+         xaone(3) = -0.71428571428571d0
+         xaone(4) = -0.42857142857143d0
+         xaone(5) = -0.14285714285714d0
+         xaone(6) =  0.14285714285714d0
+         xaone(7) =  0.42857142857143d0
+         xaone(8) =  0.71428571428571d0
       endif
 c
       if(nenc.eq.8) then
          raone(1) = -one
          raone(2) =  one
-         raone(3) = -0.71428571428571
-         raone(4) = -0.42857142857143
-         raone(5) = -0.14285714285714
-         raone(6) = 0.14285714285714
-         raone(7) = 0.42857142857143
-         raone(8) = 0.71428571428571
+         raone(3) = -0.71428571428571d0
+         raone(4) = -0.42857142857143d0
+         raone(5) = -0.14285714285714d0
+         raone(6) =  0.14285714285714d0
+         raone(7) =  0.42857142857143d0
+         raone(8) =  0.71428571428571d0
       endif
 c
 c     loop on nodes to compute shape functions
