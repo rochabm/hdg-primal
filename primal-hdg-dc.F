@@ -875,60 +875,6 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine back(a,b,idiag,neq)
-c-----------------------------------------------------------------------
-c     program to perform forward reduction and back substitution
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension a(*),b(*),idiag(*)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-c
-c     forward reduction
-c      
-      jj = 0
-c
-      do 100 j=1,neq
-         jjlast = jj
-         jj     = idiag(j)
-         jcolht = jj - jjlast
-         if (jcolht.gt.1)
-     &        b(j) = b(j) - coldot(a(jjlast+1),b(j-jcolht+1),jcolht-1)
- 100  continue
-c
-c     diagonal scaling
-c
-      do j=1,neq
-         ajj = a(idiag(j))
-         if (ajj.ne.zero) b(j) = b(j)/ajj
-      end do
-c
-c     back substitution
-c
-      if (neq.eq.1) return
-      jjnext = idiag(neq)
-c
-      do j=neq,2,-1
-         jj     = jjnext
-         jjnext = idiag(j-1)
-         jcolht = jj - jjnext
-         if (jcolht.gt.1) then
-            bj = b(j)
-            istart = j - jcolht + 1
-            jtemp  = jjnext - istart + 1
-c
-            do i=istart,j-1
-               b(i) = b(i) - a(jtemp+i)*bj
-            end do
-c
-         endif
-c
-      end do
-c
-      return
-      end
-
-c-----------------------------------------------------------------------
       subroutine bcedge(ideg,id,npar,nedge,ndof,numnp,neq,iprtin)
 c-----------------------------------------------------------------------
 c     program to read, generate and write boundary condition data
@@ -1578,6 +1524,60 @@ c
       end
 
 c-----------------------------------------------------------------------
+      subroutine back(a,b,idiag,neq)
+c-----------------------------------------------------------------------
+c     program to perform forward reduction and back substitution
+c-----------------------------------------------------------------------
+      implicit real*8 (a-h,o-z)
+c
+      dimension a(*),b(*),idiag(*)
+      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
+c
+c     forward reduction
+c      
+      jj = 0
+c
+      do 100 j=1,neq
+         jjlast = jj
+         jj     = idiag(j)
+         jcolht = jj - jjlast
+         if (jcolht.gt.1)
+     &        b(j) = b(j) - coldot(a(jjlast+1),b(j-jcolht+1),jcolht-1)
+ 100  continue
+c
+c     diagonal scaling
+c
+      do j=1,neq
+         ajj = a(idiag(j))
+         if (ajj.ne.zero) b(j) = b(j)/ajj
+      end do
+c
+c     back substitution
+c
+      if (neq.eq.1) return
+      jjnext = idiag(neq)
+c
+      do j=neq,2,-1
+         jj     = jjnext
+         jjnext = idiag(j-1)
+         jcolht = jj - jjnext
+         if (jcolht.gt.1) then
+            bj = b(j)
+            istart = j - jcolht + 1
+            jtemp  = jjnext - istart + 1
+c
+            do i=istart,j-1
+               b(i) = b(i) - a(jtemp+i)*bj
+            end do
+c
+         endif
+c
+      end do
+c
+      return
+      end
+      
+c-----------------------------------------------------------------------
       subroutine factor(a,idiag,neq)
 c-----------------------------------------------------------------------
 c     program to perform Crout factorization: a = u(transpose) * d * u
@@ -1956,8 +1956,6 @@ c
             end do
 c
             if (j.ne.jj) then
-c     Tentativa antiga de colocar pra 3D....
-c               le = je + (k-1)*incel(2)
                le = je
                je = le + incel(2)
                call geneli(ien(1,je),ien(1,le),inc(2),nen)
@@ -1973,8 +1971,7 @@ c
             mat(ke) = mat(le)
             ie = ke
 c
-c     Essa linha abaixo nao existia. Para funcionar para malhas 3D
-c     foi preciso adiciona-la aqui.
+c     para funcionar para malhas 3D
 c
             je = ke
          endif
@@ -2295,9 +2292,10 @@ c-----------------------------------------------------------------------
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
   100 continue
-      read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
-      write(*,"(A,10I10)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
-
+      read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)      
+c$$$c  debug      
+c$$$  write(*,"(A,10I10)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+c$$$        
       if (n.eq.0) return
 c
 c     trata caso simples (antigo)
@@ -2934,7 +2932,6 @@ c
 c     
       return
       end
-
       
 c-----------------------------------------------------------------------
       subroutine centroid(xls,nesd,nen,c)
@@ -2980,129 +2977,13 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine shgq4(xl,det,shl,shg,nint,nel,neg,quad)
-c-----------------------------------------------------------------------
-c     program to calculate global derivatives of shape functions and
-c        jacobian determinants for a 4-node quadrilateral element
-c        xl(j,i)    = global coordinates
-c        det(l)     = jacobian determinant
-c        shl(1,i,l) = local ("xi") derivative of shape function
-c        shl(2,i,l) = local ("eta") derivative of shape function
-c        shl(3,i,l) = local  shape function
-c        shg(1,i,l) = x-derivative of shape function
-c        shg(2,i,l) = y-derivative of shape function
-c        shg(3,i,l) = shl(3,i,l)
-c        xs(i,j)    = jacobian matrix
-c                 i = local node number or global coordinate number
-c                 j = global coordinate number
-c                 l = integration-point number
-c              nint = number of integration points, eq. 1 or 4
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      logical quad
-      dimension xl(2,*),det(*),shl(3,4,*),shg(3,4,*),xs(2,2)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c
-      call move(shg,shl,12*nint)
-c
-      do 700 l=1,nint
-c
-      if (.not.quad) then
-         do 100 i=1,3
-         shg(i,3,l) = shl(i,3,l) + shl(i,4,l)
-         shg(i,4,l) = zero
-  100    continue
-      endif
-c
-      do 300 j=1,2
-      do 200 i=1,2
-      xs(i,j) = rowdot(shg(i,1,l),xl(j,1),3,2,4)
-  200 continue
-  300 continue
-c
-      det(l) = xs(1,1)*xs(2,2)-xs(1,2)*xs(2,1)
-      if (det(l).le.zero) then
-         write(ieco,1000) nel,neg
-         stop
-      endif
-c
-      do 500 j=1,2
-      do 400 i=1,2
-      xs(i,j) = xs(i,j)/det(l)
-  400 continue
-  500 continue
-c
-      do 600 i=1,4
-        temp = xs(2,2)*shg(1,i,l) - xs(1,2)*shg(2,i,l)
-        shg(2,i,l) = - xs(2,1)*shg(1,i,l) + xs(1,1)*shg(2,i,l)
-        shg(1,i,l) = temp
-  600 continue
-c
-  700 continue
-c
-      return
-c
- 1000 format(///,'non-positive determinant in element number  ',i10,
-     &          ' in element group  ',i10)
-      end
-
-c-----------------------------------------------------------------------
-      subroutine shlq4(shl,w,nint)
-c-----------------------------------------------------------------------
-c     program to calculate integration-rule weights, shape functions
-c        and local derivatives for a four-node quadrilateral element
-c               s,t = local element coordinates ("xi", "eta", resp.)
-c        shl(1,i,l) = local ("xi") derivative of shape function
-c        shl(2,i,l) = local ("eta") derivative of shape function
-c        shl(3,i,l) = local  shape function
-c              w(l) = integration-rule weight
-c                 i = local node number
-c                 l = integration point number
-c              nint = number of integration points, eq. 1 or 4
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension shl(3,4,*),w(*),ra(4),sa(4)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      data ra/-0.5d0,0.5d0,0.5d0,-0.5d0/,sa/-0.5d0,-0.5d0,0.5d0,0.5d0/
-c
-      g = zero
-      w(1) = four
-      if (nint.eq.4) then
-         g = two/dsqrt(three)
-         w(1) = one
-         w(2) = one
-         w(3) = one
-         w(4) = one
-      endif
-c
-      do 200 l=1,nint
-      r = g*ra(l)
-      s = g*sa(l)
-c
-      do 100 i=1,4
-      tempr = pt5 + ra(i)*r
-      temps = pt5 + sa(i)*s
-      shl(1,i,l) = ra(i)*temps
-      shl(2,i,l) = tempr*sa(i)
-      shl(3,i,l) = tempr*temps
-  100 continue
-c
-  200 continue
-c
-      return
-      end
-
-c-----------------------------------------------------------------------
       subroutine timing(temp)
 c-----------------------------------------------------------------------
 c     program to determine elapsed cpu time
 c     **** this is a system-dependent routine ****
-c         note: can only access clock time on vax/vms
-!       call time(itemp)
-       temp=itemp
+c     note: can only access clock time on vax/vms
+!     call time(itemp)
+      temp=itemp
 c
       return
       end
@@ -3195,95 +3076,96 @@ c
       if (nint.eq.2) then
          w(1) = one
          w(2) = one
-         ra(1)=-.577350269189626
-         ra(2)= .577350269189625
+         ra(1)=-0.577350269189626d0
+         ra(2)= 0.577350269189625d0
       endif
 c
       if (nint.eq.3) then
          w(1) = five9
          w(2) = eight9
          w(3) = five9
-         ra(1)=-.774596669241483
+         ra(1)=-0.774596669241483d0
          ra(2)= zero
-         ra(3)= .774596669241483
+         ra(3)= 0.774596669241483d0
       endif
 c
       if (nint.eq.4) then
-         w(1) = .347854845137454
-         w(2) = .652145154862546
-         w(3) = .652145154862546
-         w(4) = .347854845137454
-         ra(1)=-.861136311594053
-         ra(2)=-.339981043584856
-         ra(3)= .339981043584856
-         ra(4)= .861136311594053
+         w(1) = 0.347854845137454d0
+         w(2) = 0.652145154862546d0
+         w(3) = 0.652145154862546d0
+         w(4) = 0.347854845137454d0
+         ra(1)=-0.861136311594053d0
+         ra(2)=-0.339981043584856d0
+         ra(3)= 0.339981043584856d0
+         ra(4)= 0.861136311594053d0
       endif
 c
        if(nint.eq.5) then
-        w(1) = .236926885056189
-        w(2) = .478628670499366
-        w(3) = .568888888888888
-        w(4) = .478628670499366
-        w(5) = .236926885056189
-        ra(1)=-.906179845938664
-        ra(2)=-.538469310105683
+        w(1) = 0.236926885056189d0
+        w(2) = 0.478628670499366d0
+        w(3) = 0.568888888888888d0
+        w(4) = 0.478628670499366d0
+        w(5) = 0.236926885056189d0
+c        
+        ra(1)=-0.906179845938664d0
+        ra(2)=-0.538469310105683d0
         ra(3)= zero
-        ra(4)= .538469310105683
-        ra(5)= .906179845938664
+        ra(4)= 0.538469310105683d0
+        ra(5)= 0.906179845938664d0
        endif
 c
        if(nint.eq.6) then
-         w(1) = .171324492397170
-         w(2) = .360761573048139
-         w(3) = .467913934572691
-         w(4) = .467913934572691
-         w(5) = .360761573048139
-         w(6) = .171324492397170
+         w(1) = 0.171324492397170d0
+         w(2) = 0.360761573048139d0
+         w(3) = 0.467913934572691d0
+         w(4) = 0.467913934572691d0
+         w(5) = 0.360761573048139d0
+         w(6) = 0.171324492397170d0
 c
-         ra(1)=-.932469514203152
-         ra(2)=-.661209386466265
-         ra(3)=-.238619186083197
-         ra(4)= .238619186083197
-         ra(5)= .661209386466365
-         ra(6)= .932469514203152
+         ra(1)=-.932469514203152d0
+         ra(2)=-.661209386466265d0
+         ra(3)=-.238619186083197d0
+         ra(4)= .238619186083197d0
+         ra(5)= .661209386466365d0
+         ra(6)= .932469514203152d0
         endif
 c
        if(nint.eq.7) then
-         w(1) = .129484966168870
-         w(2) = .279705391489277
-         w(3) = .381830050505119
-         w(4) = .417959183673469
-         w(5) = .381830050505119
-         w(6) = .279705391489277
-         w(7) = .129484966168870
+         w(1) = 0.129484966168870d0
+         w(2) = 0.279705391489277d0
+         w(3) = 0.381830050505119d0
+         w(4) = 0.417959183673469d0
+         w(5) = 0.381830050505119d0
+         w(6) = 0.279705391489277d0
+         w(7) = 0.129484966168870d0
 c
-         ra(1)=-.949107912342759
-         ra(2)=-.741531185599394
-         ra(3)=-.405845151377397
+         ra(1)=-0.949107912342759d0
+         ra(2)=-0.741531185599394d0
+         ra(3)=-0.405845151377397d0
          ra(4)= zero
-         ra(5)= .405845151377397
-         ra(6)= .741531185599394
-         ra(7)= .949107912342759
+         ra(5)= 0.405845151377397d0
+         ra(6)= 0.741531185599394d0
+         ra(7)= 0.949107912342759d0
         endif
 c
        if(nint.eq.8) then
-         w(1) = .101228536290376
-         w(2) = .222381034453374
-         w(3) = .313706645877887
-         w(4) = .362683783378362
-         w(5) = .362683783378362
-         w(6) = .313706645877887
-         w(7) = .222381034453374
-         w(8) = .101228536290376
+         w(1) = 0.101228536290376d0
+         w(2) = 0.222381034453374d0
+         w(3) = 0.313706645877887d0
+         w(4) = 0.362683783378362d0
+         w(5) = 0.362683783378362d0
+         w(6) = 0.313706645877887d0
+         w(7) = 0.222381034453374d0
+         w(8) = 0.101228536290376d0
 c
-         ra(1)=-.960289856497536
-         ra(2)=-.796666477413627
-         ra(3)=-.525532409916329
-         ra(4)=-.183434642495650
-         ra(5)= .183434642495650
-         ra(6)= .525532409916329
-         ra(7)= .796666477413627
-         ra(8)= .960289856497536
+         ra(1)=-0.960289856497536d0
+         ra(2)=-0.796666477413627d0
+         ra(3)=-0.525532409916329d0
+         ra(4)=-0.183434642495650d0
+         ra(5)= 0.183434642495650d0
+         ra(6)= 0.525532409916329d0
+         ra(7)= 0.796666477413627d0
+         ra(8)= 0.960289856497536d0
         endif
 
       if (nen.eq.1) xa(1) = zero
@@ -3302,8 +3184,8 @@ c
       if (nen.eq.4) then
          xa(1) = -one
          xa(2) = one
-         xa(3) = -.333333333333333
-         xa(4) =  .333333333333333
+         xa(3) = -0.333333333333333d0
+         xa(4) =  0.333333333333333d0
          endif
 c
        if(nen.eq.5) then
@@ -3317,31 +3199,31 @@ c
         if(nen.eq.6) then
          xa(1) = -one
          xa(2) =  one
-         xa(3) = -.600000000000000
-         xa(4) = -.200000000000000
-         xa(5) =  .200000000000000
-         xa(6) =  .600000000000000
+         xa(3) = -0.600000000000000d0
+         xa(4) = -0.200000000000000d0
+         xa(5) =  0.200000000000000d0
+         xa(6) =  0.600000000000000d0
         endif
 c
         if(nen.eq.7) then
          xa(1) = -one
          xa(2) =  one
-         xa(3) = -.666666666666666
-         xa(4) = -.333333333333333
+         xa(3) = -0.666666666666666d0
+         xa(4) = -0.333333333333333d0
          xa(5) = zero
-         xa(6) =  .333333333333333
-         xa(7) =  .666666666666666
+         xa(6) =  0.333333333333333d0
+         xa(7) =  0.666666666666666d0
         endif
 
         if(nen.eq.8) then
          xa(1) = -one
          xa(2) =  one
-         xa(3) = -0.71428571428571
-         xa(4) = -0.42857142857143
-         xa(5) = -0.14285714285714
-         xa(6) = 0.14285714285714
-         xa(7) = 0.42857142857143
-         xa(8) = 0.71428571428571
+         xa(3) = -0.71428571428571d0
+         xa(4) = -0.42857142857143d0
+         xa(5) = -0.14285714285714d0
+         xa(6) =  0.14285714285714d0
+         xa(7) =  0.42857142857143d0
+         xa(8) =  0.71428571428571d0
         endif
 c
       do 100 l = 1, nint
@@ -3554,7 +3436,7 @@ c            shgp(2,i,l) = shlp(2,i,l)/det(l)
             shgp(1,i,l) = 0.d0
             shgp(2,i,l) = 0.d0
 c
-c     para funcao OK
+c     funcao
 c
             shgp(3,i,l) = shlp(3,i,l)
          end do
@@ -3588,53 +3470,53 @@ c              nint = number of integration points, eq. 1 or 4
 c
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
-c
+c     
       logical quad
       dimension xl(2,*),det(*),shl(3,nen,*),shg(3,nen,*),xs(2,2)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c
+c     
       call move(shg,shl,3*nen*nint)
-c
-      do 700 l=1,nint
-c
-      if (.not.quad) then
-         do 100 i=1,3
-         shg(i,3,l) = shl(i,3,l) + shl(i,4,l)
-         shg(i,4,l) = zero
-  100    continue
-      endif
-c
-      do 300 j=1,2
-      do 200 i=1,2
-      xs(i,j) = rowdot(shg(i,1,l),xl(j,1),3,2,nen)
-  200 continue
-  300 continue
-c
-      det(l) = xs(1,1)*xs(2,2)-xs(1,2)*xs(2,1)
-      if (det(l).le.zero) then
-         write(ieco,1000) nel,neg
-         stop
-      endif
-c
-      do 500 j=1,2
-      do 400 i=1,2
-      xs(i,j) = xs(i,j)/det(l)
-  400 continue
-  500 continue
-c
-      do 600 i=1,nen
-        temp = xs(2,2)*shg(1,i,l) - xs(1,2)*shg(2,i,l)
-        shg(2,i,l) = - xs(2,1)*shg(1,i,l) + xs(1,1)*shg(2,i,l)
-        shg(1,i,l) = temp
-  600 continue
-c
-  700 continue
-c
+c     
+      do l=1,nint
+c     
+         if (.not.quad) then
+            do i=1,3
+               shg(i,3,l) = shl(i,3,l) + shl(i,4,l)
+               shg(i,4,l) = zero
+            end do
+         endif
+c     
+         do j=1,2
+            do i=1,2
+               xs(i,j) = rowdot(shg(i,1,l),xl(j,1),3,2,nen)
+            end do
+         end do
+c     
+         det(l) = xs(1,1)*xs(2,2)-xs(1,2)*xs(2,1)         
+         if (det(l).le.zero) then
+            write(ieco,1000) nel,neg
+            stop
+         endif
+c     
+         do j=1,2
+            do i=1,2
+               xs(i,j) = xs(i,j)/det(l)
+            end do
+         end do
+c     
+         do i=1,nen
+            temp = xs(2,2)*shg(1,i,l) - xs(1,2)*shg(2,i,l)
+            shg(2,i,l) = - xs(2,1)*shg(1,i,l) + xs(1,1)*shg(2,i,l)
+            shg(1,i,l) = temp
+         end do
+c     
+      end do
+c     
       return
-c
+c     
  1000 format(////,' shgq - non-positive determinant - element ',i10,
-     &          ' in element group  ',i10)
+     &     ' in element group  ',i10)
       end
 
 c-----------------------------------------------------------------------
@@ -3676,54 +3558,54 @@ c
       endif
 c
       if (nints.eq.2) then
-         ra(1)=-.577350269189626
-         ra(2)= .577350269189625
+         ra(1)=-0.577350269189626d0
+         ra(2)= 0.577350269189625d0
       endif
 c
       if (nints.eq.3) then
-         ra(1)=-.774596669241483
+         ra(1)=-0.774596669241483d0
          ra(2)= zero
-         ra(3)= .774596669241483
+         ra(3)= 0.774596669241483d0
       endif
 c
       if (nints.eq.4) then
-         ra(1)=-.861136311594053
-         ra(2)=-.339981043584856
-         ra(3)= .339981043584856
-         ra(4)= .861136311594053
+         ra(1)=-0.861136311594053d0
+         ra(2)=-0.339981043584856d0
+         ra(3)= 0.339981043584856d0
+         ra(4)= 0.861136311594053d0
       endif
 c
        if(nints.eq.5) then
-        ra(1)=-.906179845938664
-        ra(2)=-.538469310105683
+        ra(1)=-0.906179845938664d0
+        ra(2)=-0.538469310105683d0
         ra(3)= zero
-        ra(4)= .538469310105683
-        ra(5)= .906179845938664
+        ra(4)= 0.538469310105683d0
+        ra(5)= 0.906179845938664d0
        endif
 c
        if(nints.eq.6) then
-         ra(1)=-.932469514203152
-         ra(2)=-.661209386466265
-         ra(3)=-.238619186083197
-         ra(4)= .238619186083197
-         ra(5)= .661209386466365
-         ra(6)= .932469514203152
+         ra(1)=-0.932469514203152d0
+         ra(2)=-0.661209386466265d0
+         ra(3)=-0.238619186083197d0
+         ra(4)= 0.238619186083197d0
+         ra(5)= 0.661209386466365d0
+         ra(6)= 0.932469514203152d0
         endif
 c
        if(nints.eq.7) then
-         ra(1)=-.949107912342759
-         ra(2)=-.741531185599394
-         ra(3)=-.405845151377397
+         ra(1)=-0.949107912342759d0
+         ra(2)=-0.741531185599394d0
+         ra(3)=-0.405845151377397d0
          ra(4)= zero
-         ra(5)= .405845151377397
-         ra(6)= .741531185599394
-         ra(7)= .949107912342759
+         ra(5)= 0.405845151377397d0
+         ra(6)= 0.741531185599394d0
+         ra(7)= 0.949107912342759d0
         endif
 
 c
       lb = 0
       do 100 ns=1,3
-      do 200 ls=1,nints
+         do 200 ls=1,nints
 c
       lb = lb + 1
 c
@@ -4187,8 +4069,8 @@ c
   100     continue
 c
 c
-           return
-           end
+          return
+          end
 
 c----------------------------------------------------------------------
       subroutine shlt(shl,w,nint,nen)
@@ -5199,179 +5081,6 @@ c
            end
 
 c----------------------------------------------------------------------
-      subroutine shl2q(shl2,nint,nen)
-c----------------------------------------------------------------------
-c     program to calculate local second  derivatives
-c     for a four-node quadrilateral element
-c               s,t = local element coordinates ("xi", "eta", resp.)
-c        shl2(1,i,l) = local second ("xi") derivative of shape function
-c        shl2(2,i,l) = local second ("eta") derivative of shape function
-c        shl2(3,i,l) = local second ("xi*eta") derivative of shape function
-c                 i = local node number
-c                 l = integration point number
-c              nint = number of integration points, eq. 1 or 4
-c----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension shl2(3,nen,*),ra(16),sa(16)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      data r1/0.d00/,
-     &     r2/0.577350269189626d00/,
-     &     r3a/0.774596669241483d00/,
-     &     r3b/0.d00/,
-     &     r4a/0.861136311594053d00/,
-     &     r4b/0.339981043584856d00/
-c
-      if (nint.eq.1) then
-            ra(1)=r1
-            sa(1)=r1
-      end if
-c
-      if(nint.eq.4) then
-            ra(1)=r2
-            sa(1)=r2
-            ra(2)=-r2
-            sa(2)=r2
-            ra(3)=-r2
-            sa(3)=-r2
-            ra(4)=r2
-            sa(4)=-r2
-      end if
-c
-      if(nint.eq.9) then
-            ra(1)=r3a
-            sa(1)=r3a
-            ra(2)=-r3a
-            sa(2)=r3a
-            ra(3)=-r3a
-            sa(3)=-r3a
-            ra(4)=r3a
-            sa(4)=-r3a
-c
-            ra(5)=r3a
-            sa(5)=r3b
-            ra(6)=r3b
-            sa(6)=r3a
-            ra(7)=-r3a
-            sa(7)=r3b
-            ra(8)=r3b
-            sa(8)=-r3a
-c
-            ra(9)=r3b
-            sa(9)=r3b
-      end if
-c
-      if(nint.eq.16) then
-            ra(1)=r4a
-            sa(1)=r4a
-            ra(2)=-r4a
-            sa(2)=r4a
-            ra(3)=-r4a
-            sa(3)=-r4a
-            ra(4)=r4a
-            sa(4)=-r4a
-c
-            ra(5)=r4b
-            sa(5)=r4b
-            ra(6)=-r4b
-            sa(6)=r4b
-            ra(7)=-r4b
-            sa(7)=-r4b
-            ra(8)=r4b
-            sa(8)=-r4b
-c
-            ra(9)=r4b
-            sa(9)=r4a
-            ra(10)=-r4b
-            sa(10)=r4a
-            ra(11)=-r4a
-            sa(11)=r4b
-            ra(12)=-r4a
-            sa(12)=-r4b
-            ra(13)=-r4b
-            sa(13)=-r4a
-            ra(14)=r4b
-            sa(14)=-r4a
-            ra(15)=r4a
-            sa(15)=-r4b
-            ra(16)=r4a
-            sa(16)=r4b
-      end if
-c
-      do 200 l=1,nint
-c
-            r=ra(l)
-            s=sa(l)
-            shl2(1,1,l)=zero
-            shl2(2,1,l)=zero
-            shl2(3,1,l)=pt25
-            shl2(1,2,l)=zero
-            shl2(2,2,l)=zero
-            shl2(3,2,l)=-pt25
-            shl2(1,3,l)=zero
-            shl2(2,3,l)=zero
-            shl2(3,3,l)=pt25
-            shl2(1,4,l)=zero
-            shl2(2,4,l)=zero
-            shl2(3,4,l)=-pt25
-            if(nen.eq.9) then
-                  onepr=one+r
-                  onemr=one-r
-                  oneps=one+s
-                  onems=one-s
-		  onemrs=one-r*r
-		  onemss=one-s*s
-                  shl2(1,5,l)=-oneps
-                  shl2(2,5,l)=zero
-                  shl2(3,5,l)=-r
-                  shl2(1,6,l)=zero
-                  shl2(2,6,l)=-onemr
-                  shl2(3,6,l)=s
-                  shl2(1,7,l)=-onems
-                  shl2(2,7,l)=zero
-                  shl2(3,7,l)=r
-                  shl2(1,8,l)=zero
-                  shl2(2,8,l)=-onepr
-                  shl2(3,8,l)=-s
-                  shl2(1,9,l)=-two*onemss
-                  shl2(2,9,l)=-two*onemrs
-                  shl2(3,9,l)=four*r*s
-c
-                  do 1111 k=5,8
-                        do 2222 i=1,3
-                              shl2(i,k,l)=shl2(i,k,l)-pt5*shl2(i,9,l)
-2222                    continue
-1111              continue
-c
-                  do 3333 i=1,3
-                        shl2(i,1,l)=shl2(i,1,l)
-     &                  -pt5*(shl2(i,5,l)+shl2(i,8,l))-pt25*shl2(i,9,l)
-                        shl2(i,2,l)=shl2(i,2,l)
-     &                  -pt5*(shl2(i,6,l)+shl2(i,5,l))-pt25*shl2(i,9,l)
-                        shl2(i,3,l)=shl2(i,3,l)
-     &                  -pt5*(shl2(i,7,l)+shl2(i,6,l))-pt25*shl2(i,9,l)
-                        shl2(i,4,l)=shl2(i,4,l)
-     &                  -pt5*(shl2(i,8,l)+shl2(i,7,l))-pt25*shl2(i,9,l)
-3333              continue
-            end if
-            if (nen.eq.16) then
-                  onemrsq=one-r*r
-                  onemssq=one-s*s
-                  onep3r=one+three*r
-                  onem3r=one-three*r
-                  onep3s=one+three*s
-                  onem3s=one-three*s
-c
-c	not inplemented
-c
-c
-            end if
-  200 continue
-c
-      return
-      end
-
-c----------------------------------------------------------------------
       subroutine shgqs(xl,det,shl,shg,nint,nel,neg,quad,nen,
      &     shlnode,nenode)
 c----------------------------------------------------------------------
@@ -5641,23 +5350,6 @@ c
 c
       call move(shg,shl,4*nen*nint)
 c      
-c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX funcao"
-c$$$      do ii=1,nint
-c$$$         write(*,999) (shlnode(4,in,ii),in=1,nen)
-c$$$      end do
-c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 1"
-c$$$      do ii=1,nint
-c$$$         write(*,999) (shlnode(1,in,ii),in=1,nen)
-c$$$      end do
-c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 2"
-c$$$      do ii=1,nint
-c$$$         write(*,999) (shlnode(2,in,ii),in=1,nen)
-c$$$      end do
-c$$$      write(*,*) "DADOS HEX -> shlnode em SHGHX deriv 3"
-c$$$      do ii=1,nint
-c$$$         write(*,999) (shlnode(3,in,ii),in=1,nen)
-c$$$      end do
-c
 c     loop pontos integracao - calcula isoparametrico
 c
       do l=1,nint
@@ -5668,23 +5360,10 @@ c
             end do
          end do
 c
-c$$$         write(*,*) "DEBUG SHLNODE"
-c$$$         do kk=1,nenode
-c$$$            write(*,*) kk,shlnode(1,kk,l), xl(1,kk),xl(2,kk),xl(3,kk)
-c$$$         end do
-c$$$         
-c$$$         write(*,*) "DEBUG SHGHX", nint,nel,neg,nen,nenode
-c$$$         write(*,*) "DEBUG XJAC"
-c$$$         do i=1,3
-c$$$            write(*,*) (xjac(i,j),j=1,3)
-c$$$         end do
-c
          det(l) = xjac(1,1)*(xjac(2,2)*xjac(3,3) - xjac(3,2)*xjac(2,3))
      &          + xjac(1,2)*(xjac(3,1)*xjac(2,3) - xjac(2,1)*xjac(3,3))
      &          + xjac(1,3)*(xjac(2,1)*xjac(3,2) - xjac(3,1)*xjac(2,2))
-c
-c$$$         write(*,*) "DEBUG det(l)=",det(l)
-c
+c         
          if (det(l).le.zero) then
             write(ieco,1000) nel,neg
             write(*,1000) nel,neg
@@ -5792,9 +5471,6 @@ c
       co(2)=co(2)/8.d0
       co(3)=co(3)/8.d0
 
-c     DEBUG
-c      write(*,'(A)') "shgthxsd"
-c      write(*,'(A,2I5)') "nintb, nside ",nint, nside
       if(nside.ne.6) then
          write(*,'(A,I5)') "ERROR: nside in shgthxsd must be 6"
          stop
@@ -10165,14 +9841,13 @@ c
       end
       
 c-------------------------------------------------------------------------------
-      subroutine dualbc(shgpn,shlb,detpn,wn,
-     &     gf1,gf2,gf3,xls,elfc,eps,pi,sign,
-     &     nints,nenlad,ns,npars)
+      subroutine dualbc(shgpn,shlb,detpn,wn,gf1,gf2,gf3,
+     &     xls,elfc,eps,pi,sign,nints,nenlad,ns,npars)
 c-------------------------------------------------------------------------------
 c     Dirichlet boundary conditions
 c-------------------------------------------------------------------------------
-c     
       implicit real*8(a-h,o-z)
+c      
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(2,*)
       dimension detpn(*),wn(*),elfc(*)
 c     
@@ -10231,17 +9906,12 @@ c
 c     
          gradn=(dhsx*xn1+dhsy*xn2)
 c     
-         do 1100 j=1,npars
-c     
+         do j=1,npars
             ncj1 = (ns-1)*npars + j
-c     
-            djn=shgpn(2,j,ls)*detpn(ls)*wn(ls)
-c     
-c     source term
-c     
+            djn  = shgpn(2,j,ls)*detpn(ls)*wn(ls)
+c     source term    
             elfc(ncj1) = elfc(ncj1) + gradn*djn
-c     
- 1100    continue
+         end do
  1000 continue
 c     
       return
@@ -10738,9 +10408,9 @@ c
       return
       end
 
-c-----------------------------------------------------
+c-------------------------------------------------------------------------------
       subroutine elemdlp(xl,dlp,eps,ned,nenp,index)
-c-----------------------------------------------------
+c-------------------------------------------------------------------------------
       implicit real*8(a-h,o-z)
       dimension xl(2,*),dlp(ned,*)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
