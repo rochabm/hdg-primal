@@ -6108,15 +6108,7 @@ c
       dimension cm(3)
 c      
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      common /iounit/ iin,iout,iecho,ioupp,itest1,itest2
-c
-c     debug
-c      
-c$$$      write(*,*) "CALL TO NEW SHG_H_RST"
-c$$$      write(*,*) nenode, nel, neg, nenp
-c$$$      do i=1,nenode
-c$$$         write(*,*) xl(1,i), xl(2,i), xl(3,i)
-c$$$      end do      
+      common /iounit/ iin,iout,iecho,ioupp,itest1,itest2   
 c     
 c     calcula centroide e posiciona o sistema local no centroide
 c
@@ -6144,8 +6136,6 @@ c
          s = s/h
          t = t/h
 c
-         write(*,*) "ponto de integracao dentro do elemento ", r,s,t
-c     
          do j=1,3
             do i=1,3
                xs(i,j) = rowdot(shlnode(i,1,l),xl(j,1),4,3,nenode)
@@ -6161,12 +6151,7 @@ c
             write(*,1000), nel, neg
             stop
          endif
-c     
-c         shlx(1,1) = zero
-c         shlx(2,1) = one
-c         shly(1,1) = zero
-c         shly(2,1) = one
-c     
+c         
 c     (Q0): nenp = 1 
 c     
          j = 0
@@ -6389,89 +6374,6 @@ c
             igas(ng) = ng
          end do
       end if
-
-c$$$c     
-c$$$c     aresta 1
-c$$$c      
-c$$$      ns = 1
-c$$$      nl1=ien(1)
-c$$$      nl2=ien(2)
-c$$$c     
-c$$$      if(nl2.gt.nl1) then 
-c$$$         do nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            igas(ng) = ng
-c$$$         end do
-c$$$      else
-c$$$         do nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do 
-c$$$      end if      
-c$$$c     
-c$$$c     aresta 2
-c$$$c      
-c$$$      ns = 2
-c$$$      nl1=ien(2)
-c$$$      nl2=ien(3)
-c$$$c     
-c$$$      if(nl2.gt.nl1) then 
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            igas(ng) = ng
-c$$$         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do 
-c$$$      end if 
-c$$$c     
-c$$$c     quadrilatero
-c$$$c      
-c$$$      if(nside.eq.4) then
-c$$$c
-c$$$c     aresta 3
-c$$$c         
-c$$$         ns = 3
-c$$$         nl1=ien(3)
-c$$$         nl2=ien(4)
-c$$$c     
-c$$$         if(nl2.gt.nl1) then 
-c$$$            do  nn=1,nints
-c$$$               ng = (ns-1)*nints + nn
-c$$$               igas(ng) = ng
-c$$$	    end do
-c$$$         else
-c$$$            do  nn=1,nints
-c$$$               ng = (ns-1)*nints + nn
-c$$$               ngs = (ns-1)*nints
-c$$$               igas(ng) = ngs + nints + 1 - nn
-c$$$	    end do 
-c$$$         end if 
-c$$$c
-c$$$c     aresta 4
-c$$$c         
-c$$$         ns = 4
-c$$$         nl1=ien(4)
-c$$$         nl2=ien(1)
-c$$$c     
-c$$$         if(nl2.gt.nl1) then 
-c$$$            do  nn=1,nints
-c$$$               ng = (ns-1)*nints + nn
-c$$$               igas(ng) = ng
-c$$$	    end do
-c$$$         else
-c$$$            do nn=1,nints
-c$$$               ng = (ns-1)*nints + nn
-c$$$               ngs = (ns-1)*nints
-c$$$               igas(ng) = ngs + nints + 1 - nn
-c$$$	    end do 
-c$$$         end if 
-c$$$c     
-c$$$      end if
 c     
 c     construcao
 c      
@@ -6509,16 +6411,9 @@ c
          endif
 c     
 c     Pk / boundary
-c     
-c$$$         shlx(1,1) = zero
-c$$$         shlx(2,1) = one
-c$$$         shly(1,1) = zero
-c$$$         shly(2,1) = one
-
-
-         write(*,*) "DEBUG SHG_H_FACE_RST", nen, nenp
+c
          
-c     
+c         
 c     (Q0)
 c     
          j = 0
@@ -8509,7 +8404,7 @@ c     element loop
 c     ------------------------------------------------------------------     
 
       do 500 nel=1,numel
-         write(*,*) "ELEMENTO",nel
+c         write(*,*) "ELEMENTO",nel
 c     
 c     clear stiffness matrix and force array
 c
@@ -8555,9 +8450,6 @@ c
 
 c            call shghrst(h,xl,detc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghrst(h,xl,detp,shgp,nint,nel,neg,nenp,shl,nen)
- 
-c            write(*,*) "SHG_H_RST OK"
-c            write(*,*) "H", h, "NEEP", neep
             
 c            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
 c            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
@@ -8573,28 +8465,7 @@ c            call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
 c     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
 c            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
 c     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)            
-         end if
-
-c$$$         write(*,*) "NENP,NINT",nenp,nint
-c$$$         
-c$$$         write(*,*) "SHG_P"
-c$$$         do j=1,nint
-c$$$            do i=1,nenp
-c$$$               write(*,*) shgp(1,i,j), shgp(2,i,j),
-c$$$     &                    shgp(3,i,j), shgp(4,i,j)
-c$$$            end do
-c$$$            write(*,*) "xxx "
-c$$$         end do
-c$$$
-c$$$         write(*,*) "SHG_PSD", nints
-c$$$         do j=1,nints
-c$$$            do i=1,nenp
-c$$$               write(*,*) shgpsd(1,i,j), shgpsd(2,i,j),
-c$$$     &                    shgpsd(3,i,j), shgpsd(4,i,j)
-c$$$            end do
-c$$$            write(*,*) "yyy "
-c$$$         end do         
-         
+         end if                
 c
 c     form stiffness matrix
 c
@@ -8676,22 +8547,22 @@ c
                end do
             end do
          end do
-c
-c     debug - stiffness and load vector
-c
-         write(*,*) "matriz (poisson)"
-         do ik=1,neep
-            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
-         end do
-         write(*,*) "vetor (poisson)"
-         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
+c$$$c
+c$$$c     debug - stiffness and load vector
+c$$$c
+c$$$         write(*,*) "matriz (poisson)"
+c$$$         do ik=1,neep
+c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
+c$$$         end do
+c$$$         write(*,*) "vetor (poisson)"
+c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
 
 c     ------------------------------------------------------------------
 c     loop to compute area integrals - symmetrization - boundary terms 
 c     ------------------------------------------------------------------         
 
          do 4000 ns=1,nside
-           write(*,'(//,A,I5)') "face ", ns
+c$$$           write(*,'(//,A,I5)') "FACE ", ns
 c
 c     localiza os no's do lado ns
 c
@@ -8704,9 +8575,6 @@ c
             nl2=ien(ns2,nel)
             nl3=ien(ns3,nel)
             nl4=ien(ns4,nel)
-
-            write(*,*) "NS...NL"
-            write(*,*) ns1,ns2,ns3,ns4,nl1,nl2,nl3,nl4
 c
 c     calcula sign para a aresta/face
 c
@@ -8826,7 +8694,7 @@ c
 c
 c     valores exatos dos multiplicadores
 c
-               write(*,*) "dentro do elemento",nel,x1,x2,x3
+c$$$               write(*,*) "dentro do elemento",nel,x1,x2,x3
                pix=pi*x1
                piy=pi*x2
                piz=pi*x3
@@ -8884,23 +8752,23 @@ c
  1000       continue
  4000    continue
 
-c
-c     debug local system
-c         
-         write(*,*) "matriz (loc)"         
-         do ik=1,neep
-            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
-         end do
-         write(*,*) "vetor (loc)"
-         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)         
+c$$$c
+c$$$c     debug local system
+c$$$c         
+c$$$         write(*,*) "matriz (loc)"         
+c$$$         do ik=1,neep
+c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
+c$$$         end do
+c$$$         write(*,*) "vetor (loc)"
+c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)         
 
 c
 c     projecao local primal
 c
          call solvetdg(elmbb,elfbb,neep)
 
-         write(*,*) "vetor solucao do SOLVETDG (loc)"
-         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)          
+c$$$         write(*,*) "vetor solucao do SOLVETDG (loc)"
+c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)          
 c
 c     projecao local do potencial
 c
@@ -10627,7 +10495,8 @@ c
             nl3 = ien(ns3,n)
             nl4 = ien(ns4,n)
 
-            write(*,*) ns1,ns2,ns3,ns4,nl1,nl2,nl3,nl4
+c$$$            write(*,*) ns1,ns2,ns3,ns4,nl1,nl2,nl3,nl4
+            
 c     
 c     calcula sign para a aresta/face
 c
@@ -10732,7 +10601,7 @@ c$$$               if(ls.eq.1) then
 c$$$                  write(*,'(A)',advance='no') "   x   /   y    /    z "
 c$$$                  write(*,'(A)') " / exato /  aprox  / erro"
 c$$$               end if
-               write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
+c$$$               write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
             end do
  4000    continue
 c
