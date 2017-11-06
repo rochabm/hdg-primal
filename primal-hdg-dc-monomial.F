@@ -5823,6 +5823,27 @@ c
 c         
          nintx=6
          ninty=6
+      endif
+c
+      if(nint.eq.49) then
+         wone(1) = 0.129484966168870d0
+         wone(2) = 0.129484966168870d0
+         wone(3) = 0.279705391489277d0
+         wone(4) = 0.279705391489277d0
+         wone(5) = 0.381830050505119d0
+         wone(6) = 0.381830050505119d0
+         wone(7) = 0.417959183673469d0
+c         
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
+         raone(7)= zero
+c         
+         nintx=7
+         ninty=7
       endif      
 c
 c     organize points
@@ -5919,7 +5940,34 @@ c
          shl(1,15,l) = zero
          shl(2,15,l) = 4.d0*s**3
          shl(3,15,l) = s**4
-         if(nen.eq.15) go to 100                  
+         if(nen.eq.15) go to 100
+c
+c     (P5)
+c
+         shl(1,16,l) = 4.d0*r**3*s
+         shl(2,16,l) = r**4
+         shl(3,16,l) = r**4*s
+c
+         shl(1,17,l) = s**4
+         shl(2,17,l) = 4.d0*r*s**3
+         shl(3,17,l) = r*s**4
+c
+         shl(1,18,l) = 3.d0*r**2*s**2
+         shl(2,18,l) = 2.d0*r**3*s
+         shl(3,18,l) = r**3*s**2
+c
+         shl(1,19,l) = 2.d0*r*s**3
+         shl(2,19,l) = 3.d0*r**2*s**2
+         shl(3,19,l) = r**2*s**3
+c
+         shl(1,20,l) = 5.d0*r**4
+         shl(2,20,l) = zero
+         shl(3,20,l) = r**5
+c
+         shl(1,21,l) = zero
+         shl(2,21,l) = 5.d0*s**4
+         shl(3,21,l) = s**5
+         if(nen.eq.21) go to 100
 c         
  100  continue
       
@@ -6033,7 +6081,29 @@ c
          nintx=6
          ninty=6
          nintz=6
-      endif      
+      endif
+c
+      if(nint.eq.343) then
+         wone(1) = 0.129484966168870d0
+         wone(2) = 0.129484966168870d0
+         wone(3) = 0.279705391489277d0
+         wone(4) = 0.279705391489277d0
+         wone(5) = 0.381830050505119d0
+         wone(6) = 0.381830050505119d0
+         wone(7) = 0.417959183673469d0
+c         
+         raone(1)=-0.949107912342759d0
+         raone(2)= 0.949107912342759d0
+         raone(3)=-0.741531185599394d0
+         raone(4)= 0.741531185599394d0
+         raone(5)=-0.405845151377397d0
+         raone(6)= 0.405845151377397d0
+         raone(7)= zero
+c
+         nintx=7
+         ninty=7
+         nintz=7         
+        endif      
 c
 c     organize points
 c
@@ -6056,6 +6126,10 @@ c     shl(2,*,*) => derivada em s
 c     shl(3,*,*) => derivada em t
 c     shl(4,*,*) => funcao
 c
+
+c     
+c     TODO; CREATE CONSTANTS r2 =r**2, r3=r**3, etc
+c     
       do 100 l=1,nint
          r=ra(l)
          s=sa(l)
@@ -6088,7 +6162,11 @@ c
          if(nen.eq.4) go to 100
 c
 c     (P2): nenp = 10
-c     
+c         
+         r2 = r*r
+         s2 = s*s
+         t2 = t*t         
+         
          shl(1,5,l) = s
          shl(2,5,l) = r
          shl(3,5,l) = zero
@@ -6121,7 +6199,11 @@ c
          if(nen.eq.10) go to 100
 c
 c     (P3): nenp = 20
-c       
+c
+         r3 = r**3
+         s3 = s**3
+         t3 = t**3
+         
          shl(1,11,l) = s*t
          shl(2,11,l) = r*t
          shl(3,11,l) = r*s
@@ -6175,6 +6257,10 @@ c
 c
 c     (P4): nenp = 35
 c
+         r4 = r**4
+         s4 = s**4
+         t4 = t**4
+         
          shl(1,21,l) = 2.d0*r*s*t
          shl(2,21,l) = r**2*t
          shl(3,21,l) = r**2*s
@@ -6250,6 +6336,118 @@ c
          shl(3,35,l) = 4.d0*t**3
          shl(4,35,l) = t**4
          if(nen.eq.35) go to 100
+c
+c     (P5)
+c
+         r5 = r**5
+         s5 = s**5
+         t5 = t**5
+         
+         shl(1,36,l) = 3.d0*r2*s*t  
+         shl(2,36,l) = r3*t
+         shl(3,36,l) = r3*s 
+         shl(4,36,l) = r3*s*t
+c
+         shl(1,37,l) = s3*t
+         shl(2,37,l) = 3.d0*r*s2*t
+         shl(3,37,l) = r*s3
+         shl(4,37,l) = r*s3*t
+c
+         shl(1,38,l) = s*t3
+         shl(2,38,l) = r*t3
+         shl(3,38,l) = 3.d0*r*s*t2
+         shl(4,38,l) = r*s*t3
+c 
+         shl(1,39,l) = 2.d0*r*s2*t
+         shl(2,39,l) = 2.d0*r2*s*t
+         shl(3,39,l) = r2*s2
+         shl(4,39,l) = r2*s2*t
+c
+         shl(1,40,l) = s2*t2
+         shl(2,40,l) = 2.d0*r*s*t2
+         shl(3,40,l) = 2.d0*r*s2*t
+         shl(4,40,l) = r*s2*t2
+c
+         shl(1,41,l) = 2.d0*r*s*t2
+         shl(2,41,l) = r2*t2
+         shl(3,41,l) = 2.d0*r2*s*t
+         shl(4,41,l) = r2*s*t2
+c
+         shl(1,42,l) = 4.d0*r3*s
+         shl(2,42,l) = r4
+         shl(3,42,l) = zero
+         shl(4,42,l) = r4*s
+c
+         shl(1,43,l) = s4
+         shl(2,43,l) = 4.d0*r*s3
+         shl(3,43,l) = zero
+         shl(4,43,l) = r*s4
+c
+         shl(1,44,l) = 3.d0*r2*s2
+         shl(2,44,l) = 2.d0*r3*s
+         shl(3,44,l) = zero
+         shl(4,44,l) = r3*s2
+c
+         shl(1,45,l) = 2.d0*r*s3
+         shl(2,45,l) = 2.d0*r2*s2
+         shl(3,45,l) = zero
+         shl(4,45,l) = r2*s3
+c
+         shl(1,46,l) = 4.d0*r3*t
+         shl(2,46,l) = zero
+         shl(3,46,l) = r4
+         shl(4,46,l) = r4*t
+c
+         shl(1,47,l) = t4
+         shl(2,47,l) = zero
+         shl(3,47,l) = 4.d0*r*t3
+         shl(4,47,l) = r*t4
+c
+         shl(1,48,l) = 3.d0*r2*t2
+         shl(2,48,l) = zero
+         shl(3,48,l) = 2.d0*r3*t
+         shl(4,48,l) = r3*t2
+c
+         shl(1,49,l) = 2.d0*r*t3
+         shl(2,49,l) = zero
+         shl(3,49,l) = 3.d0*r2*t2
+         shl(4,49,l) = r2*t3
+c
+         shl(1,50,l) = zero
+         shl(2,50,l) = 4.d0*s3*t
+         shl(3,50,l) = s4
+         shl(4,50,l) = s4*t
+c
+         shl(1,51,l) = zero
+         shl(2,51,l) = t4
+         shl(3,51,l) = 4.d0*s*t3
+         shl(4,51,l) = s*t4
+c
+         shl(1,52,l) = zero
+         shl(2,52,l) = 3.d0*s2*t2
+         shl(3,52,l) = 2.d0*s3*t
+         shl(4,52,l) = s3*t2
+c
+         shl(1,53,l) = zero
+         shl(2,53,l) = 2.d0*s*t2
+         shl(3,53,l) = 3.d0*s2*t2
+         shl(4,53,l) = s2*t3
+c
+         shl(1,54,l) = 5.d0*r4
+         shl(2,54,l) = zero
+         shl(3,54,l) = zero
+         shl(4,54,l) = r5
+c
+         shl(1,55,l) = zero
+         shl(2,55,l) = 5.d0*s4
+         shl(3,55,l) = zero
+         shl(4,55,l) = s5
+c
+         shl(1,56,l) = zero
+         shl(2,56,l) = zero
+         shl(3,56,l) = 5.d0*t4
+         shl(4,56,l) = t5
+         if(nen.eq.56) go to 100
 c         
  100  continue
       
@@ -6470,7 +6668,11 @@ c
                if(nen.eq.4) go to 100
 c
 c     (P2): nenp = 10
-c     
+c
+               r2 = r*r
+               s2 = s*s
+               t2 = t*t
+c              
                shl(1,5,lb) = s
                shl(2,5,lb) = r
                shl(3,5,lb) = zero
@@ -6503,7 +6705,11 @@ c
                if(nen.eq.10) go to 100
 c     
 c     (P3): nenp = 20
-c     
+c
+               r3 = r**3
+               s3 = s**3
+               t3 = t**3
+               
                shl(1,11,lb) = s*t
                shl(2,11,lb) = r*t
                shl(3,11,lb) = r*s
@@ -6557,6 +6763,10 @@ c
 c     
 c     (P4): nenp = 35
 c
+               r4 = r**4
+               s4 = s**4
+               t4 = t**4
+               
                shl(1,21,lb) = 2.d0*r*s*t
                shl(2,21,lb) = r**2*t
                shl(3,21,lb) = r**2*s
@@ -6631,7 +6841,119 @@ c
                shl(2,35,lb) = zero
                shl(3,35,lb) = 4.d0*t**3
                shl(4,35,lb) = t**4
-               if(nen.eq.35) go to 100               
+               if(nen.eq.35) go to 100
+c     
+c     (P5)
+c     
+               r5 = r**5
+               s5 = s**5
+               t5 = t**5
+               
+               shl(1,36,lb) = 3.d0*r2*s*t  
+               shl(2,36,lb) = r3*t
+               shl(3,36,lb) = r3*s 
+               shl(4,36,lb) = r3*s*t
+c     
+               shl(1,37,lb) = s3*t
+               shl(2,37,lb) = 3.d0*r*s2*t
+               shl(3,37,lb) = r*s3
+               shl(4,37,lb) = r*s3*t
+c     
+               shl(1,38,lb) = s*t3
+               shl(2,38,lb) = r*t3
+               shl(3,38,lb) = 3.d0*r*s*t2
+               shl(4,38,lb) = r*s*t3
+c     
+               shl(1,39,lb) = 2.d0*r*s2*t
+               shl(2,39,lb) = 2.d0*r2*s*t
+               shl(3,39,lb) = r2*s2
+               shl(4,39,lb) = r2*s2*t
+c     
+               shl(1,40,lb) = s2*t2
+               shl(2,40,lb) = 2.d0*r*s*t2
+               shl(3,40,lb) = 2.d0*r*s2*t
+               shl(4,40,lb) = r*s2*t2
+c     
+               shl(1,41,lb) = 2.d0*r*s*t2
+               shl(2,41,lb) = r2*t2
+               shl(3,41,lb) = 2.d0*r2*s*t
+               shl(4,41,lb) = r2*s*t2
+c     
+               shl(1,42,lb) = 4.d0*r3*s
+               shl(2,42,lb) = r4
+               shl(3,42,lb) = zero
+               shl(4,42,lb) = r4*s
+c     
+               shl(1,43,lb) = s4
+               shl(2,43,lb) = 4.d0*r*s3
+               shl(3,43,lb) = zero
+               shl(4,43,lb) = r*s4
+c     
+               shl(1,44,lb) = 3.d0*r2*s2
+               shl(2,44,lb) = 2.d0*r3*s
+               shl(3,44,lb) = zero
+               shl(4,44,lb) = r3*s2
+c     
+               shl(1,45,lb) = 2.d0*r*s3
+               shl(2,45,lb) = 2.d0*r2*s2
+               shl(3,45,lb) = zero
+               shl(4,45,lb) = r2*s3
+c     
+               shl(1,46,lb) = 4.d0*r3*t
+               shl(2,46,lb) = zero
+               shl(3,46,lb) = r4
+               shl(4,46,lb) = r4*t
+c     
+               shl(1,47,lb) = t4
+               shl(2,47,lb) = zero
+               shl(3,47,lb) = 4.d0*r*t3
+               shl(4,47,lb) = r*t4
+c     
+               shl(1,48,lb) = 3.d0*r2*t2
+               shl(2,48,lb) = zero
+               shl(3,48,lb) = 2.d0*r3*t
+               shl(4,48,lb) = r3*t2
+c     
+               shl(1,49,lb) = 2.d0*r*t3
+               shl(2,49,lb) = zero
+               shl(3,49,lb) = 3.d0*r2*t2
+               shl(4,49,lb) = r2*t3
+c     
+               shl(1,50,lb) = zero
+               shl(2,50,lb) = 4.d0*s3*t
+               shl(3,50,lb) = s4
+               shl(4,50,lb) = s4*t
+c     
+               shl(1,51,lb) = zero
+               shl(2,51,lb) = t4
+               shl(3,51,lb) = 4.d0*s*t3
+               shl(4,51,lb) = s*t4
+c     
+               shl(1,52,lb) = zero
+               shl(2,52,lb) = 3.d0*s2*t2
+               shl(3,52,lb) = 2.d0*s3*t
+               shl(4,52,lb) = s3*t2
+c     
+               shl(1,53,lb) = zero
+               shl(2,53,lb) = 2.d0*s*t2
+               shl(3,53,lb) = 3.d0*s2*t2
+               shl(4,53,lb) = s2*t3
+c     
+               shl(1,54,lb) = 5.d0*r4
+               shl(2,54,lb) = zero
+               shl(3,54,lb) = zero
+               shl(4,54,lb) = r5
+c     
+               shl(1,55,lb) = zero
+               shl(2,55,lb) = 5.d0*s4
+               shl(3,55,lb) = zero
+               shl(4,55,lb) = s5
+c     
+               shl(1,56,lb) = zero
+               shl(2,56,lb) = zero
+               shl(3,56,lb) = 5.d0*t4
+               shl(4,56,lb) = t5
+               if(nen.eq.56) go to 100               
 c     
  100        continue            
          end do
@@ -8173,7 +8495,6 @@ c
          nenlad2 = 2
          nnods2 = nnods
          nints2 = int(dsqrt(dble(nints)))
-         write(*,*) "NINTS2",nints2
          if(nints2.gt.6) then
             write(*,*) "ERROR nints2 not supported"
             stop
