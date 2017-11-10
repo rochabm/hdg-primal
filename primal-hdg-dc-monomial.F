@@ -5575,7 +5575,7 @@ c     subroutines for monomial basis
 c     ******************************************************************
 
 c-----------------------------------------------------------------------
-      subroutine shlmonq2(shl,w,nint,nen)
+      subroutine shlmonq2d(shl,w,nint,nen)
 c-----------------------------------------------------------------------
 c     calculate monomial basis on the reference element 2D
 c-----------------------------------------------------------------------          
@@ -5853,8 +5853,6 @@ c
      &     r3b/0.d00/,w3b/0.888888888888889d00/,
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
-c
-      write(*,*) "SHL MON H 3D", nint, nen
 c
       if (nint.eq.1) then
          wone(1)  = two
@@ -6327,8 +6325,6 @@ c
      &     r3b/0.d00/,w3b/0.888888888888889d00/,
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
-c
-      write(*,*) "NEN IN SHL MONOMIAL FACE 3D", nen, nnods, nints
 c
       if (nints.eq.1) then
          raone(1) = zero
@@ -6882,8 +6878,8 @@ c
          end do
 c     
          det(l) = xs(1,1)*(xs(2,2)*xs(3,3) - xs(3,2)*xs(2,3))
-     &        + xs(1,2)*(xs(3,1)*xs(2,3) - xs(2,1)*xs(3,3))
-     &        + xs(1,3)*(xs(2,1)*xs(3,2) - xs(3,1)*xs(2,2))
+     &          + xs(1,2)*(xs(3,1)*xs(2,3) - xs(2,1)*xs(3,3))
+     &          + xs(1,3)*(xs(2,1)*xs(3,2) - xs(3,1)*xs(2,2))
 c     
          if (det(l).le.zero) then
             write(iecho,1000) nel,neg
@@ -7325,127 +7321,127 @@ c
          xl(2,i) = xl(2,i) - cm(2)
          xl(3,i) = xl(3,i) - cm(3)
       end do
-c
-c     renumeracao
-c     face 1
-c
-      ns=1
-      nl1=ien(1)
-      nl2=ien(2)
-      nl3=ien(6)
-      nl4=ien(5)
-      call vec3sub(xl(1,2), xl(1,1), vab)
-      call vec3sub(xl(1,5), xl(1,1), vad)
-      call vec3sub(co,xl(1,1),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if           
-c
-c     face 2
-c
-      ns=2
-      nl1=ien(1)
-      nl2=ien(4)
-      nl3=ien(8)
-      nl4=ien(5)
-      call vec3sub(xl(1,4), xl(1,1), vab)
-      call vec3sub(xl(1,8), xl(1,1), vad)
-      call vec3sub(co,xl(1,1),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if
-c
-c     face 3
-c
-      ns=3
-      nl1=ien(2)
-      nl2=ien(3)
-      nl3=ien(7)
-      nl4=ien(6)
-      call vec3sub(xl(1,3), xl(1,2), vab)
-      call vec3sub(xl(1,7), xl(1,2), vad)
-      call vec3sub(co,xl(1,2),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if
-c
-c     face 4
-c
-      ns=4
-      nl1=ien(4)
-      nl2=ien(3)
-      nl3=ien(7)
-      nl4=ien(8)
-      call vec3sub(xl(1,3), xl(1,4), vab)
-      call vec3sub(xl(1,7), xl(1,4), vad)
-      call vec3sub(co,xl(1,4),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if
-c
-c     face 5
-c
-      ns=5
-      nl1=ien(1)
-      nl2=ien(2)
-      nl3=ien(3)
-      nl4=ien(4)
-      call vec3sub(xl(1,2), xl(1,1), vab)
-      call vec3sub(xl(1,3), xl(1,1), vad)
-      call vec3sub(co,xl(1,1),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if
-c
-c     face 6
-c
-      ns=6
-      nl1=ien(5)
-      nl2=ien(6)
-      nl3=ien(7)
-      nl4=ien(8)
-      call vec3sub(xl(1,6), xl(1,5), vab)
-      call vec3sub(xl(1,7), xl(1,5), vad)
-      call vec3sub(co,xl(1,5),vc)
-      call cross(vab,vad,xn)
-      call nrm3(xn)
-      dotcn = dot3(vc,xn)
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-      end if
+c$$$c
+c$$$c     renumeracao
+c$$$c     face 1
+c$$$c
+c$$$      ns=1
+c$$$      nl1=ien(1)
+c$$$      nl2=ien(2)
+c$$$      nl3=ien(6)
+c$$$      nl4=ien(5)
+c$$$      call vec3sub(xl(1,2), xl(1,1), vab)
+c$$$      call vec3sub(xl(1,5), xl(1,1), vad)
+c$$$      call vec3sub(co,xl(1,1),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if           
+c$$$c
+c$$$c     face 2
+c$$$c
+c$$$      ns=2
+c$$$      nl1=ien(1)
+c$$$      nl2=ien(4)
+c$$$      nl3=ien(8)
+c$$$      nl4=ien(5)
+c$$$      call vec3sub(xl(1,4), xl(1,1), vab)
+c$$$      call vec3sub(xl(1,8), xl(1,1), vad)
+c$$$      call vec3sub(co,xl(1,1),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if
+c$$$c
+c$$$c     face 3
+c$$$c
+c$$$      ns=3
+c$$$      nl1=ien(2)
+c$$$      nl2=ien(3)
+c$$$      nl3=ien(7)
+c$$$      nl4=ien(6)
+c$$$      call vec3sub(xl(1,3), xl(1,2), vab)
+c$$$      call vec3sub(xl(1,7), xl(1,2), vad)
+c$$$      call vec3sub(co,xl(1,2),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if
+c$$$c
+c$$$c     face 4
+c$$$c
+c$$$      ns=4
+c$$$      nl1=ien(4)
+c$$$      nl2=ien(3)
+c$$$      nl3=ien(7)
+c$$$      nl4=ien(8)
+c$$$      call vec3sub(xl(1,3), xl(1,4), vab)
+c$$$      call vec3sub(xl(1,7), xl(1,4), vad)
+c$$$      call vec3sub(co,xl(1,4),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if
+c$$$c
+c$$$c     face 5
+c$$$c
+c$$$      ns=5
+c$$$      nl1=ien(1)
+c$$$      nl2=ien(2)
+c$$$      nl3=ien(3)
+c$$$      nl4=ien(4)
+c$$$      call vec3sub(xl(1,2), xl(1,1), vab)
+c$$$      call vec3sub(xl(1,3), xl(1,1), vad)
+c$$$      call vec3sub(co,xl(1,1),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if
+c$$$c
+c$$$c     face 6
+c$$$c
+c$$$      ns=6
+c$$$      nl1=ien(5)
+c$$$      nl2=ien(6)
+c$$$      nl3=ien(7)
+c$$$      nl4=ien(8)
+c$$$      call vec3sub(xl(1,6), xl(1,5), vab)
+c$$$      call vec3sub(xl(1,7), xl(1,5), vad)
+c$$$      call vec3sub(co,xl(1,5),vc)
+c$$$      call cross(vab,vad,xn)
+c$$$      call nrm3(xn)
+c$$$      dotcn = dot3(vc,xn)
+c$$$      if(dotcn.lt.0.d0) then
+c$$$         do nn=1,nints
+c$$$            ng = (ns-1)*nints + nn
+c$$$            igas(ng) = ng
+c$$$         end do
+c$$$      end if
 c     
 c     construcao
 c      
@@ -8609,8 +8605,8 @@ c     geometria 2d - Lagrange - OK
          call shlqpk(shlb,wp,nints,nenlad)
 
 c     aproximacao - multiplicador
-         call shlmonq2(shlpn,wpn,nints,npars)
-         call shlmonq2(shln,wn,nints,nnods)
+         call shlmonq2d(shlpn,wpn,nints,npars)
+         call shlmonq2d(shln,wn,nints,nnods)
          
 c         call shlqpk(shln,wn,nints,nnods)
 c         call shlqpk(shlpn,wpn,nints,npars)
@@ -8643,6 +8639,7 @@ c
          nenlad2 = 2
          nnods2 = nnods
          nints2 = int(dsqrt(dble(nints)))
+c         
          if(nints2.gt.7) then
             write(*,*) "ERROR nints2 not supported"
             stop
@@ -8672,7 +8669,6 @@ c     shp on volumes
          write(*,'(10F8.4)') (wpn(ii),ii=1,nints)         
          write(*,*) "pesos da integracao de gauss - wn"
          write(*,'(10F8.4)') (wn(ii),ii=1,nints)         
-
          
          write(*,*) "shl 1", nint, nen
          do ii=1,nint
@@ -9858,9 +9854,6 @@ c
 
 c            call shghrst(h,xl,detc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghrst(h,xl,detp,shgp,nint,nel,neg,nenp,shl,nen)
-            
-c            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
-c            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c            
             nintb=nside*nints
             
@@ -9869,10 +9862,6 @@ c
 c            call shghfrst(h,ien(1,nel),xl,shgcsd,
 c     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
-c            call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
-c     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-c            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-c     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)            
          end if                
 c
 c     form stiffness matrix

@@ -5322,6 +5322,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to calculate global derivatives of shape functions and
 c     jacobian determinants for a HEXAHEDRAL element
+c      
 c        xl(j,i)    = global coordinates
 c        det(l)     = jacobian determinant
 c        shl(1,i,l) = local ("xi") derivative of shape function
@@ -7765,6 +7766,7 @@ c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
 c$$$         end do
 c$$$         write(*,*) "vetor (poisson)"
 c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
+c$$$         stop
 
 c     ------------------------------------------------------------------
 c     loop to compute area integrals - symmetrization - boundary terms 
@@ -11871,7 +11873,7 @@ c
 c
          end do
       end do
-c
+c      
       return
       end
 
