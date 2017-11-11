@@ -746,14 +746,9 @@ c
 c            
       Vec              x,b
       Mat              A
-      KSP              ksp
-      PC               pc
-      PetscReal        norm,tol
       PetscErrorCode   ierr
       PetscInt         i,n
-      PetscBool        flg
-      PetscScalar      val
-      
+      PetscScalar      val      
       PetscFortranAddr userctx(*)
 c
       logical diag
@@ -5176,12 +5171,11 @@ c----------------------------------------------------------------------
 c
       dimension xl(2,*),shl(3,nen,*),shg(3,nen,*),xs(2,2),
      &     shlnode(3,nenode,*),ien(*)
-      dimension igas(100)
+      dimension igas(343)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-
-ccc      call move(shg,shl,3*nen*nint)
-
+c
+c$$$  call move(shg,shl,3*nen*nint)
 c
 c     renumeracao
 c
@@ -5451,7 +5445,7 @@ c
       dimension shl(4,nen,*),shg(4,nen,*),shlnode(4,nenode,*)
       dimension xs(3,3),xsinv(3,3)
       dimension co(3),vab(3),vad(3),xn(3),vc(3)
-      dimension igas(200)
+      dimension igas(343)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 
@@ -5916,21 +5910,26 @@ c
       end if
 c
 c     3D elements
-c     TODO: conferir se as configuracoes estao certas...
 c
       if (nsd.eq.3) then
 c
          write(*,'(A)') " elementos 3D"
-         write(*,*) nnods
-         
 c
          nenlad = 4
-         if(nencon.eq.8.or.nencon.eq.27.or.
-     &      nencon.eq.64.or.nencon.eq.125.or.
-     &      nencon.eq.216) then
+
+         if(nenp.eq.8.or.nenp.eq.27.or.
+     &      nenp.eq.64.or.nenp.eq.125.or.
+     &      nenp.eq.216) then
             nnods = 4
             nside = 6
          end if
+         
+c         if(nencon.eq.8.or.nencon.eq.27.or.
+c     &      nencon.eq.64.or.nencon.eq.125.or.
+c     &      nencon.eq.216) then
+c            nnods = 4
+c            nside = 6
+c         end if
 c       
          nintb=nside*nints
 c
