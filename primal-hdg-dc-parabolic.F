@@ -86,16 +86,7 @@ c
             write(6,*) 'This is a uniprocessor example only!'
          endif
          SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-      endif
-c
-c     test if PETSc is working fine
-c
-c$$$      call UserInitializeLinearSolver(10,10,userctx,ierr)
-c$$$      call UserTestPETSc(userctx)
-c$$$      call UserFinalizeLinearSolver(userctx,ierr)
-c$$$      call PetscFinalize(ierr)
-c$$$      stop
-      
+      endif     
 c
 c     main subroutine
 c
@@ -313,10 +304,9 @@ c
       PetscInt         i,n,its
       PetscFortranAddr userctx(*)
       IS               isrow,iscol
-      PetscViewer      viewer
-
-      PetscScalar xx_v(1)
-      PetscOffset xx_i,yy_i      
+      PetscViewer      viewer      
+      PetscScalar      xx_v(1)
+      PetscOffset      xx_i,yy_i      
 c      
 c     Get PETSC data
 c      
@@ -325,18 +315,13 @@ c
       A    = userctx(3)
       ksp  = userctx(4)
       n    = int(userctx(5))
-c$$$c      
-c$$$c     Create linear solver context
-c$$$c
-c$$$      write(*,*) "PETSC: criando solver"
-c$$$      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-
-c     Set operators. Here the matrix that defines the linear system
-c     also serves as the preconditioning matrix.
-
+c      
+c     set operators. Here the matrix that defines the linear system
+c     also serves as the preconditioning matrix
+c
       call KSPSetOperators(ksp,A,A,ierr)
 
-c     Set linear solver defaults for this problem (optional).
+c     set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
@@ -344,25 +329,12 @@ c     Set linear solver defaults for this problem (optional).
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 
-c     Set runtime options (override all previous definitions)
+c     set runtime options (override all previous definitions)
       
       call KSPSetFromOptions(ksp,ierr)
 c
-c     check ordering
-c
-c$$$      write(*,*) "PETSC: reordering"
-c$$$      call MatGetOrdering(A,MATORDERINGRCM,isrow,iscol,ierr)
-c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.rcm",viewer,ierr)
-c$$$      call ISView(isrow,viewer,ierr)
-c$$$      call PetscViewerDestroy(viewer,ierr)
-c$$$c
-c$$$      call MatGetOrdering(A,MATORDERINGND,isrow,iscol,ierr)
-c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.nd",viewer,ierr)
-c$$$      call ISView(isrow,viewer,ierr)
-c$$$      call PetscViewerDestroy(viewer,ierr)     
-c$$$
-
-      write(*,*) "PETSC: resolvendo sistema"
+c     solve
+c     
       call KSPSolve(ksp,b,x,ierr)
       CHKERRQ(ierr)
 c
@@ -385,147 +357,7 @@ c
       call VecRestoreArray(x,xx_v,xx_i,ierr)     
 c      
       end        
-      
-c----------------------------------------------------------------------
-      subroutine UserTestPETSc(userctx)
-c----------------------------------------------------------------------
-c     Test PETSc by solving Ax=b
-c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-     
-      Vec              x,b,u
-      Mat              A
-      KSP              ksp
-      PC               pc
-      PetscReal        norm,tol
-      PetscErrorCode   ierr
-      PetscInt         i,n,col(3),its,i1,i2,i3
-      PetscBool        flg
-      PetscScalar      none,one,value(3)
-      
-      PetscFortranAddr userctx(*)
 
-      one  = 1
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
-      m    = int(userctx(5))
-      n    = int(userctx(6))
-      
-      none = -1.0
-      one  = 1.0
-      n    = 10
-      i1 = 1
-      i2 = 2
-      i3 = 3
-
-c     Create matrix.  When using MatCreate(), the matrix format can
-c     be specified at runtime.     
-
-c      call MatCreate(PETSC_COMM_WORLD,A,ierr)
-c      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,n,n,ierr)
-c      call MatSetFromOptions(A,ierr)
-c      call MatSetUp(A,ierr)
-
-c     Assemble matrix.
-c   - Note that MatSetValues() uses 0-based row and column numbers
-c     in Fortran as well as in C (as set here in the array "col").
-
-      write(*,*) "PETSC: montando matriz"
-      value(1) = -1.0
-      value(2) = 2.0
-      value(3) = -1.0
-      do 50 i=1,n-2
-         col(1) = i-1
-         col(2) = i
-         col(3) = i+1
-         call MatSetValues(A,i1,i,i3,col,value,INSERT_VALUES,ierr)
-  50  continue
-      i = n - 1
-      col(1) = n - 2
-      col(2) = n - 1
-      call MatSetValues(A,i1,i,i2,col,value,INSERT_VALUES,ierr)
-      i = 0
-      col(1) = 0
-      col(2) = 1
-      value(1) = 2.0
-      value(2) = -1.0
-      call MatSetValues(A,i1,i,i2,col,value,INSERT_VALUES,ierr)
-      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
-      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
-
-c     Create vectors.  Note that we form 1 vector from scratch and
-c     then duplicate as needed.
-
-      call VecCreate(PETSC_COMM_WORLD,x,ierr)
-      call VecSetSizes(x,PETSC_DECIDE,n,ierr)
-      call VecSetFromOptions(x,ierr)
-      call VecDuplicate(x,b,ierr)
-      call VecDuplicate(x,u,ierr)
-
-c     Set exact solution; then compute right-hand-side vector.
-
-      call VecSet(u,one,ierr)
-      call MatMult(A,u,b,ierr)
-
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c          Create the linear solver and set various options
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-      write(*,*) "PETSC: criando solver"
-      
-c     Create linear solver context
-
-      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-
-c     Set operators. Here the matrix that defines the linear system
-c     also serves as the preconditioning matrix.
-
-      call KSPSetOperators(ksp,A,A,ierr)
-
-c     Set linear solver defaults for this problem (optional).
-      
-      call KSPGetPC(ksp,pc,ierr)
-      call PCSetType(pc,PCJACOBI,ierr)
-      tol = 1.d-7
-      call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
-     &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
-
-c     Set runtime options (override all previous definitions)
-      
-      call KSPSetFromOptions(ksp,ierr)
-
-      write(*,*) "PETSC: resolvendo sistema"      
-      call KSPSolve(ksp,b,x,ierr)    
-          
-c      write(*,*) "PETSC: solucao"
-c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
-      
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c                      Check solution and clean up
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-      call VecAXPY(x,none,u,ierr)
-      call VecNorm(x,NORM_2,norm,ierr)
-
-c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      call VecView(u,PETSC_VIEWER_STDOUT_SELF,ierr)      
-      
-      call KSPGetIterationNumber(ksp,its,ierr)
-      if (norm .gt. 1.e-12) then
-        write(6,100) norm,its
-      else
-        write(6,200) its
-      endif
-c      
- 100  format('Norm of error = ',e11.4,',  Iterations = ',i5)
- 200  format('Norm of error < 1.e-12,Iterations = ',i5)
-c      
-      end
-      
 c----------------------------------------------------------------------
       subroutine lpgm(userctx)
 c----------------------------------------------------------------------
@@ -6211,111 +6043,6 @@ c     ('form_stb')
 c
       read(iin,*) index,iwrite
 c
-c     escreve malha GMSH
-c
-      write(*,'(A)') "escreve malha.msh"
-c      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
-c     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
-c     &             nsd,nesd,npars,nside)
-      
-c
-c     Esta rotina calcula projecoes locais:
-c     para a formulacao hibrida primal
-c
-c$$$      write(*,'(A)') "subroutine flux0primal"
-c$$$      call flux0primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
-c$$$     &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
-c$$$     &           a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
-c$$$     &           a(mp(mw    )),a(mp(mc    )),
-c$$$     &           a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
-c$$$     &           a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
-c$$$     &           a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
-c$$$     &           a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
-c$$$     &           a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-c$$$     &           a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-c$$$     &           a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-c$$$     &           a(mp(mdsfl )),a(mp(mddis )),a(mp(mdetp )),
-c$$$     &           a(mp(mshlp )),a(mp(mshgp )),
-c$$$c
-c$$$     &           a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
-c$$$     &           a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-c$$$     &           a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
-c$$$     &           a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
-c$$$     &           a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
-c$$$     &           a(mp(melmdb)),
-c$$$c
-c$$$     &           a(mp(mshsde)),
-c$$$     &           a(mp(mshlpsd)),a(mp(mshlcsd)),
-c$$$c
-c$$$     &           a(mp(mshgpsd)),a(mp(mshgcsd)),
-c$$$c
-c$$$c
-c$$$     &           numel ,neesq ,nen   ,
-c$$$     &           nsd   ,nesd  ,nint  ,
-c$$$     &           neg   ,nrowsh,ned   ,
-c$$$     &           nee   ,numnp ,ndof  ,
-c$$$     &           ncon  ,nencon,necon ,
-c$$$     &           neep  ,nints ,nnods ,
-c$$$     &           nenlad, npars,nside ,
-c$$$     &           nenp  ,nodsp ,index ,nface, nedge)
-c$$$
-c$$$      write(*,'(A)') "fim da flux0primal"
-c$$$      write(*,*) " "
-c
-c     Esta rotina calcula os erros da projecao local
-c     para a formulacao hibrida primal
-c
-c$$$      write(*,'(A)') "subroutine flnormp (depois da flux0)"
-c$$$      call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
-c$$$     &             a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
-c$$$     &             a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
-c$$$     &             a(mp(mdlp )),a(mp(mdsfl )),a(mp(mdet  )),
-c$$$     &             a(mp(mshl )),a(mp(mshg  )),a(mp(mw    )),
-c$$$     &             a(mp(mdetc )),a(mp(mshlc)),a(mp(mshgc )),
-c$$$     &             a(mp(mddis )),a(mp(mdetp)),a(mp(mshlp )),
-c$$$     &             a(mp(mshgp )),
-c$$$c
-c$$$     &             a(mp(mshln )),a(mp(mshgn )),
-c$$$     &             a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-c$$$     &             a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-c$$$     &             a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-c$$$     &             a(mp(mgrav )),a(mp(mwn   )),
-c$$$c
-c$$$     &             numel ,neesq ,nen   ,nsd   ,
-c$$$     &             nesd  ,nint  ,neg   ,nrowsh,
-c$$$     &             ned   ,nee   ,numnp ,ndof  ,
-c$$$     &             ncon  ,nencon,necon ,index ,
-c$$$     &             nints ,ilp ,nenp  ,
-c$$$     &             nside ,nnods ,nenlad,npars ,
-c$$$     &             nmultp,nodsp )
-c$$$      write(*,'(A)') "fim da flnormp"
-c
-c  esta rotina calcula os erros das interpolantes
-c
-c$$$      write(*,'(A)') "subroutine flninter"
-c$$$      call flninter(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
-c$$$     &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
-c$$$     &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
-c$$$     &            a(mp(mdlp )),a(mp(mdsfl )),a(mp(mdet  )),
-c$$$     &            a(mp(mshl )),a(mp(mshg  )),a(mp(mw    )),
-c$$$     &            a(mp(mdetc )),a(mp(mshlc)),a(mp(mshgc )),
-c$$$     &            a(mp(mddis )),a(mp(mdetp)),a(mp(mshlp )),
-c$$$     &            a(mp(mshgp )),
-c$$$c
-c$$$     &            a(mp(mshln )),a(mp(mshgn )),
-c$$$     &            a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-c$$$     &            a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-c$$$     &            a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-c$$$     &            a(mp(mgrav )),a(mp(mwn   )),
-c$$$c
-c$$$     &            numel ,neesq ,nen   ,nsd   ,
-c$$$     &            nesd  ,nint  ,neg   ,nrowsh,
-c$$$     &            ned   ,nee   ,numnp ,ndof  ,
-c$$$     &            ncon  ,nencon,necon ,index ,
-c$$$     &            nints ,interpl,nenp  ,
-c$$$     &            nside ,nnods ,nenlad,npars ,
-c$$$     &            nmultp,nodsp )
-c
       return
 c
  300  continue
@@ -6365,8 +6092,8 @@ c
 c
   400 continue
 c
-c  esta rotina calcula as aproximacoes locai para a variavel
-c  primal p no nivel de cada elemento usando as aproximacoes do multiplicador
+c     esta rotina calcula as aproximacoes locai para a variavel
+c     primal p no nivel de cada elemento usando as aproximacoes do multiplicador
 c
       write(*,'(A)') "subroutine flux3primal"
       call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
@@ -8321,17 +8048,17 @@ c
          dtm1   = alf*dtime
          gamas  = gama
 c
-         write(*,"(A,F10.6)") "delta1",delta1
-         write(*,"(A,F10.6)") "delta2",delta2
-         write(*,"(A,F10.6)") "betah ",betah
-         write(*,"(A,F10.6)") "gama  ",gama
-         write(*,"(A,F10.6)") "gf10  ",gf10
-         write(*,"(A,F10.6)") "teta  ",teta
-         write(*,"(A,F10.6)") "dtime ",dtime
-         write(*,"(A,F10.6)") "alf   ",alf
-         write(*,"(A,F10.6)") "dtm0  ",dtm0
-         write(*,"(A,F10.6)") "dtm1  ",dtm1
-         write(*,"(A,F10.6)") "gamas ",gamas                
+c$$$         write(*,"(A,F10.6)") "delta1",delta1
+c$$$         write(*,"(A,F10.6)") "delta2",delta2
+c$$$         write(*,"(A,F10.6)") "betah ",betah
+c$$$         write(*,"(A,F10.6)") "gama  ",gama
+c$$$         write(*,"(A,F10.6)") "gf10  ",gf10
+c$$$         write(*,"(A,F10.6)") "teta  ",teta
+c$$$         write(*,"(A,F10.6)") "dtime ",dtime
+c$$$         write(*,"(A,F10.6)") "alf   ",alf
+c$$$         write(*,"(A,F10.6)") "dtm0  ",dtm0
+c$$$         write(*,"(A,F10.6)") "dtm1  ",dtm1
+c$$$         write(*,"(A,F10.6)") "gamas ",gamas                
 c
 c     loop on integration points
 c
@@ -8893,7 +8620,8 @@ c
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-      common /colhtc/ neq      
+      common /colhtc/ neq
+      common /times/ dtime,tempo,gf1,gf10
 c               
 c ------------------------------------------------------------------------------
 c     initialization
@@ -8910,10 +8638,10 @@ c
 c     consistent matrix
 c      
       diag = .false.
-      pi=4.d00*datan(1.d00)
-      gf1=grav(1)
-      gf2=grav(2)
-      gf3=grav(3)
+      pi = 4.d00*datan(1.d00)
+      gf1 = grav(1)
+      gf2 = grav(2)
+      gf3 = grav(3)
 c
 c     solution in one point
 c
@@ -8931,8 +8659,7 @@ c
             ddisa(1,i,j) = 0.d00
          end do
       end do
-      
-     
+           
 c ------------------------------------------------------------------------------
 c     initial condition
 c ------------------------------------------------------------------------------      
@@ -8978,29 +8705,20 @@ c
             piz=pi*zz
             sx=dsin(pix)
             sy=dsin(piy)
-            sz=dsin(piz)
-            cx=dcos(pix)
-            cy=dcos(piy)
-            cz=dcos(piz)
-c     
+            sz=dsin(piz)     
             pi2=pi*pi
             co=1.d00/(pi2*2.d00+gama)
 c
 c     save initial condition
 c            
             ddis(1,i,nel) = sx*sy*sz            
-c            gf20*co*cx*cy*cz + gf10*co*sx*sy*sz
-c            write(*,*) ddis(1,i,nel),gf10
-            
 c
 c     save data at npsol point
 c            
             if(ien(i,nel).eq.npsol) then
                cat0 = sx*sy*sz
-c               sol(isol) = 1.d00
-c               sol(isol) = gf10*cat0
                sol(isol) = cat0
-              isol = isol + 1
+               isol = isol + 1
             end if
          end do         
       end do
@@ -9009,7 +8727,7 @@ c
 c
       it    = 0
       tempo = 0.d00
-      write(*,*) it, tempo
+      write(*,"(A,I5,F10.4)") "Tempo",it,tempo
 c
 c     write initial condition
 c     
@@ -9029,7 +8747,6 @@ c
       write(*,*) "dtm1",dtm1
       write(*,*) "npsol",npsol
       write(*,*) "numnp",numnp
-
       write(*,*) "ndof",ndof
       write(*,*) "nmultp",nmultp
       
@@ -9049,7 +8766,7 @@ c
          tempo = it*dt
 c         
          write(*,*) ""
-         write(*,*) "Tempo",it,tempo
+         write(*,"(A,I5,F10.4)") "Tempo",it,tempo
 c     
 c     guarda valor anterior
 c        p^(n+1) -> ddis
@@ -9066,8 +8783,6 @@ c
          call clear(xbrhs,neq)        
          call VecSet(b,0.d00,ierr)
          CHKERRQ(ierr)
-c         call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-c         CHKERRQ(ierr)
 
 c ---  element loop ------------------------------------------------------------
          do 500 nel=1,numel
@@ -9844,10 +9559,6 @@ c --- end of time loop ---------------------------------------------------------
 c
       itest2 = itest2 + 1
 c      
-      write(*,*) "FIM DA FLUX 3"
-      stop
-     
-c
       return
       end
 
@@ -10348,6 +10059,7 @@ c
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+      common /times/ dtime,tempo,gf1,gf10
 c
       pi  = 4.*datan(1.d00)
       dpi = 2.d00*pi
@@ -10390,19 +10102,6 @@ c
       do 50 n=1,numel
          call local(ien(1,n),x,xl,nen,nsd,nesd)
          call local(ipar(1,n),d,dl,nodsp,ndof,ned)
-c
-c     debug local
-c     
-c$$$         write(*,*) "copia de D para DL (nos indices dados por IPAR)"
-c$$$         write(*,*) nodsp, ndof, ned
-c$$$         write(*,'(A)') " array dl"
-c$$$         do kk=1,6
-c$$$            write(*,'(24F8.4)') (dl(1,4*(kk-1)+jj),jj=1,4)
-c$$$         end do
-c$$$         write(*,'(A)') " elem nodes"
-c$$$         do kk=1,nen
-c$$$            write(*,'(3F8.4)') xl(1,kk), xl(2,kk), xl(3,kk)
-c$$$         end do         
 c
 c     recupera multiplicador
 c
@@ -10455,7 +10154,8 @@ c
 c
 c     calculo da solucao exata
 c
-            call uexafx3(xint,yint,zint,ue,duex,duey,duez,eps,index)
+            call uexafx3(xint,yint,zint,ue,duex,duey,duez,
+     &                   eps,tempo,index)
 c
 c     pressao descontinua
 c
@@ -10616,19 +10316,13 @@ c
 c
 c     valor exato do multiplicador
 c
-               dhse = gf1*sx*sy*sz
-     &              + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*
-     &              (1.d00 - exp((x1-1.d00)/eps))*
-     &              (1.d00 - exp((x2 - 1.d00)/eps))
-     &              ) + gf3*1.d00
+               dcat = dexp(-3.d00*pi2*tempo)
+               dhse = dcat*sx*sy*sz
 c
+c     calculo do erro do multiplicador
+c               
                xmlte = xmlte + cwn*(dhse-dhs)**2
 c
-c$$$               if(ls.eq.1) then
-c$$$                  write(*,'(A)',advance='no') "   x   /   y    /    z "
-c$$$                  write(*,'(A)') " / exato /  aprox  / erro"
-c$$$               end if
-c$$$               write(*,'(6F8.4)') x1,x2,x3,dhse,dhs,dabs(dhse-dhs)
             end do
  4000    continue
 c
@@ -10737,88 +10431,6 @@ c     source term
          end do
  1000 continue
 c     
-      return
-      end
-
-c-----------------------------------------------------------------------
-      subroutine drchbc(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,eps,pi,
-     &                  nints,nenlad,npars)
-c-----------------------------------------------------------------------
-c     Dirichlet boundary conditions
-c-----------------------------------------------------------------------
-      implicit real*8(a-h,o-z)
-c
-      dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(2,*)
-      dimension detpn(*),wn(*),dls(*)
-      dimension aa(10,10),bb(10)
-c
-      do i=1,npars
-	    bb(i) = 0.d00
-         do j=1,npars
-            aa(i,j) = 0.d00
-         end do
-      end do
-c
-      do 1000 ls=1,nints
-c
-c     geometria
-c
-         x1 = 0.d00
-         x2 = 0.d00
-c
-         do i=1,nenlad
-            x1 = x1 +xls(1,i)*shlb(2,i,ls)
-            x2 = x2 +xls(2,i)*shlb(2,i,ls)
-         end do
-c
-         pix = pi*x1
-         piy = pi*x2
-         sx = dsin(pix)
-         sy = dsin(piy)
-         cx = dcos(pix)
-         cy = dcos(piy)
-c
-         pi2 = pi*pi
-         xinvpes = eps**(-1.0)
-         co = 1.d00
-c
-c     valor exato do multiplicador
-c
-         dhse = gf1*sx*sy
-     &        + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-     &        - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
-     &        + gf3*1.d00
-c
-         do 1100 j=1,npars
-c
-c
-            djn=shgpn(2,j,ls)*detpn(ls)*wn(ls)
-c
-c     source term
-c
-            bb(j) = bb(j) + dhse*djn
-c
-            do i=1,npars
-c
-               din=shgpn(2,i,ls)
-c
-c     L2-projection at the boundary (side)
-c
-               aa(i,j) = aa(i,j) + din*djn
-c
-            end do
-c
- 1100    continue
- 1000 continue
-c
-      call invmb(aa,10,npars)
-c
-      do i=1,npars
-         dls(i) = 0.d00
-         do j=1,npars
-            dls(i) = dls(i) + aa(i,j)*bb(j)
-         end do
-      end do
       return
       end
 
@@ -11116,7 +10728,7 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine uexafx3(x,y,z,ue,duex,duey,duez,eps,index)
+      subroutine uexafx3(x,y,z,ue,duex,duey,duez,eps,tempo,index)
 c-----------------------------------------------------------------------
 c     solucao exata e derivada
 c-----------------------------------------------------------------------
@@ -11126,7 +10738,7 @@ c-----------------------------------------------------------------------
 c
       go to (100) index
 c
-c     PROBLEM 3D: T = sin(pix)sin(piy)sin(piz)
+c     PROBLEM 3D: T = exp(-3 pi2 t)sin(pix)sin(piy)sin(piz)
 c
  100  continue
       pi=4.d00*datan(1.d00)
@@ -11140,27 +10752,28 @@ c
       cx=dcos(px)
       cy=dcos(py)
       cz=dcos(pz)
+      cat=dexp(-3.d0*pi2*tempo)
       co=1.d00
 c
 c     ue(1) e ue(2) sao para darcy
 c     ue(3) a unica que interessa aqui por enquanto
 c     similar para duex, duey e duez
 c
-      ue(1) = -pi*cx*sy
-      ue(2) = -pi*sx*cy
-      ue(3) = sx*sy*sz
-c
+      ue(1) = 0.d0
+      ue(2) = 0.d0
+      ue(3) = cat*sx*sy*sz
+c      
       duex(1) = 0.d0
       duex(2) = 0.d0
-      duex(3) = pi*cx*sy*sz
+      duex(3) = pi*cat*cx*sy*sz
 c
       duey(1) = 0.d0
       duey(2) = 0.d0
-      duey(3) = pi*sx*cy*sz
+      duey(3) = pi*cat*sx*cy*sz
 c
       duez(1) = 0.d0
       duez(2) = 0.d0
-      duez(3) = pi*sx*sy*cz
+      duez(3) = pi*cat*sx*sy*cz
 c
       go to 1001
 c
