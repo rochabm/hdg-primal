@@ -597,14 +597,9 @@ c
 c            
       Vec              x,b
       Mat              A
-      KSP              ksp
-      PC               pc
-      PetscReal        norm,tol
       PetscErrorCode   ierr
       PetscInt         i,n
-      PetscBool        flg
-      PetscScalar      val
-      
+      PetscScalar      val      
       PetscFortranAddr userctx(*)
 c
       logical diag
@@ -7906,7 +7901,8 @@ c     with continuous temperature and discontinuous flux
 c-----------------------------------------------------------------------
 c      
       PetscFortranAddr userctx(*)
-c      
+c
+      real elapsed(2)
       dimension npar(*),mp(*)
 c      
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
@@ -8099,12 +8095,10 @@ c
       end if
 c
 c     3D elements
-c     TODO: conferir se as configuracoes estao certas...
 c
       if (nsd.eq.3) then
 c
          write(*,'(A)') " elementos 3D"
-c         write(*,*) nnods        
 c        
          nenlad = 4
          nencon = nenp
@@ -8286,6 +8280,7 @@ c
 c     input element data ('input___')
 c
       write(*,'(A)') "subroutine flux1"
+      call cpu_time(t1)
       call flux1(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
      &           a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
      &           a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
@@ -8302,7 +8297,8 @@ c
      &           nnods        ,nenlad        ,npars,
      &           nenp         ,nside         ,nodsp)
 c
-      write(*,'(A)') "fim da flux1"
+      call cpu_time(t2)
+      write(*,'(A,F10.4)') "fim da flux1", t2-t1
       return
 c
   200 continue

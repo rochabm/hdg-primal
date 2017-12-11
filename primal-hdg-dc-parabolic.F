@@ -5350,12 +5350,16 @@ c
       dimension igas(343)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-
-ccc   call move(shg,shl,4*nen*nint)
-
+c$$$c
+c$$$      call move(shg,shl,4*nen*nint)
+c$$$c    
 c
 c     calcula centroide do elemento
 c
+      write(*,*) nen,nenode
+      stop
+      call centroid(xl,nsd,nenode,coo)
+      
       co(1) = 0.d0
       co(2) = 0.d0
       co(3) = 0.d0
@@ -5387,19 +5391,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     face 2
 c
@@ -5414,19 +5405,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     face 3
 c
@@ -5441,19 +5419,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     face 4
 c
@@ -5468,19 +5433,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     face 5
 c
@@ -5495,19 +5447,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do  nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     face 6
 c
@@ -5522,19 +5461,6 @@ c
       call cross(vab,vad,xn)
       call nrm3(xn)
       dotcn = dot3(vc,xn)
-c      write(*,'(4I5,4F10.4)') nl1,nl2,nl3,nl4,xn(1),xn(2),xn(3),dotcn
-      if(dotcn.lt.0.d0) then
-         do nn=1,nints
-            ng = (ns-1)*nints + nn
-            igas(ng) = ng
-         end do
-c$$$      else
-c$$$         do nn=1,nints
-c$$$            ng = (ns-1)*nints + nn
-c$$$            ngs = (ns-1)*nints
-c$$$            igas(ng) = ngs + nints + 1 - nn
-c$$$         end do
-      end if
 c
 c     integration points
 c
@@ -7329,535 +7255,6 @@ c
        return
        end
 
-c-----------------------------------------------------------------------
-      subroutine flux0primal(ien   ,x     ,xl    ,
-     &                       d     ,dl    ,mat   ,
-     &                       det   ,shl   ,shg   ,
-     &                       w     ,c     ,
-     &                       grav  ,ipar  ,lado  ,
-     &                       detc  ,shlc  ,shgc  ,
-     &                       eleffd,elresd,shln  ,
-     &                       shgn  ,wn    ,detn  ,
-     &                       detb  ,shlb  ,shgb  ,
-     &                       detpn ,shlpn ,shgpn ,
-     &                       idside,xls   ,idlsd ,
-     &                       dsfl  ,ddis  ,detp  ,
-     &                       shlp  ,shgp  ,
-     &                       elma  ,elmb  ,elmc  ,
-     &                       elmd  ,elmh  ,elmbb ,
-     &                       elmcb ,elmhb ,elfa  ,
-     &                       elfb  ,elfc  ,elfd  ,
-     &                       elfab ,elfbb ,elfcb ,
-     &                       elmdb ,
-c
-     &                       shsde ,
-c
-     &                       shlpsd,shlcsd,
-     &                       shgpsd,shgcsd,
-c
-     &                       numel ,neesq ,nen   ,
-     &                       nsd   ,nesd  ,nint  ,
-     &                       neg   ,nrowsh,ned   ,
-     &                       nee   ,numnp ,ndof  ,
-     &                       ncon  ,nencon,necon ,
-     &                       neep  ,nints ,nnods ,
-     &                       nenlad,npars ,nside ,
-     &                       nenp  ,nodsp ,index ,nface, nedge)
-c-----------------------------------------------------------------------
-c     program to calculate stifness matrix and force array for the
-c        plane elasticity element and
-c        assemble into the global left-hand-side matrix
-c        and right-hand side vector
-c      
-c     obs:
-c        nintb: total de pontos de integracao por elemento
-c        ex: em 2D temos 4 lados x 2 pt de int em cada aresta = 8
-c     ex: em 3D sao 6 faces x 4 pts por face = 24 pontos
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      logical diag,quad
-c
-c      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
-      dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
-      dimension elmdb(nee,*)
-      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*),
-     &          elfbb(*),elfcb(*)
-      dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*),
-     &          mat(*),det(*),w(*),c(10,*),
-     &          grav(*),ipar(nodsp,*),lado(nside,*),detc(*),
-     &          eleffd(nee,*),elresd(*)
-      dimension wn(*),detn(*),detb(*),detpn(*),detp(*),
-     &          idside(nside,*),xls(nesd,*),idlsd(*),
-     &          dsfl(ncon,nencon,*),ddis(ned,nenp,*)
-c      
-      dimension dls(64),solex(64)
-c
-c     geometria
-      dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
-c     multiplicador
-      dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
-c
-      dimension shl (nrowsh+1,nen,*),   shg (nrowsh+1,nen,*)
-      dimension shlp(nrowsh+1,nenp,*),  shgp(nrowsh+1,nenp,*)
-      dimension shlc(nrowsh+1,nencon,*),shgc(nrowsh+1,nencon,*)
-c
-      dimension shsde (nrowsh+1,nen,*)
-      dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
-      dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
-c
-      dimension vab(3),vad(3),vc(3),xn(3),coo(3), xxn(3)
-c
-      integer elfaces(nedge,nenlad)
-      integer iboolf(nedge)
-c
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c
-c     consistent matrix
-c
-      diag = .false.
-      pi=4.d00*datan(1.d00)
-      gf1=grav(1)
-      gf2=grav(2)
-      gf3=grav(3)
-c
-c     dump mesh in screen / GMSH file
-c
-      do i=1,nedge
-         iboolf(i)=0
-      end do
-
-c     ------------------------------------------------------------------
-c     element loop
-c     ------------------------------------------------------------------     
-
-      do 500 nel=1,numel
-c     
-c     clear stiffness matrix and force array
-c
-         call clear(elmbb,neep*neep)
-         call clear(elfbb,neep)
-c
-c     localize coordinates and Dirichlet b.c.
-c
-         call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c
-c     centroide
-c
-         call centroid(xl,nsd,nen,coo)
-c
-c     identify problem 2D or 3D and element type
-c
-         if(nsd.eq.2) then
-            m = mat(nel)
-            quad = .true.
-            if (nen.eq.4.and.ien(3,nel).eq.ien(4,nel)) quad = .false.
-c
-            call shgqs(xl,detc,shlc,shgc,nint,nel,neg,quad,nencon,
-     &           shl,nen)
-            call shgqs(xl,detp,shlp,shgp,nint,nel,neg,quad,nenp,shl,nen)
-c
-            nintb=nside*nints
-c
-            call shgtqsd(ien(1,nel),xl,shlpsd,shgpsd,
-     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgtqsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
-c
-         else if(nsd.eq.3) then
-c            
-            m = mat(nel)
-            quad = .false.
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
-            call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
-c            
-            nintb=nside*nints
-c
-            call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
-     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)            
-         end if
-c
-c     form stiffness matrix
-c
-c
-c     calculo de h - caracteristico para cada elemento
-c
-         if(nen.eq.3.or.nen.eq.6) then
-            h2=xl(1,2)*xl(2,3)+xl(1,1)*xl(2,2)+xl(1,3)*xl(2,1)
-     &           -xl(1,1)*xl(2,3)-xl(1,2)*xl(2,1)-xl(1,3)*xl(2,2)
-            h2=h2*pt5
-            h=dsqrt(h2)
-         else
-            h2=0
-            do l=1,2
-               h2=h2+(xl(1,l)-xl(1,l+2))**2+(xl(2,l)-xl(2,l+2))**2
-            end do
-            h=dsqrt(h2)/2.d00
-            h2=h*h
-         end if
-c
-c     set up material properties
-c
-         betah = c(7,m)*h**c(8,m)
-         eps = c(1,m)
-         b1 = c(2,m)
-         b2 = c(3,m)
-         b3 = 0.d0
-         upwind = c(4,m)        
-c
-c     loop on integration points
-c
-         do l=1,nint
-            c1=detc(l)*w(l)
-c
-c     f = gf1*sin(pix)*sin(piy) + gf2*(Prob2)
-c
-            xx = 0.d00
-            yy = 0.d00
-            zz = 0.d00
-            do i=1,nen
-               xx = xx + shl(4,i,l)*xl(1,i)
-               yy = yy + shl(4,i,l)*xl(2,i)
-               zz = zz + shl(4,i,l)*xl(3,i)
-            end do
-            pix = pi*xx
-            piy = pi*yy
-            piz = pi*zz
-            sx = dsin(pix)
-            sy = dsin(piy)
-            sz = dsin(piz)
-            cx = dcos(pix)
-            cy = dcos(piy)
-            cz = dcos(piz)
-c
-            pi2 = pi*pi
-            co = 1.d00
-c
-            pss = 0.d00
-c$$$            pss = gf1*(3.d00*eps*pi2*sx*sy*sz + b1*pi*cx*sy+b2*pi*sx*cy)
-c$$$     &           + gf2*(-pi*(-dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps
-c$$$     &           + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps*dexp((yy -
-c$$$     &           0.1D1)/eps) + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-c$$$     &  *eps*dexp((xx - 0.1D1)/eps) - dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-c$$$     &      *eps*dexp((xx - 0.2D1 + yy)/eps) - dcos(pix/0.2D1
-c$$$     &        )*dsin(piy/0.2D1)*dexp((xx - 0.1D1)/eps) + dcos(pix/0.2D1
-c$$$     &    )*dsin(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps) - dsin(pix/0.2D1
-c$$$     &      )*dcos(piy/0.2D1)*dexp((yy - 0.1D1)/eps) + dsin(pix/0.2D1
-c$$$     &           )*dcos(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps)
-c$$$     &           - dcos(pix/0.2D1)*dsin(piy/0.2D1) + dcos(pix/0.2D1)
-c$$$     &          *dsin(piy/0.2D1)*dexp((yy - 0.1D1)/eps) - dsin(pix/0.2D1
-c$$$     &           )*dcos(piy/0.2D1) + dsin(pix / 0.2D1)*dcos(piy/0.2D1
-c$$$     &           )*dexp((xx - 0.1D1)/eps))/0.2D1)
-c$$$     &           + gf3*1.d00
-c
-c     loop to compute volume integrals
-c
-            do j=1,nenp
-               djx=shgp(1,j,l)*c1
-               djy=shgp(2,j,l)*c1
-               djz=shgp(3,j,l)*c1
-               djn=shgp(4,j,l)*c1
-c
-c     source terms
-c
-               nbj=ned*(j-1)
-               nbj1=nbj+1
-c
-               elfbb(nbj1) = elfbb(nbj1) + djn*pss
-c
-c     element stiffness
-c
-               do i=1,nenp
-                  nbi=ned*(i-1)
-                  nbi1=nbi+1
-c
-                  dix=shgp(1,i,l)
-                  diy=shgp(2,i,l)
-                  diz=shgp(3,i,l)
-                  din=shgp(4,i,l)
-c
-c     (grad p, grad q) + (b.grad p,q) = (f,q)
-c
-                  elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
-     &                             + eps*(dix*djx + diy*djy + diz*djz)
-     &                             + (b1*djx + b2*djy + b3*djz)*din
-               end do
-            end do
-         end do
-c
-c     debug - stiffness and load vector
-c
-c$$$         write(*,*) "matriz (poisson)"
-c$$$         do ik=1,neep
-c$$$            write(*,'(20F10.6)') (elmbb(ik,jk),jk=1,neep)
-c$$$         end do
-c$$$         write(*,*) "vetor (poisson)"
-c$$$         write(*,'(20F10.6)') (elfbb(jk),jk=1,neep)
-c$$$         stop
-
-c     ------------------------------------------------------------------
-c     loop to compute area integrals - symmetrization - boundary terms 
-c     ------------------------------------------------------------------         
-
-         do 4000 ns=1,nside
-c           write(*,'(//,A,I5)') "face ", ns
-c
-c     localiza os no's do lado ns
-c
-            ns1=idside(ns,1)
-            ns2=idside(ns,2)
-            ns3=idside(ns,3)
-            ns4=idside(ns,4)
-
-            nl1=ien(ns1,nel)
-            nl2=ien(ns2,nel)
-            nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)            
-c
-c$$$            if(nl2.gt.nl1) then
-c$$$               sign = 1.d00
-c$$$               do  nn=1,nenlad
-c$$$                  idlsd(nn)=idside(ns,nn)
-c$$$               end do
-c$$$            else
-c$$$               sign = -1.d00
-c$$$               idlsd(1) = idside(ns,2)
-c$$$               idlsd(2) = idside(ns,1)
-c$$$               id3 = nenlad-2
-c$$$               if(id3.gt.0) then
-c$$$                  do il=id3,nenlad
-c$$$                     idlsd(il) = idside(ns,nenlad+id3-il)
-c$$$                  end do
-c$$$               end if
-c$$$            end if
-c
-c     calcula sign para a aresta/face
-c
-            call vec3sub(xl(1,ns2), xl(1,ns1), vab)
-            call vec3sub(xl(1,ns4), xl(1,ns1), vad)
-            call vec3sub(coo,xl(1,ns1),vc)
-            call cross(vab,vad,xn)
-            call nrm3(xn)
-            dotcn = dot3(vc,xn)
-
-            if(dotcn.lt.0.d0) then
-               sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
-            else
-c              write(*,'(A)') " trocou sinal"
-               sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
-            end if
-c
-c     confere nos globais depois que trocou
-c
-            ns1=idlsd(1)
-            ns2=idlsd(2)
-            ns3=idlsd(3)
-            ns4=idlsd(4)
-
-            nl1=ien(ns1,nel)
-            nl2=ien(ns2,nel)
-            nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)
-c
-c     ajeita a normal com o sinal
-c
-            xn(1)=sign*xn(1)
-            xn(2)=sign*xn(2)
-            xn(3)=sign*xn(3)
-c
-c     localize the coordinates of the side nodes
-c
-c$$$            write(*,*) "COPIA LOCAL de XL para XLS",nenlad
-c$$$            write(*,*) nl1,nl2,nl3,nl4
-c$$$            write(*,*) "ELEM",nel
-            do nn=1,nenlad
-               nl=idlsd(nn)
-               xls(1,nn)=xl(1,nl)
-               xls(2,nn)=xl(2,nl)
-               xls(3,nn)=xl(3,nl)
-            end do
-c
-            ndgs = lado(ns,nel)
-c
-c     problema 2D ou 3D
-c
-            if(nesd.eq.2) then
-               call oneshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad,npars,nints,nesd,ns,nel,neg)
-            else
-               call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
-            end if
-c
-c     projecao local do multiplicador na face
-c
-            call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
-     &           eps,pi,nints,nenlad,npars)
-c
-c     debug - confere projecao local do multiplicador
-c
-c$$$            write(*,'(A)') " proj l2 local "
-c$$$            do i=1,npars
-c$$$               axx = xls(1,i)
-c$$$               ayy = xls(2,i)
-c$$$               azz = xls(3,i)
-c$$$               sx=dsin(pi*axx)
-c$$$               sy=dsin(pi*ayy)
-c$$$               sz=dsin(pi*azz)
-c$$$               pi2=pi*pi
-c$$$               co=1.d00/(pi2*2.d00+gamas)
-c$$$               dhex = gf1*sx*sy*sz
-c$$$               solex(i) = dhex
-c$$$            end do
-c$$$            write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
-c$$$            write(*,'(A,20F8.4)') " proje ", (dls(i),i=1,npars)
-c$$$            write(*,'(A,20F8.4)') " exata ", (solex(i),i=1,npars)
-c
-            ngs = npars*(ndgs-1)
-            nls = npars*(ns-1)
-c
-            do i=1,npars
-               indx = ipar(nls+i,nel)
-               d(1,indx) = dls(i)
-c              d(1,ngs + i) = dls(i)               
-            end do
-c     
-c     compute boundary integral - symmetrization
-c
-            do 1000 ls = 1,nints
-               lb = (ns-1)*nints + ls
-c
-c     geometria
-c
-               x1 = 0.d00
-               x2 = 0.d00
-               x3 = 0.d00
-               do i=1,nenlad
-                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
-                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
-               end do
-c
-c     normal da face
-c
-               xn1 = xn(1)
-               xn2 = xn(2)
-               xn3 = xn(3)
-c
-c     valores exatos dos multiplicadores
-c
-               pix=pi*x1
-               piy=pi*x2
-               piz=pi*x3
-               sx=dsin(pix)
-               sy=dsin(piy)
-               sz=dsin(piz)
-               cx=dcos(pix)
-               cy=dcos(piy)
-               cz=dcos(piz)
-c
-               pi2=pi*pi
-               xinveps = eps**(-1.0)
-               co=1.d00
-c
-c     valor exato do multiplicador
-c
-               dhs = gf1*sx*sy*sz
-     &          + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-     &          - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
-     &          + gf3*1.d00
-c
-               bn = b1*xn1 + b2*xn2 + b3*xn3
-c
-               do j=1,nenp
-                  nbj = ned*(j-1)
-                  nbj1=nbj+1
-                  djx=shgpsd(1,j,lb)*detpn(ls)*wn(ls)
-                  djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)
-                  djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)
-                  djn=shgpsd(4,j,lb)*detpn(ls)*wn(ls)
-c
-                  gjn = djx*xn1 + djy*xn2 + djz*xn3
-c
-                  elfbb(nbj1) = elfbb(nbj1)
-     &                        + eps*(betah*dhs*djn - dhs*gjn)
-     &                        + upwind*dhs*max(0.d00,-bn)*djn
-c
-                  do i=1,nenp
-                     nbi =ned*(i-1)
-                     nbi1=nbi+1
-                     dix=shgpsd(1,i,lb)
-                     diy=shgpsd(2,i,lb)
-                     diz=shgpsd(3,i,lb)
-                     din=shgpsd(4,i,lb)
-c
-                     gin = dix*xn1 + diy*xn2 + diz*xn3
-c
-                     elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
-     &                                - eps*(gin*djn + din*gjn)
-     &                                + eps*betah*din*djn
-     &                                + upwind*din*max(0.d00,-bn)*djn
-                  end do
-               end do
-c
- 1000       continue
- 4000    continue
-
-c
-c     projecao local primal
-c
-         call solvetdg(elmbb,elfbb,neep)
-c
-c     projecao local do potencial
-c
-         do j=1,nenp
-            ddis(1,j,nel) = elfbb(j)
-         end do         
-c
-c     debug - confere valor nodal da flux0
-c
-c$$$         write(*,*)
-c$$$         write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
-c$$$c        tamanho do loop (conferir)          
-c$$$         do i=1,npars
-c$$$            axx = xls(1,i)
-c$$$            ayy = xls(2,i)
-c$$$            azz = xls(3,i)
-c$$$            pix = pi*axx
-c$$$            piy = pi*ayy
-c$$$            piz = pi*azz
-c$$$            sx = dsin(pix)
-c$$$            sy = dsin(piy)
-c$$$            sz = dsin(piz)
-c$$$            xexx = sx*sy*sz
-c$$$            write(*,'(10F8.4)') axx, ayy, azz, xexx, elfbb(i),
-c$$$     &                                  dabs(xexx-elfbb(i))
-c$$$         end do
-c
- 500  continue
-c
-c$$$      nm = nedge*npars
-c$$$      write(*,*)
-c$$$      write(*,*) "array de multiplicadores - pos flux0"
-c$$$      do kk=1,nm
-c$$$         write(*,'(I5,F8.4)') kk, d(1,kk)
-c$$$         if(mod(kk,4).eq.0) then
-c$$$            write(*,*) " "
-c$$$         end if
-c$$$      end do
-c
-      return
-      end
-
 c------------------------------------------------------------------------------
       subroutine flux2(ien   ,x     ,xl    ,
      &                 d     ,dl    ,mat   ,
@@ -7992,10 +7389,8 @@ c     centroide
 c
          call centroid(xl,nsd,nen,coo)
 c
-c     material prop
-c
-         m = mat(nel)
-c
+c     global shape functions
+c         
          if(nsd.eq.2) then
             write(*,*) "2d not working"
             stop
@@ -8020,19 +7415,17 @@ c
 c
 c     calculo de h - caracteristico para cada elemento
 c
-         if(nen.eq.3.or.nen.eq.6) then
-            h2=xl(1,2)*xl(2,3)+xl(1,1)*xl(2,2)+xl(1,3)*xl(2,1)
-     &           -xl(1,1)*xl(2,3)-xl(1,2)*xl(2,1)-xl(1,3)*xl(2,2)
-            h2=h2*pt5
-            h=dsqrt(h2)
-         else
-            h2=0
-            do l=1,2
-               h2=h2+(xl(1,l)-xl(1,l+2))**2+(xl(2,l)-xl(2,l+2))**2
-            end do
-            h=dsqrt(h2)/2.d00
-            h2=h*h
-         end if
+         h2=0
+         do l=1,2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+     &              + (xl(3,l)-xl(3,l+2))**2
+         end do
+         h=dsqrt(h2)/2.d00
+         h2=h*h
+c
+c     material prop
+c
+         m = mat(nel)         
 c
 c     set up material properties
 c         
@@ -8046,26 +7439,15 @@ c
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
-         gamas  = gama
-c
-c$$$         write(*,"(A,F10.6)") "delta1",delta1
-c$$$         write(*,"(A,F10.6)") "delta2",delta2
-c$$$         write(*,"(A,F10.6)") "betah ",betah
-c$$$         write(*,"(A,F10.6)") "gama  ",gama
-c$$$         write(*,"(A,F10.6)") "gf10  ",gf10
-c$$$         write(*,"(A,F10.6)") "teta  ",teta
-c$$$         write(*,"(A,F10.6)") "dtime ",dtime
-c$$$         write(*,"(A,F10.6)") "alf   ",alf
-c$$$         write(*,"(A,F10.6)") "dtm0  ",dtm0
-c$$$         write(*,"(A,F10.6)") "dtm1  ",dtm1
-c$$$         write(*,"(A,F10.6)") "gamas ",gamas                
+         gamas  = gama            
 c
 c     loop on integration points
 c
          do l=1,nint
             c1=detp(l)*w(l)
 c
-c     f = gf1*sin(pix)*sin(piy) + gf2*cos(pix)*cos(piy)
+c     source term f
+c     f = 0 
 c
             xx = 0.d00
             yy = 0.d00
@@ -8159,18 +7541,14 @@ c
             call cross(vab,vad,xn)
             call nrm3(xn)
             dotcn = dot3(vc,xn)
-
             if(dotcn.lt.0.d0) then
                sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             else
                sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             end if
+            do nn=1,nenlad
+               idlsd(nn) = idside(ns,nn)
+            end do
 c
 c     confere nos globais depois que trocou (ou nao)
 c
@@ -8189,6 +7567,12 @@ c
             xn(1)=sign*xn(1)
             xn(2)=sign*xn(2)
             xn(3)=sign*xn(3)
+c
+c     normal da face
+c
+            xn1 = xn(1)
+            xn2 = xn(2)
+            xn3 = xn(3)            
 c
 c     localize the coordinates of the side nodes
 c
@@ -8243,12 +7627,6 @@ c
                   x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c
-c     normal da face
-c
-               xn1 = xn(1)
-               xn2 = xn(2)
-               xn3 = xn(3)
-c
 c     jump terms
 c
                do j=1,nenp
@@ -8279,7 +7657,7 @@ c
                   end do
                end do
 c
-c     monta matriz xxx
+c     monta matrizez Cb e Bc
 c
                do j=1,npars
 c
@@ -8318,7 +7696,7 @@ c
                   end do
                end do
 c
-c     monta matriz yyy
+c     monta matriz Bc e Cb
 c
                do j=1,npars
                   ncj1 = (ns-1)*npars + j
@@ -8669,18 +8047,19 @@ c ------------------------------------------------------------------------------
 c      
       do nel=1,numel
 c
-         m = mat(nel)
-c
 c     calculo de h - caracteristico para cada elemento
-c     
-         h2=0
+c
+         h2 = 0
          do l=1,2
             h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+     &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h = dsqrt(h2)/2.d00
+         h2 = h*h
 c     
 c     set up material properties
-c     
+c
+         m = mat(nel)
          delta1 = c(1,m)
          delta2 = c(2,m)
          betah  = delta1*h**delta2
@@ -8840,20 +8219,13 @@ c
 c     form stiffness matrix
 c     calculo de h - caracteristico para cada elemento
 c
-         if(nen.eq.3.or.nen.eq.6) then
-            h2 =  xl(1,2)*xl(2,3)+xl(1,1)*xl(2,2)+xl(1,3)*xl(2,1)
-     &           -xl(1,1)*xl(2,3)-xl(1,2)*xl(2,1)-xl(1,3)*xl(2,2)
-            h2 = h2*pt5
-            h = dsqrt(h2)
-         else
-            h2 = 0
-            do l=1,2
-               h2 = h2+(xl(1,l)-xl(1,l+2))**2+(xl(2,l)-xl(2,l+2))**2
-            end do
-            h = dsqrt(h2)/2.d00
-            h2 = h*h
-c
-         end if
+         h2 = 0
+         do l=1,2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+     &              + (xl(3,l)-xl(3,l+2))**2
+         end do
+         h = dsqrt(h2)/2.d00
+         h2 = h*h
 c
 c     set up material properties
 c     
@@ -8953,15 +8325,12 @@ c
             dotcn = dot3(vc,xn)
             if(dotcn.lt.0.d0) then
                sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             else
                sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             end if
+            do nn=1,nenlad
+               idlsd(nn) = idside(ns,nn)
+            end do            
 c     
 c     confere nos globais depois que trocou (ou nao)
 c     
@@ -8980,6 +8349,12 @@ c
             xn(1)=sign*xn(1)
             xn(2)=sign*xn(2)
             xn(3)=sign*xn(3)
+c     
+c     normal da face
+c     
+            xn1 = xn(1)
+            xn2 = xn(2)
+            xn3 = xn(3)            
 c     
 c     localize the coordinates of the side nodes
 c     
@@ -9033,12 +8408,6 @@ c
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(2,i)*shlb(3,i,ls)
                end do
-c     
-c     normal da face
-c     
-               xn1 = xn(1)
-               xn2 = xn(2)
-               xn3 = xn(3)
 c          
 c     jump terms
 c     
@@ -9135,29 +8504,9 @@ c
 c     end of element loop ------------------------------------------------------
       
 c
-c     solve system
-c      
-c      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
-c      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
+c     solve system    
 c     
       call UserDoLinearSolver(userctx,xbrhs)
-c
-c      write(*,*) "b"
-c      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      write(*,*)
-c      write(*,*)
-      
-c      write(*,*) "x"
-c      call VecView(xsol,PETSC_VIEWER_STDOUT_SELF,ierr)
-c      write(*,*)
-c      write(*,*)
-      
-c     debug solution
-c      
-c$$$      if(it.eq.100) then
-c$$$         call VecView(xsol,PETSC_VIEWER_STDOUT_SELF,ierr)
-c$$$         write(*,*) (xbrhs(i),i=1,neq)
-c$$$      end if
 c
 c     copy solution from brhs to d
 c     
@@ -9211,21 +8560,14 @@ c
 c     
 c     form stiffness matrix
 c     calculo de h - caracteristico para cada elemento
-c     
-         if(nen.eq.3.or.nen.eq.6) then
-            h2 =  xl(1,2)*xl(2,3)+xl(1,1)*xl(2,2)+xl(1,3)*xl(2,1)
-     &           -xl(1,1)*xl(2,3)-xl(1,2)*xl(2,1)-xl(1,3)*xl(2,2)
-            h2 = h2*pt5
-            h = dsqrt(h2)
-         else
-            h2 = 0
-            do l=1,2
-               h2 = h2+(xl(1,l)-xl(1,l+2))**2+(xl(2,l)-xl(2,l+2))**2
-            end do
-            h = dsqrt(h2)/2.d00
-            h2 = h*h
-c     
-         end if
+c
+         h2 = 0
+         do l=1,2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+     &              + (xl(3,l)-xl(3,l+2))**2
+         end do
+         h = dsqrt(h2)/2.d00
+         h2 = h*h
 c     
 c     set up material properties
 c     
@@ -9274,15 +8616,12 @@ c
             dotcn = dot3(vc,xn)
             if(dotcn.lt.0.d0) then
                sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             else
-               sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
+               sign = -1.d00            
             end if
+            do nn=1,nenlad
+               idlsd(nn) = idside(ns,nn)
+            end do            
 c     
 c     confere nos globais depois que trocou (ou nao)
 c     
@@ -9302,6 +8641,12 @@ c
             xn(2)=sign*xn(2)
             xn(3)=sign*xn(3)
 c     
+c     normal da face
+c     
+            xn1 = xn(1)
+            xn2 = xn(2)
+            xn3 = xn(3)            
+c     
 c     localize the coordinates of the side nodes
 c     
             do nn=1,nenlad
@@ -9309,7 +8654,7 @@ c
                xls(1,nn) = xl(1,nl)
                xls(2,nn) = xl(2,nl)
                xls(3,nn) = xl(3,nl)
-            end do
+            end do        
 c     
 c     global shape functions
 c     
@@ -9346,17 +8691,12 @@ c
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(2,i)*shlb(3,i,ls)
                end do
-c     
-c     normal da face
-c     
-               xn1 = xn(1)
-               xn2 = xn(2)
-               xn3 = xn(3)
+
 c
 c     DEBUG: forcar o multiplicador EXATO
 c
-c               dhs = dexp(-3.d00*pi2*tempo)*
-c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
+c$$$               dhs = dexp(-3.d00*pi2*tempo)*
+c$$$     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
 c     
                do j=1,nenp
                   nbj = ned*(j-1)
@@ -9369,134 +8709,12 @@ c
                   gjn=djx*xn1 + djy*xn2 + djz*xn3
 c     
                   elfbb(nbj1) = elfbb(nbj1) + teta*dhs*gjn
+     &                        + betah*dhs*djn
                end do
             end do
 c     
  4004    continue
-         
-c ------------------------------------------------------------------------------
-c     boundary terms - penalty
-c ------------------------------------------------------------------------------
-
-         do 8000 ns=1,nside
-c     
-c     localiza os parametros do lado ns
-c     
-            do nn=1,npars
-               nld = (ns-1)*npars + nn
-               dls(nn) = dl(1,nld)
-            end do
-c     
-c     localiza os no's do lado ns
-c     
-            ns1 = idside(ns,1)
-            ns2 = idside(ns,2)
-            ns3 = idside(ns,3)
-            ns4 = idside(ns,4)
-
-            nl1 = ien(ns1,nel)
-            nl2 = ien(ns2,nel)
-            nl3 = ien(ns3,nel)
-            nl4 = ien(ns4,nel)
-c     
-c     calcula sign para a aresta/face
-c     
-            call vec3sub(xl(1,ns2), xl(1,ns1), vab)
-            call vec3sub(xl(1,ns4), xl(1,ns1), vad)
-            call vec3sub(coo,xl(1,ns1),vc)
-            call cross(vab,vad,xn)
-            call nrm3(xn)
-            dotcn = dot3(vc,xn)
-            if(dotcn.lt.0.d0) then
-               sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
-            else
-               sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
-            end if
-c     
-c     confere nos globais depois que trocou (ou nao)
-c     
-            ns1=idlsd(1)
-            ns2=idlsd(2)
-            ns3=idlsd(3)
-            ns4=idlsd(4)
-c     
-            nl1=ien(ns1,nel)
-            nl2=ien(ns2,nel)
-            nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)
-c     
-c     ajeita a normal com o sinal
-c     
-            xn(1)=sign*xn(1)
-            xn(2)=sign*xn(2)
-            xn(3)=sign*xn(3)
-c     
-c     localize the coordinates of the side nodes
-c     
-            do nn=1,nenlad
-               nl = idlsd(nn)
-               xls(1,nn) = xl(1,nl)
-               xls(2,nn) = xl(2,nl)
-               xls(3,nn) = xl(3,nl)
-            end do
-c     
-c     global shape functions
-c     
-            if(nesd.eq.2) then
-               call oneshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad,npars,nints,nesd,ns,nel,neg)
-            else if(nesd.eq.3) then
-               call twoshgp(xls,detpn,shlb,shlpn,shgpn,
-     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
-            end if
-c     
-c     compute boundary integral
-c     
-            do ls=1,nints
-               lb=(ns-1)*nints+ls           
-c     
-c     valores dos parametros do multiplicador
-c     
-               dhs = 0.d00
-               do i = 1,npars
-                  dhs = dhs + dls(i)*shlpn(3,i,ls)
-               end do
-c
-c     DEBUG GAMBIARRA: forcar o multiplicador EXATO
-c               
-               x1 = 0.d00
-               x2 = 0.d00
-               x3 = 0.d00
-               do i=1,nenlad
-                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
-                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
-               end do
-c
-               
-c               dhs = dexp(-3.d00*pi2*tempo)*
-c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)   
-               
-c
-c     TODO: nao precisa de: geometria e normal aqui
-c     
-               do j=1,nenp
-                  nbj = ned*(j-1)
-                  nbj1=nbj+1
-                  djn=shgpsd(4,j,lb)*detpn(ls)*wn(ls)*dtm1
-c     
-                  elfbb(nbj1) = elfbb(nbj1) + betah*dhs*djn
-               end do
-            end do
-c     
- 8000    continue
-         
+                 
 c ------------------------------------------------------------------------------
 c     Local TLDG-solution (potencial)
 c ------------------------------------------------------------------------------
@@ -9633,45 +8851,45 @@ c
       
 c ----------------------------------------------------------------------      
       subroutine flninter(ien   ,x     ,xl   ,
-     &                 d     ,dl    ,mat   ,
-     &                 c     ,ipar  ,dlf   ,
-     &                 dlp   ,dsfl  ,det   ,
-     &                 shl   , shg  ,wt    ,
-     &                 detc  ,shlc  , shgc ,
-     &                 ddis  ,detp  ,shlp  ,
-     &                 shgp ,
-c
-     &                 shln  ,shgn  ,
-     &                 detn  ,shlb  ,shgb  ,
-     &                 detpn ,shlpn ,shgpn ,
-     &                 idside,xls   ,idlsd ,
-     &                 grav  ,wn    ,
-c
-     &                 numel ,neesq ,nen   ,nsd   ,
-     &                 nesd  ,nint  ,neg   ,nrowsh,
-     &                 ned   ,nee   ,numnp ,ndof  ,
-     &                 ncon  ,nencon,necon ,index ,
-     &                 nints,iplt ,nenp   ,
-     &                 nside,nnods ,nenlad,npars  ,
-     &                 nmultp, nodsp)
+     &     d     ,dl    ,mat   ,
+     &     c     ,ipar  ,dlf   ,
+     &     dlp   ,dsfl  ,det   ,
+     &     shl   , shg  ,wt    ,
+     &     detc  ,shlc  , shgc ,
+     &     ddis  ,detp  ,shlp  ,
+     &     shgp ,
+c     
+     &     shln  ,shgn  ,
+     &     detn  ,shlb  ,shgb  ,
+     &     detpn ,shlpn ,shgpn ,
+     &     idside,xls   ,idlsd ,
+     &     grav  ,wn    ,
+c     
+     &     numel ,neesq ,nen   ,nsd   ,
+     &     nesd  ,nint  ,neg   ,nrowsh,
+     &     ned   ,nee   ,numnp ,ndof  ,
+     &     ncon  ,nencon,necon ,index ,
+     &     nints,iplt ,nenp   ,
+     &     nside,nnods ,nenlad,npars  ,
+     &     nmultp, nodsp)
 c-----------------------------------------------------------------------
 c     Some variables used in this subroutine
-c            j: degree of freedom (1,...ncon)
-c         u(j): finite element solution
-c        du(j): derivative of finite element solution
-c        ue(j): exact solution
-c       due(j): derivative of exact solution
-c       el2(j): error in L2
-c      epri(j): error in the seminorm of H1 (L2 of derivatives)
+c     j: degree of freedom (1,...ncon)
+c     u(j): finite element solution
+c     du(j): derivative of finite element solution
+c     ue(j): exact solution
+c     due(j): derivative of exact solution
+c     el2(j): error in L2
+c     epri(j): error in the seminorm of H1 (L2 of derivatives)
 c     el2el(j): error in L2 in the element domain
-c    epriel(j): error in the seminorm of H1 in the element domain
+c     epriel(j): error in the seminorm of H1 in the element domain
 c-----------------------------------------------------------------------
-c    Program to calculate and print the L2 and H1 seminorm of the error
-c    for each degree of freedom in the finite element solution .
-c    The trapezoidal rule is used for integration in each element .
-c    The number of integration points is given by nints .
-c    This version is only applicable to 2D.
-c
+c     Program to calculate and print the L2 and H1 seminorm of the error
+c     for each degree of freedom in the finite element solution .
+c     The trapezoidal rule is used for integration in each element .
+c     The number of integration points is given by nints .
+c     This version is only applicable to 2D.
+c     
       implicit real*8 (a-h,o-z)
 c     
       character *1 tab
@@ -9727,8 +8945,7 @@ c
          call shapen(sxlhv,nen,nencon)
       else
          stop
-      endif
-      
+      endif      
 c     
 c     loop on elements
 c     
@@ -9951,9 +9168,9 @@ c
 c     valor exato do multiplicador
 c     
                dhse = gf1*sx*sy
-     &           + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - exp((x1
-     &           - 1.d00)/eps))*(1.d00 - exp((x2 - 1.d00)/eps)))
-     &           + gf3*1.d00
+     &             + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00-exp((x1
+     &             - 1.d00)/eps))*(1.d00 - exp((x2 - 1.d00)/eps)))
+     &             + gf3*1.d00
 c     
                xmlte = xmlte + cwn*(dhse-dhs)**2
 c     
@@ -10252,6 +9469,8 @@ c
             xn(2) = sign*xn(2)
             xn(3) = sign*xn(3)
 c
+c     recupera coordenadas locais
+c            
             do nn=1,nenlad
                nl = idlsd(nn)
                xls(1,nn) = xl(1,nl)
@@ -10488,10 +9707,6 @@ c
 c         
 c        dhse = dexp(-3.d00*pi2*tempo)*sx*sy*sz         
 c        dhse = gf1*sx*sy*sz
-         
-c     &        + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-c     &        - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
-c     &        + gf3*1.d00         
 c         
          do j=1,npars
             djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)
@@ -10512,7 +9727,6 @@ c
       end do
 c
       call invmb(aa,36,npars)
-c      call invmb(aa,npars,npars)      
 c
       do i=1,npars
          dls(i) = 0.d00
@@ -10542,17 +9756,6 @@ c
 c     B Xb = Fb
 c      
       call invmb(elmbb,neep,neep)
-
-c
-c     TESTs using LAPACK
-c                  
-c      call myinv(elmbb,neep)
-c      write(*,*) "neep",neep
-c      do i=1,neep
-c         write(*,"(20F10.6)") (elmbb(i,j),j=1,neep)
-c      end do         
-c      stop
-      
 c
 c     Aa = A^{-1} Fa
 c
@@ -10571,46 +9774,7 @@ c
 c
       return
       end
-      
-c-----------------------------------------------------------------------      
-      subroutine myinv(am,n)
-c-----------------------------------------------------------------------
-c     Returns the inverse of a matrix calculated by finding the LU
-c     decomposition.  Depends on LAPACK.
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-      dimension am(n,n)
-      dimension work(n)  ! work array for LAPACK
-      dimension ipiv(n)  ! pivot indices
-c      
-c     External procedures defined in LAPACK
-c      
-      external DGETRF
-      external DGETRI
-c      
-c     Store A in Ainv to prevent it from being overwritten by LAPACK
-c     Ainv = A      
-c      
-c     DGETRF computes an LU factorization of a general M-by-N matrix A
-c     using partial pivoting with row interchanges.
-c      
-      call DGETRF(n, n, am, n, ipiv, info)      
-c      
-      if (info /= 0) then
-         stop 'Matrix is numerically singular!'
-      end if
-c      
-c     DGETRI computes the inverse of a matrix using the LU factorization
-c     computed by DGETRF.
-c      
-      call DGETRI(n, am, n, ipiv, work, n, info)
-c
-      if (info /= 0) then
-         stop 'Matrix inversion failed!'
-      end if
-c      
-      end
-      
+           
 c-----------------------------------------------------------------------
       subroutine invmb(am,ndim,m)
 c-----------------------------------------------------------------------
