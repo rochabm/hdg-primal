@@ -5355,11 +5355,7 @@ c$$$      call move(shg,shl,4*nen*nint)
 c$$$c    
 c
 c     calcula centroide do elemento
-c
-      write(*,*) nen,nenode
-      stop
-      call centroid(xl,nsd,nenode,coo)
-      
+c     
       co(1) = 0.d0
       co(2) = 0.d0
       co(3) = 0.d0
@@ -5371,7 +5367,7 @@ c
       co(1)=co(1)/8.d0
       co(2)=co(2)/8.d0
       co(3)=co(3)/8.d0
-
+      
       if(nside.ne.6) then
          write(*,'(A,I5)') "ERROR: nside in shgthxsd must be 6"
          stop
@@ -7467,8 +7463,8 @@ c
             pi2 = pi*pi
             co = 1.d00
 c
-            pss = 0.d000
-c           pss = 3.d00*pi2*sx*sy*sz
+c            pss = 0.d000
+            pss = sx*sy*sz
 c           pss = sx*sy*sz
             
 c     ------------------------------------------------------------------
@@ -8024,6 +8020,7 @@ c
 c     solution in one point
 c
       npsol = (numnp+1)/2
+      write(*,*) "NPSOL",npsol
       do i=1,nen
         sol(i) = 0.d00
       end do
@@ -8071,10 +8068,13 @@ c
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
          gamas  = gama
-c     
+c
+         write(*,*) nen, nenp
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c     
-         do i=1,nenp
+c
+c     TODO: check if it is nen or nenp here
+c        
+         do i=1,nen
 c     
             xx=xl(1,i)
             yy=xl(2,i)
@@ -8090,7 +8090,13 @@ c
 c
 c     save initial condition
 c            
-            ddis(1,i,nel) = sx*sy*sz            
+
+c     ddis(1,i,nel) = sx*sy*sz
+            ddis(1,i,nel) = 0.d00
+            
+c            write(*,"(10E12.4)") xx,yy,zz
+c            ,pix,piy,piz,sx,sy,sz,ddis(1,i,nel)
+            
 c
 c     save data at npsol point
 c            
@@ -8099,7 +8105,7 @@ c
                sol(isol) = cat0
                isol = isol + 1
             end if
-         end do         
+         end do
       end do
 c
       exat = 1.d00
@@ -8111,7 +8117,7 @@ c
 c     write initial condition
 c     
       write(30,555) it,tempo,exat,(sol(i),i=1,4)
-      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+ccc      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
       call clear(d,ndof*nmultp)
 c
@@ -8695,8 +8701,8 @@ c
 c
 c     DEBUG: forcar o multiplicador EXATO
 c
-c$$$               dhs = dexp(-3.d00*pi2*tempo)*
-c$$$     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
+c               dhs = dexp(-3.d00*pi2*tempo)*
+c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
 c     
                do j=1,nenp
                   nbj = ned*(j-1)
@@ -8767,9 +8773,9 @@ c
 c      
  555  format(i10,6e15.5)
 
-c      if(mod(it,100).eq.0) then
-      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
-c      end if
+ccc      if(mod(it,100).eq.0) then
+ccc      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+ccc      end if
       
 c ------------------------------------------------------------------------------
  5555 continue
@@ -9393,6 +9399,8 @@ c
             dpey = dpey + ct*(pey-duey(3))**2
             dpez = dpez + ct*(pez-duez(3))**2
 c
+c            write(*,*) n,l,u(1),ue(1),u(2),ue(2),pe,ue(3)
+c           
             if(iwrite.ne.0) then
                write(43,2424) n,l,u(1),ue(1),u(2),ue(2),pe,ue(3)
  2424          format(2i10,6e15.5)
@@ -9531,12 +9539,12 @@ c
 c
                pi2 = pi*pi
                xinvpes = eps**(-1.0)
-               co = 1.d00
+               co = 1.d00/(3.d00*pi2)
 c
 c     valor exato do multiplicador
 c
                dcat = dexp(-3.d00*pi2*tempo)
-               dhse = dcat*sx*sy*sz
+               dhse = co*(1.d00-dcat)*sx*sy*sz
 c
 c     calculo do erro do multiplicador
 c               
@@ -9654,8 +9662,8 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,eps,pi,
-     &                   nints,nenlad,npars)
+      subroutine drchbc3(shgpn,shlb,detpn,wn,ggf1,ggf2,ggf3,xls,dls,eps,
+     &                   pi,nints,nenlad,npars)
 c-----------------------------------------------------------------------
 c     Dirichlet boundary conditions
 c     Currently it supports p=6 (7^2=49x49)
@@ -9665,6 +9673,9 @@ c
       dimension shlb(3,nenlad,*),shgpn(3,npars,*),xls(3,*)
       dimension detpn(*),wn(*),dls(*)      
       dimension aa(36,36),bb(36)
+      dimension ue(6),duex(6),duey(6),duez(6)
+c
+      common /times/ dtime,tempo,gf1,gf10
 c
       do i=1,npars
          bb(i) = 0.d00
@@ -9686,27 +9697,14 @@ c
             x3 = x3 + xls(3,i)*shlb(3,i,ls)
          end do
 c
-         pix=pi*x1
-         piy=pi*x2
-         piz=pi*x3
-         sx=dsin(pix)
-         sy=dsin(piy)
-         sz=dsin(piz)
-         cx=dcos(pix)
-         cy=dcos(piy)
-         cz=dcos(piz)
-c
-         pi2=pi*pi
-c         xinvpes = eps**(-1.0)
-         co=1.d00
-         coo=1.d00/(2.d0*pi2)
-c
 c     valor exato do multiplicador
 c
-         dhse = co*sx*sy*sz
+         index = 1
+         call uexafx3(x1,x2,x3,ue,duex,duey,duez,eps,tempo,index)
+         dhse = ue(3)
 c         
+c        dhse = co*(1.d0-cat)*sx*sy*sz         
 c        dhse = dexp(-3.d00*pi2*tempo)*sx*sy*sz         
-c        dhse = gf1*sx*sy*sz
 c         
          do j=1,npars
             djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)
@@ -9746,8 +9744,7 @@ c-----------------------------------------------------------------------
 c
       dimension elmbb(neep,*),elfbb(*)
       dimension fab(343)
-c
-      dimension :: ipiv(343) ! pivot indices       
+      dimension ipiv(343) ! pivot indices
 c      
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
@@ -9902,7 +9899,7 @@ c-----------------------------------------------------------------------
 c
       go to (100) index
 c
-c     PROBLEM 3D: T = exp(-3 pi2 t)sin(pix)sin(piy)sin(piz)
+c     PROBLEM 3D: T = (co/3pi2)*(1-exp(-3 pi2 t))sin(pix)sin(piy)sin(piz)
 c
  100  continue
       pi=4.d00*datan(1.d00)
@@ -9917,7 +9914,7 @@ c
       cy=dcos(py)
       cz=dcos(pz)
       cat=dexp(-3.d0*pi2*tempo)
-      co=1.d00
+      co=1.d00/(3.d0*pi2)
 c
 c     ue(1) e ue(2) sao para darcy
 c     ue(3) a unica que interessa aqui por enquanto
@@ -9925,19 +9922,19 @@ c     similar para duex, duey e duez
 c
       ue(1) = 0.d0
       ue(2) = 0.d0
-      ue(3) = cat*sx*sy*sz
+      ue(3) = co*(1.d0-cat)*sx*sy*sz
 c      
       duex(1) = 0.d0
       duex(2) = 0.d0
-      duex(3) = pi*cat*cx*sy*sz
+      duex(3) = co*pi*(1.d00-cat)*cx*sy*sz
 c
       duey(1) = 0.d0
       duey(2) = 0.d0
-      duey(3) = pi*cat*sx*cy*sz
+      duey(3) = co*pi*(1.d00-cat)*sx*cy*sz
 c
       duez(1) = 0.d0
       duez(2) = 0.d0
-      duez(3) = pi*cat*sx*sy*cz
+      duez(3) = co*pi*(1.d00-cat)*sx*sy*cz
 c
       go to 1001
 c
