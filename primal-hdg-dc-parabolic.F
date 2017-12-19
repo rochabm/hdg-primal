@@ -8117,7 +8117,7 @@ c
 c     write initial condition
 c     
       write(30,555) it,tempo,exat,(sol(i),i=1,4)
-ccc      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
       call clear(d,ndof*nmultp)
 c
@@ -8774,7 +8774,7 @@ c
  555  format(i10,6e15.5)
 
 ccc      if(mod(it,100).eq.0) then
-ccc      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 ccc      end if
       
 c ------------------------------------------------------------------------------
@@ -8823,13 +8823,13 @@ c
 c
 c     escreve VTK
 c      
-      write(66,'(A,I5,A)') "POINTS",8*numel," float"
+      write(66,'(A,I8,A)') "POINTS",8*numel," float"
       do i=1,8*numel
          write(66,*) xnew(1,i), xnew(2,i), xnew(3,i)
       end do
       write(66,*)
       
-      write(66,'(A,2I5)') "CELLS",numel,9*numel
+      write(66,'(A,2I10)') "CELLS",numel,9*numel
       do nel=1,numel
          idn = 8*(nel-1)
          write(66,"(9I5)") 8, idn,   idn+1, idn+2, idn+3,
@@ -8837,13 +8837,13 @@ c
       end do
       write(66,*)
 
-      write(66,'(A,I5)') "CELL_TYPES",numel
+      write(66,'(A,I8)') "CELL_TYPES",numel
       do nel=1,numel
          write(66,"(I2)") 12
       end do
       write(66,*)
 
-      write(66,'(A,I5)') "POINT_DATA",8*numel
+      write(66,'(A,I8)') "POINT_DATA",8*numel
       write(66,'(A)') "SCALARS solution float 1"
       write(66,'(A)') "LOOKUP_TABLE default"
       do nel=1,numel
