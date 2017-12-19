@@ -24,9 +24,10 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
-#  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
+###  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
+#  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g")
+#  set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
   set (CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
@@ -50,12 +51,18 @@ message(STATUS "Build flags: ${CMAKE_Fortran_FLAGS_RELEASE}")
 message(STATUS "Fortran compiler: ${Fortran_COMPILER_NAME}")
 
 #
-# begin of my programs
+# Begin of my programs (single code-single program)
 #
-set(PROGRAMS exvec exksp primal-hdg-dc)
-#add_executable (exvec "exvec.F")
-#add_executable (primal-hdg-dc "primal-hdg-dc.F")
+set(PROGRAMS
+  exvec
+  exksp
+  primal-hdg-dc
+  primal-hdg-dc-monomial
+  primal-hdg-dc-parabolic)
 
+#
+# Program with PETSc (HDG and tests)
+#
 foreach(p ${PROGRAMS})
   add_executable (${p} "${p}.F")
   target_include_directories (${p} PUBLIC
@@ -66,12 +73,17 @@ foreach(p ${PROGRAMS})
   target_link_libraries (${p} LINK_PUBLIC petsc mpifort lapack blas)
 endforeach(p)
 
-#target_include_directories (primal-hdg-dc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-#			   $ENV{PETSC_DIR}/include
-#			   $ENV{PETSC_DIR}/include/mpiuni
-#			   $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include
-#			   )
-#target_link_libraries (primal-hdg-dc LINK_PUBLIC petsc)
+#
+# Program to test cell model (TT2006)
+#
+add_executable (cellmodel "cellmodel.F" "tt2006.F")
 
-
-
+#
+# Programa to monodomain solver - HDG
+#
+add_executable (primal-monodomain "primal-hdg-dc-monodomain.F" "tt2006.F")
+target_include_directories (primal-monodomain PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    $ENV{PETSC_DIR}/include
+    $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
+target_link_libraries (primal-monodomain LINK_PUBLIC petsc mpifort lapack blas)
