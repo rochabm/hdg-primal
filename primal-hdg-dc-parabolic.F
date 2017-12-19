@@ -8832,8 +8832,8 @@ c
       write(66,'(A,2I10)') "CELLS",numel,9*numel
       do nel=1,numel
          idn = 8*(nel-1)
-         write(66,"(9I5)") 8, idn,   idn+1, idn+2, idn+3,
-     &                        idn+4, idn+5, idn+6, idn+7
+         write(66,"(9I10)") 8, idn,   idn+1, idn+2, idn+3,
+     &                         idn+4, idn+5, idn+6, idn+7
       end do
       write(66,*)
 
