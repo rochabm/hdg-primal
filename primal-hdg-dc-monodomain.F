@@ -1,7 +1,16 @@
 c     ******************************************************************
-c     *                                                                *      
-c     *    C A R D I A C   H D G   M O N O D O M A I N   S O L V E R   *
-c     *                                                                *
+c     * Formulacao Hibrida Primal - Prob. Poisson/ConveccaoDifusao     *
+c     *   Multplicador = potencial na interface dos elementos          *
+c     *                   Setembro de 2016                             *
+c     ******************************************************************
+c      Residuo no interior dos elementos:
+c         (grad u , grad v ) + (grad u,v) - (f,v)
+c
+c      Termos de saltos nas arestas:
+c        beta(u - up, v-vp)
+c        -(grad(u).n , (v-vp))
+c        lambda((u-up) , grad(v).n)
+c
 c     ******************************************************************
 c
 c     program to set storage capacity, precision and input/output units
@@ -5657,6 +5666,12 @@ c
       mxvla   = 70
       mxvlb   = 71
 c
+c     new for monodomain
+c
+      mxvm    = 72
+      mxsv    = 73
+      
+c
 c     parametros
 c
       ntype  = npar( 1)
@@ -5919,6 +5934,13 @@ c
          mp(mxvla) = mpoint('xvla   ',nints ,nedge   ,0     ,iprec)
          mp(mxvlb) = mpoint('xvlb   ',nints ,nedge   ,0     ,iprec)
 c
+c     new for monodomain
+c
+c         nsv = 19
+         nsv = 2
+         mp(mxvm) = mpoint('xvm   ',nenp ,neep   ,0     ,iprec)
+         mp(mxsv) = mpoint('xsv   ',nsv  ,nenp   ,neep   ,iprec)         
+c
       endif
 c
 c     task calls
@@ -6048,7 +6070,8 @@ c
      &                 nenlad,npars ,nside ,
      &                 nenp  ,nodsp ,index ,
      &                 nface ,nmultp, a(mp(mlm)),
-     &                 a(mp(mxbrhs)),userctx)
+     &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
+     &                 userctx)
 
       write(*,'(A)') "fim da flux3primal"
 c
@@ -7454,8 +7477,7 @@ c
             pi2 = pi*pi
             co = 1.d00
 c
-c            pss = 0.d000
-            pss = sx*sy*sz
+            pss = 0.0d00
 c           pss = sx*sy*sz
             
 c     ------------------------------------------------------------------
@@ -7584,18 +7606,18 @@ c     Dirichlet boundary conditions on the multiplier
 c
             ndgs = lado(ns,nel)
 c
-            if(ideg(1,ndgs).eq.1) then
-               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
-     &              gama,pi,nints,nenlad,npars)
-c
-               ngs = npars*(ndgs-1)
-               nls = npars*(ns-1)
-               do i=1,npars
-                  index = ipar(nls+i,nel)
-                  d(1,index) = dls(i)                  
-                  dl(1,nls + i) = dls(i)
-               end do
-            end if       
+c$$$            if(ideg(1,ndgs).eq.1) then
+c$$$               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
+c$$$     &              gama,pi,nints,nenlad,npars)
+c$$$c
+c$$$               ngs = npars*(ndgs-1)
+c$$$               nls = npars*(ns-1)
+c$$$               do i=1,npars
+c$$$                  index = ipar(nls+i,nel)
+c$$$                  d(1,index) = dls(i)                  
+c$$$                  dl(1,nls + i) = dls(i)
+c$$$               end do
+c$$$            end if       
 c
 c     compute boundary integral
 c
@@ -7917,7 +7939,8 @@ c
      &                       nenlad,npars ,nside ,
      &                       nenp  ,nodsp ,index ,
      &                       nface ,nmultp,lm    ,
-     &                       xbrhs, userctx)
+     &                       xbrhs ,xvm   ,xsv   ,
+     &                       userctx)
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
 c        plane elasticity element and
@@ -7983,6 +8006,10 @@ c
       dimension xbrhs(*), id(ndof,*)
       dimension ideg(ndof,*)
 c
+c     new monodomain
+c
+      dimension xvm(nenp,*), xsv(2,nenp,*), xdsv(2)
+c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc/ neq
@@ -7993,7 +8020,7 @@ c     initialization
 c ------------------------------------------------------------------------------
 c
 c     PETSc stuff
-c      
+c
       xsol = userctx(1)
       b    = userctx(2)
       A    = userctx(3)
@@ -8030,6 +8057,15 @@ c ------------------------------------------------------------------------------
 c     initial condition
 c ------------------------------------------------------------------------------      
 
+      write(*,*) "initial condition for monodomain"
+      do nel=1,numel
+         do i=1,nenp
+ccc         call tt2006_init(2, xsv(1,i,nel))
+            call fhn_init(2, xsv(1,i,nel))
+            xvm(i,nel) = xsv(1,i,nel)
+         end do        
+      end do
+      
       write(*,*) "initial condition"      
       gf20 = 0.d00
 c      
@@ -8060,54 +8096,33 @@ c
          dtm1   = alf*dtime
          gamas  = gama
 c
-         write(*,*) nen, nenp
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c
 c     TODO: check if it is nen or nenp here
 c        
-         do i=1,nen
-c     
-            xx=xl(1,i)
-            yy=xl(2,i)
-            zz=xl(3,i)
-            pix=pi*xx
-            piy=pi*yy
-            piz=pi*zz
-            sx=dsin(pix)
-            sy=dsin(piy)
-            sz=dsin(piz)     
-            pi2=pi*pi
-            co=1.d00/(pi2*2.d00+gama)
+         do i=1,nenp
 c
 c     save initial condition
 c            
-
-c     ddis(1,i,nel) = sx*sy*sz
-            ddis(1,i,nel) = 0.d00
-            
-c            write(*,"(10E12.4)") xx,yy,zz
-c            ,pix,piy,piz,sx,sy,sz,ddis(1,i,nel)
-            
+            ddis(1,i,nel) = xvm(i,nel)
+c            ddis(1,i,nel) = 0.d00
 c
 c     save data at npsol point
 c            
             if(ien(i,nel).eq.npsol) then
-               cat0 = sx*sy*sz
-               sol(isol) = cat0
-               isol = isol + 1
+               sol(isol) = xvm(i,nel)
             end if
          end do
       end do
 c
-      exat = 1.d00
-c
       it    = 0
       tempo = 0.d00
+c      
       write(*,"(A,I5,F10.4)") "Tempo",it,tempo
 c
 c     write initial condition
 c     
-      write(30,555) it,tempo,exat,(sol(i),i=1,4)
+      write(30,555) it,tempo,(sol(i),i=1,4)
       call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
       call clear(d,ndof*nmultp)
@@ -8143,6 +8158,64 @@ c
 c         
          write(*,*) ""
          write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+
+
+c ------------------------------------------------------------------------------
+c     solve ODEs
+c ------------------------------------------------------------------------------
+         
+         do nel=1,numel
+c            
+            call local(ien(1,nel),x,xl,nen,nsd,nesd)
+c            
+            do i=1,nenp
+
+               xx = xl(1,i)
+               yy = xl(2,i)
+               zz = xl(3,i)
+
+               xstim = 0.0d0
+               
+               if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
+                  
+c                  if(xx.gt.0.0.and.xx.lt.50.0.and.
+c     &               yy.gt.0.0.and.yy.lt.50.0.and.
+c     &               zz.gt.0.0.and.zz.lt.50.0) then
+c                     xstim = 1.5d0
+c                  end if                 
+               end if
+               
+c
+c     compute RHS of the ODES
+c
+               xdsv(1) = 0.0d0
+               xdsv(2) = 0.0d0
+ccc            call tt2006_equation(19, dt, xsv(1,i,nel), xdsv, xstim)
+               call fhn_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
+c
+c     advance with euler method
+c
+               do j=1,2
+                  xsv(j,i,nel) = xsv(j,i,nel) + dtime * xdsv(j)
+               end do
+c
+c     copy back to Vm array
+c
+c               xvm(i,nel) = xsv(1,i,nel)
+c               
+            end do        
+         end do
+
+         do i=1,nenp
+            do j=1,numel               
+c               ddis(1,i,j) = xsv(1,i,j)           
+            end do
+         end do
+
+         write(666,*) (xsv(1,1,e),e=1,numel)
+         
+c ------------------------------------------------------------------------------    
+         
 c     
 c     guarda valor anterior
 c        p^(n+1) -> ddis
@@ -8158,7 +8231,8 @@ c     clear PETSc Vec b and fortran brhs
 c
          call clear(xbrhs,neq)        
          call VecSet(b,0.d00,ierr)
-         CHKERRQ(ierr)
+         CHKERRQ(ierr)     
+       
 
 c ---  element loop ------------------------------------------------------------
          do 500 nel=1,numel
@@ -8183,24 +8257,7 @@ c
 c
 c     check dimension 2D / 3D
 c
-         if(nsd.eq.2) then
-            quad = .true.
-            if (nen.eq.4.and.ien(3,nel).eq.ien(4,nel)) quad = .false.
-            call shgqs(xl,detc,shlc,shgc,nint,nel,neg,quad,nencon,
-     &           shl,nen)
-            call shgqs(xl,detp,shlp,shgp,nint,nel,neg,quad,nenp,
-     &            shl,nen)
-c           call shgq(xl,det,shl,shg,nint,nel,neg,quad,nen)
-c
-            nintb=nside*nints
-c
-            call shgtqsd(ien(1,nel),xl,shlpsd,shgpsd,
-     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgtqsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
-c
-         else if(nsd.eq.3) then
-c            
+         if(nsd.eq.3) then    
             call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
@@ -8376,19 +8433,19 @@ c     Dirichlet boundary conditions
 c
             ndgs = lado(ns,nel)
 c
-            if(ideg(1,ndgs).eq.1) then
-               call drchbc3(shgpn,shlb,detpn,wn,
-     &                      gf1,gf2,gf3,xls,dls,
-     &                      gama,pi,nints,nenlad,npars)
-c
-               ngs = npars*(ndgs-1)
-               nls = npars*(ns-1)
-               do i=1,npars
-                  index = ipar(nls+i,nel)
-                  d(1,index) = dls(i)                  
-                  dl(1,nls + i) = dls(i)
-               end do
-            end if
+c$$$            if(ideg(1,ndgs).eq.1) then
+c$$$               call drchbc3(shgpn,shlb,detpn,wn,
+c$$$     &                      gf1,gf2,gf3,xls,dls,
+c$$$     &                      gama,pi,nints,nenlad,npars)
+c$$$c
+c$$$               ngs = npars*(ndgs-1)
+c$$$               nls = npars*(ns-1)
+c$$$               do i=1,npars
+c$$$                  index = ipar(nls+i,nel)
+c$$$                  d(1,index) = dls(i)                  
+c$$$                  dl(1,nls + i) = dls(i)
+c$$$               end do
+c$$$            end if
 c     
 c     compute boundary integral
 c     
@@ -8507,7 +8564,7 @@ c
 c
 c     copy solution from brhs to d
 c     
-      call btod(id,d,xbrhs,ndof,nmultp)     
+      call btod(id,d,xbrhs,ndof,nmultp)
       
 c ------------------------------------------------------------------------------
 c    calculo de p^{n+1}
@@ -8690,10 +8747,7 @@ c
                end do
 
 c
-c     DEBUG: forcar o multiplicador EXATO
-c
-c               dhs = dexp(-3.d00*pi2*tempo)*
-c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
+c     vetor
 c     
                do j=1,nenp
                   nbj = ned*(j-1)
@@ -8739,18 +8793,26 @@ c     valores para analise no ponto npsol
 c
          do j=1,nenp
             ddis(1,j,nel) = elfbb(j)
+             xsv(1,j,nel) = elfbb(j)
          end do
-c     
+c
          do j=1,nen
             if(ien(j,nel).eq.npsol) then
-               cat=dexp(-tempo/co)
-               fat=(1.d00-cat)
-               pi2=pi**2
-               exat = dexp(-3.d00*pi2*tempo)
+c               cat=dexp(-tempo/co)
+c               fat=(1.d00-cat)
+c               pi2=pi**2
+c               exat = dexp(-3.d00*pi2*tempo)
                sol(j) = elfbb(j)
-               isol = isol+1
+c               isol = isol+1
             end if
-         end do         
+         end do
+c
+c     copia xsv para ddis para prox passo
+c
+c         do j=1,nenp
+c            xvm(j,nel)   = ddis(1,j,nel)
+c            xsv(1,j,nel) = ddis(1,j,nel)
+c         end do
 
 c ------------------------------------------------------------------------------
  599  continue
@@ -8760,7 +8822,7 @@ c
 c     escreve dados
 c     
       write(25,*) it,tempo
-      write(30,555) it,tempo,exat,(sol(i),i=1,4)
+      write(30,555) it,tempo,(sol(i),i=1,4)
 c      
  555  format(i10,6e15.5)
 
