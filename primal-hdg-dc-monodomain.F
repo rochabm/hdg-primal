@@ -320,7 +320,11 @@ c     set operators. Here the matrix that defines the linear system
 c     also serves as the preconditioning matrix
 c
       call KSPSetOperators(ksp,A,A,ierr)
-
+c
+c     Specify that will consider non-zero initial guess
+c      
+      call KSPSetInitialGuessNonzero(ksp,PETSC_TRUE,ierr)
+      
 c     set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
@@ -2362,6 +2366,9 @@ c
       dimension eleffm(nee,*),elresf(*),dl(*)
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
 c
+      write(*,*) "KDBC"
+      stop
+c      
       do 200 j=1,nee
          val=dl(j)
          if(val.eq.zero) go to 200
@@ -5936,10 +5943,9 @@ c
 c
 c     new for monodomain
 c
-c         nsv = 19
          nsv = 2
-         mp(mxvm) = mpoint('xvm   ',nenp ,neep   ,0     ,iprec)
-         mp(mxsv) = mpoint('xsv   ',nsv  ,nenp   ,neep   ,iprec)         
+         mp(mxvm) = mpoint('xvm   ',nenp ,numel  ,0     ,iprec)
+         mp(mxsv) = mpoint('xsv   ',nsv  ,nenp   ,numel ,iprec)         
 c
       endif
 c
@@ -6078,31 +6084,31 @@ c
 c  esta rotina calcula os erros das aproximacoes para a variavel
 c  primal (p) no nivel de cada elemento e multiplicador (grad u)
 c
-      write(*,'(A)') "subroutine flnormp (depois da flux3primal)"
-      call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
-     &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
-     &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
-     &            a(mp(mdlp )),a(mp(mdsfl )),a(mp(mdet  )),
-     &            a(mp(mshl )),a(mp(mshg  )),a(mp(mw    )),
-     &            a(mp(mdetc )),a(mp(mshlc)),a(mp(mshgc )),
-     &            a(mp(mddis )),a(mp(mdetp)),a(mp(mshlp )),
-     &            a(mp(mshgp )),
-c
-     &            a(mp(mshln )),a(mp(mshgn )),
-     &            a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-     &            a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-     &            a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-     &            a(mp(mgrav )),a(mp(mwn   )),
-c
-     &            numel ,neesq ,nen   ,nsd   ,
-     &            nesd  ,nint  ,neg   ,nrowsh,
-     &            ned   ,nee   ,numnp ,ndof  ,
-     &            ncon  ,nencon,necon ,index ,
-     &            nints ,ipp,   nenp  ,
-     &            nside ,nnods ,nenlad,npars ,
-     &            nmultp,nodsp )
-c
-      write(*,'(A)') "fim da flnormp"
+c$$$      write(*,'(A)') "subroutine flnormp (depois da flux3primal)"
+c$$$      call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
+c$$$     &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
+c$$$     &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
+c$$$     &            a(mp(mdlp )),a(mp(mdsfl )),a(mp(mdet  )),
+c$$$     &            a(mp(mshl )),a(mp(mshg  )),a(mp(mw    )),
+c$$$     &            a(mp(mdetc )),a(mp(mshlc)),a(mp(mshgc )),
+c$$$     &            a(mp(mddis )),a(mp(mdetp)),a(mp(mshlp )),
+c$$$     &            a(mp(mshgp )),
+c$$$c
+c$$$     &            a(mp(mshln )),a(mp(mshgn )),
+c$$$     &            a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
+c$$$     &            a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
+c$$$     &            a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
+c$$$     &            a(mp(mgrav )),a(mp(mwn   )),
+c$$$c
+c$$$     &            numel ,neesq ,nen   ,nsd   ,
+c$$$     &            nesd  ,nint  ,neg   ,nrowsh,
+c$$$     &            ned   ,nee   ,numnp ,ndof  ,
+c$$$     &            ncon  ,nencon,necon ,index ,
+c$$$     &            nints ,ipp,   nenp  ,
+c$$$     &            nside ,nnods ,nenlad,npars ,
+c$$$     &            nmultp,nodsp )
+c$$$c
+c$$$      write(*,'(A)') "fim da flnormp"
 c
       return
       end
@@ -8008,7 +8014,7 @@ c
 c
 c     new monodomain
 c
-      dimension xvm(nenp,*), xsv(2,nenp,*), xdsv(2)
+      dimension xvm(nenp,*), xsv(2,nenp,*), xdsv(2), xxsv(2)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -8061,8 +8067,9 @@ c ------------------------------------------------------------------------------
       do nel=1,numel
          do i=1,nenp
 ccc         call tt2006_init(2, xsv(1,i,nel))
-            call fhn_init(2, xsv(1,i,nel))
+            call ms_init(2, xsv(1,i,nel))
             xvm(i,nel) = xsv(1,i,nel)
+            write(*,*) xsv(1,i,nel),xsv(2,i,nel)
          end do        
       end do
       
@@ -8150,14 +8157,14 @@ c
       it = 0
       dt = dtime
       tempo = 0.d0
-      nstep = 100
+      nstep = 1000
       
       do 5555 it=1,nstep
 c
          tempo = it*dt
 c         
          write(*,*) ""
-         write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+         write(*,"(A,I5,3F16.6)") "Tempo",it,tempo
 
 
 c ------------------------------------------------------------------------------
@@ -8178,11 +8185,12 @@ c
                
                if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
                   
-c                  if(xx.gt.0.0.and.xx.lt.50.0.and.
-c     &               yy.gt.0.0.and.yy.lt.50.0.and.
-c     &               zz.gt.0.0.and.zz.lt.50.0) then
-c                     xstim = 1.5d0
-c                  end if                 
+                  if(xx.ge.0.0.and.xx.le.50.0.and.
+     &               yy.ge.0.0.and.yy.le.50.0.and.
+     &               zz.ge.0.0.and.zz.le.50.0)
+     &            then
+                     xstim = 0.5d0
+                  end if
                end if
                
 c
@@ -8191,7 +8199,7 @@ c
                xdsv(1) = 0.0d0
                xdsv(2) = 0.0d0
 ccc            call tt2006_equation(19, dt, xsv(1,i,nel), xdsv, xstim)
-               call fhn_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
+               call ms_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
 c
 c     advance with euler method
 c
@@ -8206,9 +8214,9 @@ c
             end do        
          end do
 
-         do i=1,nenp
-            do j=1,numel               
-c               ddis(1,i,j) = xsv(1,i,j)           
+         do j=1,numel             
+            do i=1,nenp
+               ddis(1,i,j) = xsv(1,i,j)
             end do
          end do
 
@@ -8826,9 +8834,9 @@ c
 c      
  555  format(i10,6e15.5)
 
-ccc      if(mod(it,100).eq.0) then
-      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
-ccc      end if
+      if(mod(it,10).eq.0) then
+         call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+      end if
       
 c ------------------------------------------------------------------------------
  5555 continue
