@@ -1,7 +1,7 @@
 c     ******************************************************************
-c     * Formulacao Hibrida Primal - Prob. Poisson/ConveccaoDifusao     *
+c     * Formulacao Hibrida Primal - Prob. Monodominio/RD/Cardiaco      *
 c     *   Multplicador = potencial na interface dos elementos          *
-c     *                   Setembro de 2016                             *
+c     *                   Dezembro de 2017                             *
 c     ******************************************************************
 c      Residuo no interior dos elementos:
 c         (grad u , grad v ) + (grad u,v) - (f,v)
@@ -350,7 +350,7 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E16.8,' iterations = ',I5)
+ 100  format('Norm of residual = ',E16.8,'   iterations = ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -2193,7 +2193,9 @@ c-----------------------------------------------------------------------
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
   100 continue
-      read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)      
+      read(iin,1000) n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+      write(*,*) "BCs", n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
+      
 c$$$c  debug      
 c$$$  write(*,"(A,10I10)") "igen3d",n,ne,nfd,ng1,ng2,(ib(i),i=1,m)
 c$$$        
@@ -7612,18 +7614,19 @@ c     Dirichlet boundary conditions on the multiplier
 c
             ndgs = lado(ns,nel)
 c
-c$$$            if(ideg(1,ndgs).eq.1) then
-c$$$               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
-c$$$     &              gama,pi,nints,nenlad,npars)
-c$$$c
-c$$$               ngs = npars*(ndgs-1)
-c$$$               nls = npars*(ns-1)
-c$$$               do i=1,npars
-c$$$                  index = ipar(nls+i,nel)
-c$$$                  d(1,index) = dls(i)                  
-c$$$                  dl(1,nls + i) = dls(i)
-c$$$               end do
-c$$$            end if       
+            if(ideg(1,ndgs).eq.1) then
+c               
+               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
+     &              gama,pi,nints,nenlad,npars)
+c
+               ngs = npars*(ndgs-1)
+               nls = npars*(ns-1)
+               do i=1,npars
+                  index = ipar(nls+i,nel)
+                  d(1,index) = dls(i)                  
+                  dl(1,nls + i) = dls(i)
+               end do
+            end if       
 c
 c     compute boundary integral
 c
@@ -8044,7 +8047,6 @@ c
 c     solution in one point
 c
       npsol = (numnp+1)/2
-      write(*,*) "NPSOL",npsol
       do i=1,nen
         sol(i) = 0.d00
       end do
@@ -8069,12 +8071,10 @@ c ------------------------------------------------------------------------------
 ccc         call tt2006_init(2, xsv(1,i,nel))
             call ms_init(2, xsv(1,i,nel))
             xvm(i,nel) = xsv(1,i,nel)
-            write(*,*) xsv(1,i,nel),xsv(2,i,nel)
          end do        
       end do
-      
-      write(*,*) "initial condition"      
-      gf20 = 0.d00
+c
+c     initial condition
 c      
       do nel=1,numel
 c
@@ -8102,17 +8102,15 @@ c
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
          gamas  = gama
+         tempof = c(8,m)         
 c
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c
-c     TODO: check if it is nen or nenp here
-c        
          do i=1,nenp
 c
 c     save initial condition
 c            
             ddis(1,i,nel) = xvm(i,nel)
-c            ddis(1,i,nel) = 0.d00
 c
 c     save data at npsol point
 c            
@@ -8139,7 +8137,6 @@ c
       write(*,*) "gama",gama,gamas
       write(*,*) "alfa",alf
       write(*,*) "gf10",gf10
-      write(*,*) "gf20",gf20
       write(*,*) "dtime",dtime
       write(*,*) "dtm0",dtm0
       write(*,*) "dtm1",dtm1
@@ -8147,6 +8144,7 @@ c
       write(*,*) "numnp",numnp
       write(*,*) "ndof",ndof
       write(*,*) "nmultp",nmultp
+      write(*,*) "tempof",tempof
       
 c ------------------------------------------------------------------------------
 c     time integration loop
@@ -8157,15 +8155,13 @@ c
       it = 0
       dt = dtime
       tempo = 0.d0
-      nstep = 1000
+      nstep = int(tempof/dt)
       
       do 5555 it=1,nstep
 c
          tempo = it*dt
 c         
-         write(*,*) ""
-         write(*,"(A,I5,3F16.6)") "Tempo",it,tempo
-
+         write(*,"(A,I5,F12.6,A)",advance="no") "Tempo",it,tempo,"   "
 
 c ------------------------------------------------------------------------------
 c     solve ODEs
@@ -8442,6 +8438,7 @@ c
             ndgs = lado(ns,nel)
 c
 c$$$            if(ideg(1,ndgs).eq.1) then
+c$$$               stop
 c$$$               call drchbc3(shgpn,shlb,detpn,wn,
 c$$$     &                      gf1,gf2,gf3,xls,dls,
 c$$$     &                      gama,pi,nints,nenlad,npars)
