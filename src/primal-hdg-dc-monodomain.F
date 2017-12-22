@@ -8017,7 +8017,7 @@ c
 c
 c     new monodomain
 c
-      dimension xvm(nenp,*), xsv(2,nenp,*), xdsv(2), xxsv(2)
+      dimension xvm(nenp,*), xsv(19,nenp,*), xdsv(19), xxsv(19)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -8066,10 +8066,13 @@ c     initial condition
 c ------------------------------------------------------------------------------      
 
       write(*,*) "initial condition for monodomain"
+c
+      nsv = 19
+c     
       do nel=1,numel
          do i=1,nenp
-ccc         call tt2006_init(2, xsv(1,i,nel))
-            call ms_init(2, xsv(1,i,nel))
+            call tt2006_init(nsv, xsv(1,i,nel))
+ccc            call ms_init(2, xsv(1,i,nel))
             xvm(i,nel) = xsv(1,i,nel)
          end do        
       end do
@@ -8185,7 +8188,8 @@ c
      &               yy.ge.0.0.and.yy.le.50.0.and.
      &               zz.ge.0.0.and.zz.le.50.0)
      &            then
-                     xstim = 0.5d0
+ccc                  xstim = 0.5d0
+                     xstim = -52.0d0
                   end if
                end if
                
@@ -8194,12 +8198,12 @@ c     compute RHS of the ODES
 c
                xdsv(1) = 0.0d0
                xdsv(2) = 0.0d0
-ccc            call tt2006_equation(19, dt, xsv(1,i,nel), xdsv, xstim)
-               call ms_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
+               call tt2006_equation(nsv, dt, xsv(1,i,nel), xdsv, xstim)
+ccc            call ms_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
 c
 c     advance with euler method
 c
-               do j=1,2
+               do j=1,nsv
                   xsv(j,i,nel) = xsv(j,i,nel) + dtime * xdsv(j)
                end do
 c
@@ -8215,11 +8219,8 @@ c
                ddis(1,i,j) = xsv(1,i,j)
             end do
          end do
-
-         write(666,*) (xsv(1,1,e),e=1,numel)
          
-c ------------------------------------------------------------------------------    
-         
+c ------------------------------------------------------------------------------             
 c     
 c     guarda valor anterior
 c        p^(n+1) -> ddis
@@ -8795,29 +8796,19 @@ c
 c     
 c     valores nodais descontinuos AQUI
 c     valores para analise no ponto npsol
+c     monodominio: copia ddis anterior para xsv 
 c
          do j=1,nenp
             ddis(1,j,nel) = elfbb(j)
+c     monodominio
              xsv(1,j,nel) = elfbb(j)
          end do
 c
          do j=1,nen
             if(ien(j,nel).eq.npsol) then
-c               cat=dexp(-tempo/co)
-c               fat=(1.d00-cat)
-c               pi2=pi**2
-c               exat = dexp(-3.d00*pi2*tempo)
                sol(j) = elfbb(j)
-c               isol = isol+1
             end if
          end do
-c
-c     copia xsv para ddis para prox passo
-c
-c         do j=1,nenp
-c            xvm(j,nel)   = ddis(1,j,nel)
-c            xsv(1,j,nel) = ddis(1,j,nel)
-c         end do
 
 c ------------------------------------------------------------------------------
  599  continue
