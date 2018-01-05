@@ -1644,7 +1644,9 @@ c     *** OLD ***
          read(iin,1000) nel(3),incel(3),
      &        incf(3,1),incf(3,2),incf(3,3),
      &        incf(3,4),incf(3,5),incf(3,6)
+c
          call genelad1(lado,nside)
+c         
       endif
 c
       go to 100
@@ -3303,6 +3305,10 @@ c
 c     mapeamento 2d conforme o codigo abaixo
 c      
       call move(shgp,shlp,3*npars*nint)
+c
+c      do j=1,nen
+c         write(*,*) (xl(i,j),i=1,3)
+c      end do
 c
       do l=1,nint
 c
@@ -5255,6 +5261,11 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
       call move(shg,shl,4*nen*nint)
+
+c      do j=1,8
+c         write(*,*) (xl(i,j),i=1,3)
+c      end do
+      
 c      
 c     loop pontos integracao - calcula isoparametrico
 c
@@ -5269,6 +5280,8 @@ c
          det(l) = xjac(1,1)*(xjac(2,2)*xjac(3,3) - xjac(3,2)*xjac(2,3))
      &          + xjac(1,2)*(xjac(3,1)*xjac(2,3) - xjac(2,1)*xjac(3,3))
      &          + xjac(1,3)*(xjac(2,1)*xjac(3,2) - xjac(3,1)*xjac(2,2))
+c
+c         write(*,*) det(l)
 c         
          if (det(l).le.zero) then
             write(ieco,1000) nel,neg
@@ -5308,6 +5321,7 @@ c
          end do
 c
       end do
+
 
 c      write(*,*) "DADOS HEX -> SHGHX FINAL - DERIV 1-2-3 FUNCAO"
 c      do ii=1,nint
@@ -5945,7 +5959,8 @@ c
 c
 c     new for monodomain
 c
-         nsv = 2
+ccc      nsv = 2
+         nsv = 19        
          mp(mxvm) = mpoint('xvm   ',nenp ,numel  ,0     ,iprec)
          mp(mxsv) = mpoint('xsv   ',nsv  ,nenp   ,numel ,iprec)         
 c
@@ -5994,6 +6009,12 @@ c     Esta rotina monta a matriz global (multiplicadores
 c     usando condensacao estatica dos graus de liberdade
 c     da variavel primalx
 c
+      
+c      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
+c     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
+c     &             nsd,nesd,npars,nside)
+
+       
       write(*,'(A)') "subroutine flux2"
       call flux2(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -7379,7 +7400,7 @@ c
       gf1 = grav(1)
       gf2 = grav(2)
       gf3 = grav(3)
-
+      
 c     ------------------------------------------------------------------
 c     element loop
 c     ------------------------------------------------------------------
@@ -7454,6 +7475,11 @@ c
          gf10   = c(4,m)
          teta   = c(5,m)
          dtime  = c(6,m)
+c
+         xsurfvol = 1400.0d0
+         xcm = 1.0d0
+         dtime = dtime/(xsurfvol*xcm)
+c         
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
@@ -7577,7 +7603,7 @@ c
             nl1=ien(ns1,nel)
             nl2=ien(ns2,nel)
             nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)           
+            nl4=ien(ns4,nel)
 c
 c     ajeita a normal com o sinal
 c
@@ -8067,12 +8093,13 @@ c ------------------------------------------------------------------------------
 
       write(*,*) "initial condition for monodomain"
 c
+ccc      nsv = 2
       nsv = 19
 c     
       do nel=1,numel
          do i=1,nenp
             call tt2006_init(nsv, xsv(1,i,nel))
-ccc            call ms_init(2, xsv(1,i,nel))
+ccc         call ms_init(nsv, xsv(1,i,nel))
             xvm(i,nel) = xsv(1,i,nel)
          end do        
       end do
@@ -8101,6 +8128,11 @@ c
          gf10   = c(4,m)
          teta   = c(5,m)
          dtime  = c(6,m)
+c
+         xsurfvol = 1400.0d0
+         xcm = 1.0d0
+         dtime = dtime/(xsurfvol*xcm)
+c         
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
@@ -8156,7 +8188,7 @@ c
 c     HARDCODED!!!!
 c      
       it = 0
-      dt = dtime
+      dt = c(6,1)
       tempo = 0.d0
       nstep = int(tempof/dt)
       
@@ -8184,27 +8216,38 @@ c
                
                if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
                   
-                  if(xx.ge.0.0.and.xx.le.50.0.and.
-     &               yy.ge.0.0.and.yy.le.50.0.and.
-     &               zz.ge.0.0.and.zz.le.50.0)
+                  if(xx.ge.0.0.and.xx.le.0.5.and.
+     &               yy.ge.0.0.and.yy.le.0.5.and.
+     &               zz.ge.0.0.and.zz.le.0.5)
      &            then
-ccc                  xstim = 0.5d0
-                     xstim = -52.0d0
+ccc                  xstim = 1.2d0
+                     xstim = -35.714d0
+ccc                     xstim = -52.0d0
+c                     write(*,*) "stim",xstim
                   end if
                end if
                
 c
 c     compute RHS of the ODES
 c
-               xdsv(1) = 0.0d0
-               xdsv(2) = 0.0d0
+               do j=1,nsv
+                  xdsv(j) = 0.0d0
+               end do
+               
                call tt2006_equation(nsv, dt, xsv(1,i,nel), xdsv, xstim)
-ccc            call ms_equation(2, dtime, xsv(1,i,nel), xdsv, xstim)
+ccc               call ms_equation(nsv, dt, xsv(1,i,nel), xdsv, xstim)
 c
 c     advance with euler method
 c
                do j=1,nsv
-                  xsv(j,i,nel) = xsv(j,i,nel) + dtime * xdsv(j)
+                  xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
+                  
+c$$$                  if(j.ge.2.and.j.le.13) then
+c$$$c     Trick for the RL method
+c$$$                     xsv(j,i,nel) = xdsv(j)
+c$$$                  else
+c$$$                     xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
+c$$$                  end if                  
                end do
 c
 c     copy back to Vm array
@@ -8295,6 +8338,11 @@ c
          gf10   = c(4,m)
          teta   = c(5,m)
          dtime  = c(6,m)
+c
+         xsurfvol = 1400.0d0
+         xcm = 1.0d0
+         dtime = dtime/(xsurfvol*xcm)
+c         
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
@@ -8638,6 +8686,11 @@ c
          gf10   = c(4,m)
          teta   = c(5,m)
          dtime  = c(6,m)
+c
+         xsurfvol = 1400.0d0
+         xcm = 1.0d0
+         dtime = dtime/(xsurfvol*xcm)
+c         
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
@@ -8822,7 +8875,7 @@ c
 c      
  555  format(i10,6e15.5)
 
-      if(mod(it,10).eq.0) then
+      if(mod(it,1000).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
       end if
       
@@ -14448,11 +14501,11 @@ c      do nel=1,numel
 c         call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c         write(*,*) nel, (ien(j, nel), j=1,nen)
 c      end do
-c      write(*,*) " faces por elemento (msh)", nside
-c      do nel=1,numel
-c         call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c         write(*,*) nel, (lado(j,nel), j=1,nside)
-c      end do
+      write(*,*) " faces por elemento (msh)", nside
+      do nel=1,numel
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+         write(*,*) nel, (lado(j,nel), j=1,nside)
+      end do
 c      write(*,*) " numeracao local das faces"
 c      do il=1,nside
 c         write(*,*) il, (idside(il,j),j=1,4)
@@ -14464,7 +14517,7 @@ c
 
 c      character(len=1024) :: filename
 c      write (filename, "(A6,I5,A4)") "malha_", numel, ".msh"
-c     write(*,*) "ARQUIVO: ", trim(filename)
+c      write(*,*) "ARQUIVO: ", trim(filename)
 
       write (seqstring,'(I0)') numel
       open(123, file='malha'//trim(seqstring)//'.msh')
@@ -14551,6 +14604,8 @@ c
                nl3=ien(ns3,nel)
                nl4=ien(ns4,nel)
 c
+c               write(*,*) nl1,nl2,nl3,nl4
+c               
                iface=lado(ns,nel)
 c               
                if(iboolf(iface).eq.0) then
@@ -14578,7 +14633,7 @@ c
       end if
       write(123,'(a)') "$EndElements"
       close(123)
- 789  format(' ', 16I5)
+ 789  format(' ', 16I10)
 c
       close(123)
 c
