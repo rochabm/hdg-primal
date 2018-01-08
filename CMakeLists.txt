@@ -24,10 +24,10 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-###  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
-set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
-#  set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g")
-#  set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
+set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+###set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
+##set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g")
+#set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
   set (CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
@@ -43,7 +43,6 @@ else (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
   set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-
 
 # show some messages
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -64,7 +63,7 @@ set(PROGRAMS
 # Program with PETSc (HDG and tests)
 #
 foreach(p ${PROGRAMS})
-  add_executable (${p} "${p}.F")
+  add_executable (${p} "src/${p}.F")
   target_include_directories (${p} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
@@ -76,12 +75,13 @@ endforeach(p)
 #
 # Program to test cell model (TT2006)
 #
-add_executable (cellmodel "cellmodel.F" "tt2006.F")
+add_executable (cellmodel "src/cellmodel.F" "src/tt2006.F")
+#add_executable (cellmodel "src/cellmodel.F" "src/ms.F")	
 
 #
 # Programa to monodomain solver - HDG
 #
-add_executable (primal-monodomain "primal-hdg-dc-monodomain.F" "tt2006.F")
+add_executable (primal-monodomain "src/primal-hdg-dc-monodomain.F" "src/tt2006.F" "src/ms.F")
 target_include_directories (primal-monodomain PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include

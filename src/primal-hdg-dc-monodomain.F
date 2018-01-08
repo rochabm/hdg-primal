@@ -8191,6 +8191,9 @@ c
       dt = c(6,1)
       tempo = 0.d0
       nstep = int(tempof/dt)
+
+      saver = 1.0d0
+      nsave = int(saver/dt)
       
       do 5555 it=1,nstep
 c
@@ -8216,23 +8219,21 @@ c
                
                if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
                   
-                  if(xx.ge.0.0.and.xx.le.0.5.and.
-     &               yy.ge.0.0.and.yy.le.0.5.and.
-     &               zz.ge.0.0.and.zz.le.0.5)
+                  if(xx.ge.0.0.and.xx.le.0.15.and.
+     &               yy.ge.0.0.and.yy.le.0.15.and.
+     &               zz.ge.0.0.and.zz.le.0.15)
      &            then
 ccc                  xstim = 1.2d0
                      xstim = -35.714d0
-ccc                     xstim = -52.0d0
-c                     write(*,*) "stim",xstim
                   end if
                end if
                
 c
 c     compute RHS of the ODES
 c
-               do j=1,nsv
-                  xdsv(j) = 0.0d0
-               end do
+c$$$              do j=1,nsv
+c$$$                  xdsv(j) = 0.0d0
+c$$$               end do
                
                call tt2006_equation(nsv, dt, xsv(1,i,nel), xdsv, xstim)
 ccc               call ms_equation(nsv, dt, xsv(1,i,nel), xdsv, xstim)
@@ -8240,23 +8241,26 @@ c
 c     advance with euler method
 c
                do j=1,nsv
-                  xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
-                  
-c$$$                  if(j.ge.2.and.j.le.13) then
-c$$$c     Trick for the RL method
-c$$$                     xsv(j,i,nel) = xdsv(j)
-c$$$                  else
-c$$$                     xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
-c$$$                  end if                  
+c
+c     Euler method
+c     
+c$$$              xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
+
+c
+c     Rush-Larsen Method
+c                  
+                  if(j.ge.2.and.j.le.13) then
+                     xsv(j,i,nel) = xdsv(j)
+                  else
+                     xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
+                  end if
                end do
 c
-c     copy back to Vm array
-c
-c               xvm(i,nel) = xsv(1,i,nel)
-c               
             end do        
          end do
-
+c
+c     save Vm to ddis array of lagrange multipliers
+c     
          do j=1,numel             
             do i=1,nenp
                ddis(1,i,j) = xsv(1,i,j)
@@ -8804,7 +8808,6 @@ c
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
                   x3 = x3 + xls(2,i)*shlb(3,i,ls)
                end do
-
 c
 c     vetor
 c     
@@ -8816,7 +8819,7 @@ c
                   djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
 c                  
-                  gjn=djx*xn1 + djy*xn2 + djz*xn3
+                  gjn = djx*xn1 + djy*xn2 + djz*xn3
 c     
                   elfbb(nbj1) = elfbb(nbj1) + teta*dhs*gjn
      &                        + betah*dhs*djn
@@ -8875,7 +8878,7 @@ c
 c      
  555  format(i10,6e15.5)
 
-      if(mod(it,1000).eq.0) then
+      if(mod(it,nsave).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
       end if
       

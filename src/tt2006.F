@@ -7,23 +7,23 @@ c ------------------------------------------------------------------------------
 c ------------------------------------------------------------------------------      
       implicit none
 c
-      integer neq
+      integer neq, i
       real*8 sv
       dimension sv(19)
 c
       sv( 1) = -85.23d0
       sv( 2) = 0.00621d0
-      sv( 3) = 0.4712d0
+      sv( 3) = 0.4712
       sv( 4) = 0.0095d0   
       sv( 5) = 0.00172d0
       sv( 6) = 0.7444d0
       sv( 7) = 0.7045d0 
-      sv( 8) = 3.373e-5
+      sv( 8) = 3.373d-5
       sv( 9) = 0.7888d0   
       sv(10) = 0.9755d0   
       sv(11) = 0.9953d0  
       sv(12) = 0.999998d0 
-      sv(13) = 2.42e-8 
+      sv(13) = 2.42d-8
       sv(14) = 0.000126d0
       sv(15) = 3.64d0
       sv(16) = 0.00036d0
@@ -154,7 +154,7 @@ c
       g_to  = 0.294d0
       g_Kr  = 0.153d0
       g_Ks  = 0.098d0
-      g_CaL = 3.98e-05
+      g_CaL = 3.98d-05
       g_Na  = 14.838d0
       g_pK  = 0.0146d0
       g_bca = 0.000592d0
@@ -180,11 +180,11 @@ c
       IKs = g_Ks * (Xs**2) * (V - EKs)
       IpK = (g_pK * (V - EK)) / (1.0d0 + dexp((25.0d0 - V) / 5.98d0))
 c      
-      if ( (V<15.0-1.0e-5).or.(V>15.0+1.0e-5) ) then 
+      if ( (V < 15.0-1.0d-5).or.(V>15.0+1.0d-5) ) then 
          ICaL = ((((g_CaL * d * f * f2 * fCass * 4.0 * (V - 15.0) *
      &        (FF**2)) / (RR * T)) * ((0.25 * Cass *
      &        dexp((2.0 * (V - 15.0) * FF) / (RR * T))) - Cao)) /
-     &        (exp((2.0 * (V - 15.0) * FF) / (RR * T)) - 1.0))
+     &        (dexp((2.0 * (V - 15.0) * FF) / (RR * T)) - 1.0))
       else
          ICaL = g_CaL*d*f*f2*fCass*2.0d0*FF*(0.25d0*Cass-Cao)
       end if
@@ -219,7 +219,7 @@ c
       tau_xr2   = 1.0d0 * alpha_xr2 * beta_xr2
 c     
       xs_inf   = 1.0d0 / (1.0d0 + dexp(((-5.0d0) - V) / 14.0d0))
-      alpha_xs = 1400.0d0 / dsqrt(1.0 + exp((5.0d0 - V) / 6.0d0))
+      alpha_xs = 1400.0d0 / dsqrt(1.0 + dexp((5.0d0 - V) / 6.0d0))
       beta_xs  = 1.0d0 / (1.0d0 + dexp((V - 35.0d0) / 15.0d0))
       tau_xs   = (1.0d0 * alpha_xs * beta_xs) + 80.0d0
 c      
@@ -231,7 +231,7 @@ c
 c
       h_inf   = 1.0d0 / ((1.0d0 + dexp((V + 71.55d0) / 7.43d0))**2)
       if (V < (-40.0d0)) then
-         alpha_h =  (0.057 * exp((-(V + 80.0)) / 6.8))
+         alpha_h =  (0.057d0 * dexp((-(V + 80.0d0)) / 6.8d0))
       else
          alpha_h = 0.0d0
       end if
@@ -243,10 +243,10 @@ c
       end if
       tau_h   = 1.0d0 / (alpha_h + beta_h)
 c      
-      j_inf   = 1.0d0 / ((1.0d0 + exp((V + 71.55d0) / 7.43))**2)
+      j_inf   = 1.0d0 / ((1.0d0 + dexp((V + 71.55d0) / 7.43d0))**2)
       if ( V < (-40.0d0)) then
          alpha_j = ((((((-25428.0d0)*dexp(0.2444d0*V)) -
-     &       (6.948e-06*dexp((-0.04391d0)*V)))*(V+37.78d0))/1.0d0) /
+     &       (6.948d-06*dexp((-0.04391d0)*V)))*(V+37.78d0))/1.0d0) /
      &       (1.0d0+dexp(0.311d0*(V+79.23d0))))
       else
          alpha_j = 0.0d0
@@ -261,9 +261,9 @@ c
       tau_j   = 1.0d0 / (alpha_j + beta_j)
 c     
       d_inf = 1.0d0 / (1.0d0 + dexp(((-8.0d0) - V)/7.5d0))
-      alpha_d = (1.4d0 / (1.0d0+dexp(((-35.0d0)-V)/13.0d0))) + 0.25d0
-      beta_d  = 1.4d0 / (1.0d0+dexp((V+5.0d0)/5.0d0))
-      gamma_d = 1.0d0 / (1.0d0+dexp((50.0-V)/20.0d0))
+      alpha_d = (1.4d0 / (1.0d0 + dexp(((-35.0d0)-V)/13.0d0))) + 0.25d0
+      beta_d  = 1.4d0 / (1.0d0 + dexp((V+5.0d0)/5.0d0))
+      gamma_d = 1.0d0 / (1.0d0 + dexp((50.0-V)/20.0d0))
       tau_d   = (1.0d0*alpha_d*beta_d) + gamma_d
 c
       f_inf = 1.0d0 / (1.0d0 + dexp((V + 20.0d0)/ 7.0d0))
@@ -319,7 +319,7 @@ c
       Ca_ss_bufss = 1.0d0/(1.0d0+((var_Ca_Buf_ss*var_Ca_K_buf_ss) /
      &     ((Cass+var_Ca_K_buf_ss)**2)))
       var_Ca_V_sr = 0.001094d0
-      var_Ca_V_ss = 5.468e-05
+      var_Ca_V_ss = 5.468d-05
 c      
       var_Ca_V_c = V_c
       var_Ca_F = FF
@@ -358,27 +358,48 @@ c
       d_dt_Nai = ((-(INa+IbNa+(3.0d0*INaK)+(3.0d0*INaCa)))/(V_c*FF))*Cm
       d_dt_Ki = ((-((IK1+Ito+IKr+IKs+IpK+xistim)-(2.0d0*INaK))) /
      &          (V_c*FF))*Cm
+c
+c     Compute RHS
 c     
       dsv( 1) = d_dt_V
-      dsv( 2) = d_dt_Xr1 
-      dsv( 3) = d_dt_Xr2
-      dsv( 4) = d_dt_Xs
-      dsv( 5) = d_dt_m
-      dsv( 6) = d_dt_h
-      dsv( 7) = d_dt_j
-      dsv( 8) = d_dt_d
-      dsv( 9) = d_dt_f
-      dsv(10) = d_dt_f2
-      dsv(11) = d_dt_fCass
-      dsv(12) = d_dt_s
-      dsv(13) = d_dt_r
-      dsv(14) = d_dt_Cai;
+c      
+c     HH variables
+c      
+c$$$      dsv( 2) = d_dt_Xr1 
+c$$$      dsv( 3) = d_dt_Xr2
+c$$$      dsv( 4) = d_dt_Xs
+c$$$      dsv( 5) = d_dt_m
+c$$$      dsv( 6) = d_dt_h
+c$$$      dsv( 7) = d_dt_j
+c$$$      dsv( 8) = d_dt_d
+c$$$      dsv( 9) = d_dt_f
+c$$$      dsv(10) = d_dt_f2
+c$$$      dsv(11) = d_dt_fCass
+c$$$      dsv(12) = d_dt_s
+c$$$      dsv(13) = d_dt_r
+c      
+      dsv(14) = d_dt_Cai
       dsv(15) = d_dt_CaSR
       dsv(16) = d_dt_Cass
       dsv(17) = d_dt_Rprime
       dsv(18) = d_dt_Nai
-      dsv(19) = d_dt_Ki
+      dsv(19) = d_dt_Ki 
 c
+c     Rush Larsen - overwrites values
+c
+      dsv( 2) = xr1_inf   + (Xr1-xr1_inf)*dexp(-dt/tau_xr1)
+      dsv( 3) = xr2_inf   + (Xr2-xr2_inf)*dexp(-dt/tau_xr2)
+      dsv( 4) = xs_inf    + (Xs-xs_inf)  *dexp(-dt/tau_xs)
+      dsv( 5) = m_inf     + (m-m_inf)    *dexp(-dt/tau_m)
+      dsv( 6) = h_inf     + (h-h_inf)    *dexp(-dt/tau_h)
+      dsv( 7) = j_inf     + (j-j_inf)    *dexp(-dt/tau_j)
+      dsv( 8) = d_inf     + (d-d_inf)    *dexp(-dt/tau_d)
+      dsv( 9) = f_inf     + (f-f_inf)    *dexp(-dt/tau_f)
+      dsv(10) = f2_inf    + (f2-f2_inf)  *dexp(-dt/tau_f2)
+      dsv(11) = fCass_inf + (fCass-fCass_inf)*dexp(-dt/tau_fCass)
+      dsv(12) = s_inf     + (s-s_inf)    *dexp(-dt/tau_s)
+      dsv(13) = r_inf     + (r-r_inf)    *dexp(-dt/tau_r)
+c     
       return
       end
       
