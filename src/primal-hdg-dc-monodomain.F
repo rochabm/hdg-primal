@@ -7478,12 +7478,18 @@ c
 c
          xsurfvol = 1400.0d0
          xcm = 1.0d0
-         dtime = dtime/(xsurfvol*xcm)
+         dtime = dtime/(xsurfvol*xcm)         
 c         
          alf    = c(7,m)
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
-         gamas  = gama            
+         gamas  = gama
+c
+c     conductivities (mS/cm)
+c
+         sigmal = 1.334d0
+         sigmat = 0.176d0
+         sigman = 0.176d0         
 c
 c     loop on integration points
 c
@@ -7548,7 +7554,9 @@ c     (p^{n+1},q) + dt*a(p,q)
 c
                   elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
      &                             + din*djn
-     &                             + dtm1*(dix*djx + diy*djy + diz*djz)
+     &                             + dtm1*(sigmal*dix*djx
+     &                             + sigmat*diy*djy
+     &                             + sigman*diz*djz)
                end do
             end do
          end do
@@ -7682,7 +7690,9 @@ c
                   djz = shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djn = shgpsd(4,j,lb)*detpn(ls)*wn(ls)*dtm1
 c                  
-                  gjn = djx*xn1 + djy*xn2 + djz*xn3
+                  gjn = sigmal*djx*xn1
+     &                + sigmat*djy*xn2
+     &                + sigman*djz*xn3
 c
                   do i=1,nenp
                      nbi = ned*(i-1)
@@ -7692,7 +7702,9 @@ c
                      diz = shgpsd(3,i,lb)
                      din = shgpsd(4,i,lb)
 c                     
-                     gin = dix*xn1 + diy*xn2 + diz*xn3
+                     gin = sigmal*dix*xn1
+     &                   + sigmat*diy*xn2
+     &                   + sigman*diz*xn3
 c
 c     -(grad p.n, q) - (grad q.n, p)
 c                     
@@ -7718,7 +7730,10 @@ c
                      diy = shgpsd(2,i,lb)
                      diz = shgpsd(3,i,lb)
                      din = shgpsd(4,i,lb)
-                     gin = dix*xn1 + diy*xn2 + diz*xn3
+c                     
+                     gin = sigmal*dix*xn1
+     &                   + sigmat*diy*xn2
+     &                   + sigman*diz*xn3
 c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - teta*gin*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) + gin*djn
@@ -8351,6 +8366,12 @@ c
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
          gamas  = gama
+c
+c     conductivity
+c
+         sigmal = 1.334d0
+         sigmat = 0.176d0
+         sigman = 0.176d0         
 c     
 c     recupera o vetor de carga: (f,v)
 c
@@ -8535,7 +8556,9 @@ c
                   diy=shgpsd(2,i,lb)
                   diz=shgpsd(3,i,lb)
 c     
-                  gin=dix*xn1 + diy*xn2 + diz*xn3
+                  gin = sigmal*dix*xn1
+     &                + sigmat*diy*xn2
+     &                + sigman*diz*xn3                  
 c     
                   pna = pna  + shgpsd(4,i,lb)*faa(i)
                   pnax= pnax + shgpsd(1,i,lb)*faa(i)
@@ -8560,7 +8583,9 @@ c
                   djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)
                   djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)
 c                  
-                  gjn=djx*xn1 + djy*xn2 + djz*xn3
+                  gjn = sigmal*djx*xn1
+     &                + sigmat*djy*xn2
+     &                + sigman*djz*xn3
 c     
 c     termo de a(.,.)
 c     
@@ -8699,6 +8724,12 @@ c
          dtm0   = (1.d00-alf)*dtime
          dtm1   = alf*dtime
          gamas  = gama
+c
+c     conductivity
+c
+         sigmal = 1.334d0
+         sigmat = 0.176d0
+         sigman = 0.176d0
 c     
 c     boundary terms - symmetrization
 c     
@@ -8819,7 +8850,10 @@ c
                   djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
 c                  
-                  gjn = djx*xn1 + djy*xn2 + djz*xn3
+                  gjn = sigmal*djx*xn1
+     &                + sigmat*djy*xn2
+     &                + sigman*djz*xn3
+                  
 c     
                   elfbb(nbj1) = elfbb(nbj1) + teta*dhs*gjn
      &                        + betah*dhs*djn
