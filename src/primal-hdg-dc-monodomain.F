@@ -18,10 +18,10 @@ c
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
-      parameter (ndim=400000000)
+      parameter (ndim=800000000)
 c
       common a(ndim)
-      common /dictn/ ia(10000000)
+      common /dictn/ ia(20000000)
 c
 c     PETSC includes 
 c      
@@ -129,7 +129,8 @@ c----------------------------------------------------------------------
        KSP      ksp
        PetscInt tot,nnz
 c
-       nnz = 450
+c      nnz = 450
+       nnz = 50
        tot = n
 c
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -329,7 +330,7 @@ c     set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
-      tol = 1.d-10
+      tol = 1.d-16
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 
@@ -2890,7 +2891,8 @@ c-----------------------------------------------------------------------
 c     program to determine elapsed cpu time
 c     **** this is a system-dependent routine ****
 c     note: can only access clock time on vax/vms
-!     call time(itemp)
+c      
+c      call etime(itemp)
       temp=itemp
 c
       return
@@ -8014,6 +8016,9 @@ c
       Vec b
       Vec xsol
 c
+      real xxx(2), yyy(2)
+      real*8 xtode, xtpde
+c
       logical diag,quad
 c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
@@ -8086,8 +8091,9 @@ c
       gf3 = grav(3)
 c
 c     solution in one point
+c     last node for monodomain/benchmark
 c
-      npsol = (numnp+1)/2
+      npsol = (numnp+1)/2.0d0
       do i=1,nen
         sol(i) = 0.d00
       end do
@@ -8107,6 +8113,9 @@ c     initial condition
 c ------------------------------------------------------------------------------      
 
       write(*,*) "initial condition for monodomain"
+
+      xtode = 0.d0
+      xtpde = 0.d0
 c
 ccc      nsv = 2
       nsv = 19
@@ -8219,7 +8228,8 @@ c
 c ------------------------------------------------------------------------------
 c     solve ODEs
 c ------------------------------------------------------------------------------
-         
+         xtime = etime(xxx) 
+
          do nel=1,numel
 c            
             call local(ien(1,nel),x,xl,nen,nsd,nesd)
@@ -8274,7 +8284,13 @@ c
             end do        
          end do
 c
-c     save Vm to ddis array of lagrange multipliers
+c     timings
+c         
+         xtime2 = etime(xxx) 
+         xdiff = xtime2-xtime
+         xtode = xtode + xdiff         
+c
+c     save Vm to ddis array 
 c     
          do j=1,numel             
             do i=1,nenp
@@ -8299,7 +8315,6 @@ c
          call clear(xbrhs,neq)        
          call VecSet(b,0.d00,ierr)
          CHKERRQ(ierr)     
-       
 
 c ---  element loop ------------------------------------------------------------
          do 500 nel=1,numel
@@ -8639,7 +8654,8 @@ c
 c
  500  continue
 c     end of element loop ------------------------------------------------------
-      
+
+      ytime = etime(yyy)
 c
 c     solve system    
 c     
@@ -8648,6 +8664,10 @@ c
 c     copy solution from brhs to d
 c     
       call btod(id,d,xbrhs,ndof,nmultp)
+
+      ytime2 = etime(yyy)
+      ydiff = ytime2-ytime
+      xtpde = xtpde + ydiff
       
 c ------------------------------------------------------------------------------
 c    calculo de p^{n+1}
@@ -8902,8 +8922,8 @@ c
 
 c ------------------------------------------------------------------------------
  599  continue
-c --- end of element loop ------------------------------------------------------
-
+c --- end of element loop ------------------------------------------------------        
+      
 c     
 c     escreve dados
 c     
@@ -8921,6 +8941,11 @@ c ------------------------------------------------------------------------------
 c --- end of time loop ---------------------------------------------------------
 c
       itest2 = itest2 + 1
+c     
+c     print timings
+c
+      write(*,"(A,F10.4)") "time in ODEs:",xtode
+      write(*,"(A,F10.4)") "time in PDE :",xtpde
 c      
       return
       end
