@@ -8090,13 +8090,8 @@ c
 c
 c     save initial condition
 c            
-
-c     ddis(1,i,nel) = sx*sy*sz
-            ddis(1,i,nel) = 0.d00
-            
-c            write(*,"(10E12.4)") xx,yy,zz
-c            ,pix,piy,piz,sx,sy,sz,ddis(1,i,nel)
-            
+c           ddis(1,i,nel) = sx*sy*sz
+            ddis(1,i,nel) = 0.d00           
 c
 c     save data at npsol point
 c            
@@ -8119,8 +8114,6 @@ c
       write(30,555) it,tempo,exat,(sol(i),i=1,4)
       call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
-      call clear(d,ndof*nmultp)
-c
       write(*,*) "beta",delta1
       write(*,*) "teta",teta
       write(*,*) "gama",gama,gamas
@@ -8134,6 +8127,15 @@ c
       write(*,*) "numnp",numnp
       write(*,*) "ndof",ndof
       write(*,*) "nmultp",nmultp
+
+c
+c     initial condition equal to zero for multiplier
+c
+      call clear(d,ndof*nmultp)
+c      
+      do ii=1,nmultp
+         d(1,ii) = 0.0d0
+      end do        
       
 c ------------------------------------------------------------------------------
 c     time integration loop
@@ -8519,7 +8521,13 @@ c
       call btod(id,d,xbrhs,ndof,nmultp)     
       
 c ------------------------------------------------------------------------------
-c    calculo de p^{n+1}
+c     calculo de p^{n+1}
+c
+c     dado lambda^{n+1}
+c     calcula
+c     u^{n+1} = A^{-1} (F - B lambda^{n+1})
+c     
+c     dt entra aqui -> dtm1
 c ------------------------------------------------------------------------------
 
 c ------------------------------------------------------------------------------      

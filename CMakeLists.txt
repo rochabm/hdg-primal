@@ -87,3 +87,11 @@ target_include_directories (primal-monodomain PUBLIC
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
 target_link_libraries (primal-monodomain LINK_PUBLIC petsc mpifort lapack blas)
+
+
+add_executable (primal-monodomain-cells "src/primal-hdg-dc-monodomain-cells.F" "src/tt2006.F" "src/ms.F")
+target_include_directories (primal-monodomain-cells PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    $ENV{PETSC_DIR}/include
+    $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
+target_link_libraries (primal-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)
