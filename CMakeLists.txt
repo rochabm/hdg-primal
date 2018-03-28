@@ -24,7 +24,7 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -funroll-all-loops -fno-f2c -O3")
+set (CMAKE_Fortran_FLAGS_RELEASE "-w -mcmodel=large -funroll-all-loops -fno-f2c -O3")
 ###set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
 ##set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g")
 #set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
@@ -56,6 +56,7 @@ set(PROGRAMS
   exvec
   exksp
   primal-hdg-dc
+  primal-hdg-cm
   primal-hdg-dc-monomial
   primal-hdg-dc-parabolic)
 
