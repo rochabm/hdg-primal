@@ -478,10 +478,10 @@ c
       common /genelc/ n,nel(3),incel(3),inc(3)
       common /genflc/ tempf(6,20),nf,numgpf,nincf(3),incf(3)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-     &                numeg,nmultp,nedge
+     &                numeg,nmultp,nmultpc,nedge
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /labels/ labeld(3),label1(16),label2(3)
-      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index      
+      common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index
       common /titlec/ title(20)
 c      
       character*4 ia
@@ -544,22 +544,13 @@ c     *** DEBUG ***
       write(ieco,4000) irank, nsd, numnp, ndof,
      &                 nlvect,numeg,nedge,npar
 c
-       nmultp = nedge*npar
-c
 c     initialization phase
 c     set memory pointers for static data arrays,
 c     and call associated input routines
 c
-      mpd    = mpoint('d       ',ndof  ,nmultp ,0 ,iprec)
-      mpx    = mpoint('x       ',nsd   ,numnp  ,0 ,iprec)
-      mped   = mpoint('ideg    ',2*ndof,nedge  ,0 ,1)
-      mpid   = mpoint('id      ',ndof  ,nmultp ,0 ,1)
-c
-      if (nlvect.eq.0) then
-         mpf = 1
-      else
-         mpf = mpoint('f       ',ndof  ,nmultp ,nlvect,iprec)
-      endif
+      mpx     = mpoint('x       ',nsd   ,numnp  ,0 ,iprec)
+      mped    = mpoint('ideg    ',2*ndof,nedge  ,0 ,1)
+      mpiedge = mpoint('iedge   ',npar  ,nedge  ,0 ,1)
 c
 c     input coordinate data
 c
@@ -567,12 +558,11 @@ c
 c
 c     input boundary condition data and establish equation numbers
 c
-      call bcedge(a(mped),a(mpid),npar,nedge,ndof,nmultp,neq,iprtin)
-c
-c     input nodal force and prescribed kinematic boundary-value data
-c      
-      if (nlvect.gt.0) call input(a(mpf),ndof,nmultp,0,nlvect,
-     &                            iprtin)
+      write(*,*) "reading boundary conditions"
+      call readbcedge(a(mped),npar,nedge,ndof,iprtin)
+c     OLD - FOR discontinuous multp.
+c     call bcedge(a(mped),a(mpid),npar,nedge,ndof,nmultp,neq,iprtin)
+
 c
 c     allocate memory for idiag array and clear
 c
@@ -583,24 +573,52 @@ c
 c
 c     input element data
 c
-      call elemnt('input___',a(mpngrp))
+      call elemnt('input_el',a(mpngrp))
       call timing(t2)
       etime(1) = t2 - t1
+
+c
+c     nmultpd => nmultp d (discontinuous)
+c     nmultpc => nmultp c (continuous)
+c     
+      nmultpd = nedge*npar      
+      
+      mpd     = mpoint('d       ',ndof  ,nmultpc ,0 ,iprec)
+c     
+      if (nlvect.eq.0) then
+         mpf = 1
+      else
+         mpf = mpoint('f       ',ndof  ,nmultpc ,nlvect,iprec)
+      endif      
+c
+c     input nodal force and prescribed kinematic boundary-value data
+c      
+      if (nlvect.gt.0) call input(a(mpf),ndof,nmultp,0,nlvect,
+     &     iprtin)
+c
+c     allocate memory for id array and clear
+c      
+      mpidc    = mpoint('idc     ',ndof  ,nmultpc ,0 ,1)         
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
 c$$$      call diag(a(mpdiag),neq,nalhs)
-      
+
+c
+c     input side/edge/face data for ipar
+c
+      call elemnt('input_sd',a(mpngrp))
 c
 c     allocate memory for global equation system
 c
 c      mpalhs = mpoint('alhs    ',nalhs,0,0,iprec)
 c      mpdlhs = mpoint('dlhs    ',nalhs,0,0,iprec)
-       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
 c      mpalhs = mpoint('alhs    ',1,0,0,iprec)
 c      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
        meanbw = nalhs/neq
        nwords = mtot - mlast + mfirst - 1
+       
+       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)       
 c
 c     allocate matrices
 c
@@ -617,8 +635,7 @@ c
       if (iexec.eq.1) call driver(neq,nalhs,userctx)
 c
 c     print memory-pointer dictionary
-c
-c      call prtdc
+c     call prtdc
 c
       call timing(t1)
       etime(2) = t1 - t2
@@ -665,9 +682,9 @@ c     solution driver program
 c-----------------------------------------------------------------------
       common /etimec/ etime(6)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-     &                numeg,nmultp,nedge
+     &                numeg,nmultp,nmultpc,nedge
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
+      common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index
 c      
       character*4 ia
       common a(1)
@@ -688,14 +705,14 @@ c
 c      account the nodal forces in the r.h.s.
 c
       if (nlvect.gt.0)
-     &   call load(a(mpid),a(mpf),a(mpbrhs),ndof,nmultp,nlvect)
+     &   call load(a(mpidc),a(mpf),a(mpbrhs),ndof,nmultp,nlvect)
 c
 c     clear displacement array
 c
       call clear(a(mpd),ndof*nmultp)
 c
       if (nlvect.gt.0)
-     &   call ftod(a(mpid),a(mpd),a(mpf),ndof,nmultp,nlvect)
+     &   call ftod(a(mpidc),a(mpd),a(mpf),ndof,nmultp,nlvect)
 c
 c     form the l.h.s and r.h.s. at element level
 c
@@ -712,12 +729,12 @@ c$$$      call vecprint(a(mpbrhs),neq)
 c
 c     PETSC solver
 c
-      write(*,*) "PETSC solving linear system"
-      call UserDoLinearSolver(userctx,a(mpbrhs))
+c$$$      write(*,*) "PETSC solving linear system"
+c$$$      call UserDoLinearSolver(userctx,a(mpbrhs))
 c
  1111 continue
 c
-      call btod(a(mpid),a(mpd),a(mpbrhs),ndof,nmultp)
+      call btod(a(mpidc),a(mpd),a(mpbrhs),ndof,nmultp)
 c
 c     write output
 c
@@ -962,6 +979,53 @@ c
      & 5x,'   node no.',3x,6(13x,'dof',i1:)//)
  2000 format(6x,i10,5x,6(5x,i10))
 c
+      end
+
+c ------------------------------------------------------------------------------      
+      subroutine readbcedge(ideg,npar,nedge,ndof,iprtin)
+c ------------------------------------------------------------------------------            
+c     read, generate and write boundary condition data
+c     and establish equation numbers
+c ------------------------------------------------------------------------------    
+      dimension ideg(2*ndof,*)
+c     
+c      common /iounit/ iin,iout,iecho,ioupp,itest1,itest2,
+c     &     ierrb,ierrb0,ierrbi
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite      
+      logical pflag
+c     
+      call iclear(ideg,2*ndof*nedge)
+      call igen3d(ideg,2*ndof)
+c
+c$$$      do i=1,nedge
+c$$$         write(*,*) "face",i,ideg(1,i),ideg(2,i)
+c$$$         if(ideg(1,i).eq.1) k=k+1
+c$$$      end do
+c     
+      if (iprtin.eq.0) then
+         nn=0
+         do n=1,nedge
+            pflag = .false.
+c     
+            do i=1,2*ndof
+               if (ideg(i,n).ne.0) pflag = .true.
+            end do
+c     
+            if (pflag) then      
+               nn = nn + 1
+               if (mod(nn,50).eq.1) write(iecho,1000) (i,i=1,2*ndof)
+               write(ieco,2000) n,(ideg(i,n),i=1,2*ndof)
+            endif
+         end do
+      endif
+c
+ 1000 format(//, 10x, ' edge BCs'///
+     &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
+ 1100 format(//, 10x,' nodal BCs'///
+     &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
+ 2000 format(6x,i10,5x,6(5x,i10))
+c      
+      return
       end
 
 c-----------------------------------------------------------------------
@@ -1274,23 +1338,22 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to calculate element task number
 c-----------------------------------------------------------------------
-      character*8 task,eltask(4)
+      character*8 task,eltask(5)
       dimension ngrp(*)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-     &                numeg,nmultp,nedge
-
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-      character*4 ia
-c
-      PetscFortranAddr userctx(*)
-c      
+     &                numeg,nmultp,nmultpc,nedge
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite      
       common na(1)
-      common /dictn/ ia(10000000)
-      data ntask,    eltask
-     &    /    4,'input___',
+      common /dictn/ ia(10000000)     
+      data ntask, eltask
+     &    /    5,'input_el',
+     &           'input_sd',
      &           'form_stb',
      &           'form_lrs',
      &           'pos_proc'/
+c      
+      character*4 ia
+      PetscFortranAddr userctx(*)      
 c
       do 100 i=1,ntask
       if (task.eq.eltask(i)) itask = i
@@ -1814,9 +1877,76 @@ c
       return
       end
 
+c ------------------------------------------------------------------------------
+      subroutine setbcedgec(ideg,idc,iedge,indno,indedg,iedgto,
+     &                      npar,nedge,ndof,nmultpc,neqc,iprtin)
+c ------------------------------------------------------------------------------      
+c     subroutine to read, generate and write boundary condition data
+c     and establish equation numbers
+c ------------------------------------------------------------------------------
+      dimension idc(ndof,*),ideg(2*ndof,*),iedge(npar,*)
+      dimension indno(*),indedg(*),iedgto(*)
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite      
+      logical pflag
+c
+      call iclear(idc,ndof*nmultpc)
+c     
+c     idc - prescribed dof
+c     
+      do n=1,nedge 
+         kedg = iedgto(n)
+         do j=1,ndof
+            if(ideg(j,kedg).ne.0) then
+	       do is=1,npar
+                  kk = iedge(is,kedg)
+                  idc(j,kk) = ideg(j,kedg)
+	       end do
+            end if
+         end do
+      end do
+c     
+      if (iprtin.eq.0) then
+         nn=0
+         do n=1,nmultpc
+            pflag = .false.
+c     
+            do i=1,ndof
+               if (idc(i,n).ne.0) pflag = .true.
+            end do
+c     
+            if (pflag) then      
+               nn = nn + 1
+            endif
+         end do
+      endif
+c
+c     establish equation numbers
+c
+      neqc = 0
+c     
+      do n=1,nmultpc     
+         do i=1,ndof
+            if (idc(i,n).eq.0) then
+               neqc = neqc + 1
+               idc(i,n) = neqc
+            else
+               idc(i,n) = 1 - idc(i,n)
+            endif
+         end do     
+      end do
+c     
+ 1000 format(//,10x,' edge/face BCs '//
+     &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
+ 1100 format(//,10x,' nodal  BCs '//
+     &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
+ 2000 format(6x,i10,5x,6(5x,i10))
+c
+      return
+      end      
+
 c-----------------------------------------------------------------------
-      subroutine genelpar(ipar,ien,lado,idside,
-     &     nen,nside,nodsp,numel,npars)
+      subroutine genelpar(ipar,ien,lado,idside,iedge,indedg,idlsd,
+     &                    nen,nside,nodsp,numel,npars)    
 c-----------------------------------------------------------------------
 c     gera numeracao dos parametros dos multiplicadores poe elemento
 c         ipar(npars*nside,numel) = element parameter numbers
@@ -1828,35 +1958,104 @@ c         nel(i)         = number of elements in direction i
 c         incel(i)       = element number increment for direction i
 c         inc(i)         = node number increment for direction i
 c-----------------------------------------------------------------------
-      dimension lado(nside,*),ipar(nodsp,*)
-      dimension ien(nen,*),idside(nside,*)
+      dimension lado(nside,*),ipar(nodsp,*),iedge(npars,*),indedg(*) 
+      dimension ien(nen,*),idside(nside,*),idlsd(*)
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c
-      do nl=1,numel
-         do l=1,nside
-            la = lado(l,nl)
-            lada = npars*(la-1)
-            do np=1,npars
-               nsp = (l-1)*npars + np
-               ipar(nsp,nl) = lada + np
+
+c$$$      write(*,*) "GENELPAR DEBUG FACE / DOFS"
+c$$$      do i=1,36
+c$$$         write(*,*) " face",i,"iedge",(iedge(j,i),j=1,npars)
+c$$$      end do        
+c     
+      do nel=1,numel
+c     
+c     primeiro passo: nos dos vertices
+c     
+         do ns=1,nside
+c     localiza os no's do lado ns
+            ns1 = idside(ns,1)
+            ns2 = idside(ns,2)
+            ns3 = idside(ns,3)
+            ns4 = idside(ns,4)
+c     global
+            nl1 = ien(ns1,nel)
+            nl2 = ien(ns2,nel)
+            nl3 = ien(ns3,nel)
+            nl4 = ien(ns4,nel)
+c     copia
+            do nn=1,npars
+               idlsd(nn) = idside(ns,nn)
             end do
+c     
+            la = lado(ns,nel)
+            kedg = indedg(la)
+c     
+            do np=1,4
+c     neds = idlsd(np)
+               neds = np
+               lada = iedge(neds,la)
+               nsp = idside(ns,np)
+c               nsp = np + (ns-1)*npars
+               ipar(nsp,nel) = lada
+            end do
+c     
          end do
+c     
+c     segundo passo: nos dos lados/interior das faces
+c     
+         if(npars.gt.4) then
+            do ns=1,nside
+c               
+               la = lado(ns,nel)
+               kedg = indedg(la)
+c     
+               do np=5,npars
+                  neds = np
+                  lada = iedge(neds,la)
+                  nsp = idside(ns,np)                  
+c                 nsp = np + (ns-1)*npars
+                  ipar(nsp,nel) = lada
+               end do
+c               
+            end do
+         end if
+         
       end do
-c
-c$$$      write(*,*) "debug ipar"
+c     
+      return
+      end
+
+c$$$c-----------------------------------------------------------------------
+c$$$      subroutine genelpar(ipar,ien,lado,idside,
+c$$$     &                    nen,nside,nodsp,numel,npars)
+c$$$c-----------------------------------------------------------------------
+c$$$c     gera numeracao dos parametros dos multiplicadores poe elemento
+c$$$c         ipar(npars*nside,numel) = element parameter numbers
+c$$$c         nside          = number of element sides
+c$$$c         nodsp          = number of element parameters (le.27)
+c$$$c         n              = element number
+c$$$c         ng             = generation parameter
+c$$$c         nel(i)         = number of elements in direction i
+c$$$c         incel(i)       = element number increment for direction i
+c$$$c         inc(i)         = node number increment for direction i
+c$$$c-----------------------------------------------------------------------
+c$$$      dimension lado(nside,*),ipar(nodsp,*)
+c$$$      dimension ien(nen,*),idside(nside,*)
+c$$$      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+c$$$c
 c$$$      do nl=1,numel
 c$$$         do l=1,nside
 c$$$            la = lado(l,nl)
 c$$$            lada = npars*(la-1)
 c$$$            do np=1,npars
 c$$$               nsp = (l-1)*npars + np
-c$$$               write(*,*) nl, nsp, ipar(nsp,nl)
+c$$$               ipar(nsp,nl) = lada + np
 c$$$            end do
 c$$$         end do
 c$$$      end do
-c
-      return
-      end
+c$$$c
+c$$$      return
+c$$$      end      
 
 c-----------------------------------------------------------------------
       subroutine genelip(ien2,ien1,inc,nodsp)
@@ -5724,8 +5923,8 @@ c
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-     &                numeg,nmultp,nedge
-      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
+     &                numeg,nmultp,nmultpc,nedge
+      common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index      
 
       character*4 ia
       common a(1)
@@ -5944,18 +6143,47 @@ c
 c
 c     parameters for post processing
 c
-      nodsp=npars*nside
+      nodsp = npars*nside      ! para multp. descontinuo
 c
-c     set element parameters
+      nordem = 1
+      npars2 = 1
+      
+      if(npars.eq.4) then
+         nordem = 1
+         npars2 = 2
+      else if(npars.eq.9) then
+         nordem = 2
+         npars2 = 3         
+      else if(npars.eq.16) then
+         nordem = 3
+         npars2 = 4
+      else if(npars.eq.25) then
+         nordem = 4
+         npars2 = 5
+      else if(npars.eq.36) then
+         nordem = 5
+         npars2 = 6
+      end if
+      
+      nodsp  = 2*npars + (nordem-1)*(npars2-1) ! para multp. continuo
+      nodspd = npars*nside
+
+      write(*,*) "nodspc",nodsp
+      write(*,*) "nodspd",nodspd      
+c
+c     set element parameters (discontinuous)
 c
       ndimc  = 10
-      ned    = 1
-      ncon   = 2
-      nee    = nodsp*ned
+      ned    = 1 ! pressao
+      ncon   = 2 ! velocidade
+      nee    = nodsp*ned 
       neep   = nenp*ned
-      necon  = nencon*ncon
+      necon  = nencon*ncon      
       neesq  = nee*nee
       ngrav  = 3
+c
+c     para misto
+      nepcon = neep+necon   
 c
       if(nsd.eq.2) then
          nesd    = 2
@@ -6105,52 +6333,71 @@ c     input element data ('input___')
 c
       write(*,'(A)') "subroutine flux1el"
       call flux1el(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
-     &           a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
-     &           a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
-     &           a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
-     &           a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
-     &           a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
-     &           a(mp(mshlp )),a(mp(mwp   )),a(mp(mdside)),
-     &           a(mp(mshsde)),a(mp(mshlpsd)),a(mp(mshlcsd)),
+     &            a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
+     &            a(mpidc     ),a(mp(mlm   )),a(mp(mipar )),
+     &            a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
+     &            a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
+     &            a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
+     &            a(mp(mshlp )),a(mp(mwp   )),a(mp(mdside)),
+     &            a(mp(mshsde)),a(mp(mshlpsd)),a(mp(mshlcsd)),
 c
-     &           a(mp(mindno)),
-     &           a(mp(mindedg)),
-     &           a(mpiedge)  ,
-     &           a(mp(miedgto)),
-     &           a(mp(midlsd)),
+     &            a(mp(mindno)),
+     &            a(mp(mindedg)),
+     &            a(mpiedge)  ,
+     &            a(mp(miedgto)),
+     &            a(mp(midlsd)),
 c      
-     &           ntype        ,numel         ,numat,
-     &           nint         ,nrowsh        ,nesd,
-     &           nen          ,ndof          ,ned,
-     &           iprtin       ,numnp         ,ncon,
-     &           nencon       ,necon         ,nints,
-     &           nnods        ,nenlad        ,npars,
-     &           nenp         ,nside         ,nodsp)
+     &            ntype        ,numel         ,numat,
+     &            nint         ,nrowsh        ,nesd,
+     &            nen          ,ndof          ,ned,
+     &            iprtin       ,numnp         ,ncon,
+     &            nencon       ,necon         ,nints,
+     &            nnods        ,nenlad        ,npars,
+     &            nenp         ,nside         ,nodsp,
+     &            nedge        ,nmultpd       ,nmultpc)
 c
       write(*,'(A)') "fim da flux1el"
       return
 
  200  continue
       write(*,'(A)') "subroutine flux1sd"
+            call flux1sd(a(mp(mien  )),a(mp(mmat  )),
+     &                   a(mp(mlm   )),
+     &                   a(mpidc     ),a(mped      ),
+     &                   a(mpdiag    ),a(mp(mipar )),
 c
-c     TODO: implementar flux1sd
-c      
-      stop
-      call flux1sd(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
-     &           a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
-     &           a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
-     &           a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
-     &           a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
-     &           a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
-     &           a(mp(mshlp )),a(mp(mwp   )),a(mp(mdside)),
-     &           a(mp(mshsde)),a(mp(mshlpsd)),a(mp(mshlcsd)),
-     &           ntype        ,numel         ,numat,
-     &           nint         ,nrowsh        ,nesd,
-     &           nen          ,ndof          ,ned,
-     &           iprtin       ,numnp         ,ncon,
-     &           nencon       ,necon         ,nints,
-     &           nnods        ,nenlad        ,npars,
-     &           nenp         ,nside         ,nodsp)
+     &                   a(mp(mlado)) ,
+c
+     &                   a(mp(mdside)),
+     &                   a(mp(mindno)),
+     &                   a(mp(mindedg)),
+     &                   a(mpiedge)  ,
+     &                   a(mp(miedgto)),
+     &                   a(mp(midlsd)),
+c     
+     &                   ntype ,numel ,numat ,
+     &                   nint  ,nrowsh,nesd  ,
+     &                   nen   ,ndof  ,ned   ,
+     &                   iprtin,numnp ,ncon  ,
+     &                   nencon,necon ,nints ,
+     &                   nnods ,nenlad,npars ,
+     &                   nenp  ,nside ,nodsp ,
+     &                   nedge ,nmultpd,nmultpc)
+c$$$      call flux1sd(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
+c$$$     &           a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
+c$$$     &           a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
+c$$$     &           a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
+c$$$     &           a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
+c$$$     &           a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
+c$$$     &           a(mp(mshlp )),a(mp(mwp   )),a(mp(mdside)),
+c$$$     &           a(mp(mshsde)),a(mp(mshlpsd)),a(mp(mshlcsd)),
+c$$$     &           ntype        ,numel         ,numat,
+c$$$     &           nint         ,nrowsh        ,nesd,
+c$$$     &           nen          ,ndof          ,ned,
+c$$$     &           iprtin       ,numnp         ,ncon,
+c$$$     &           nencon       ,necon         ,nints,
+c$$$     &           nnods        ,nenlad        ,npars,
+c$$$     &           nenp         ,nside         ,nodsp)
 c
       write(*,'(A)') "fim da flux1sd"
       return
@@ -6164,7 +6411,7 @@ c
 c
 c     escreve malha GMSH
 c
-      write(*,'(A)') "escreve malha.msh"
+c      write(*,'(A)') "escreve malha.msh"
 c      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
 c     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
 c     &             nsd,nesd,npars,nside)
@@ -6195,7 +6442,7 @@ c
      &           a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
      &           a(mp(melmdb)),
 c
-     &           a(mp(mshsde)),
+     &           a(mp(mshsde)), a(mped      ),a(mpiedge),
      &           a(mp(mshlpsd)),a(mp(mshlcsd)),
 c
      &           a(mp(mshgpsd)),a(mp(mshgcsd)),
@@ -6240,6 +6487,7 @@ c
      &             nside ,nnods ,nenlad,npars ,
      &             nmultp,nodsp )
       write(*,'(A)') "fim da flnormp"
+
 c
 c  esta rotina calcula os erros das interpolantes
 c
@@ -6301,13 +6549,16 @@ c
      &           a(mp(mshlpsd)),a(mp(mshlcsd)),
      &           a(mp(mshgpsd)),a(mp(mshgcsd)),
 c
+     &           a(mpiedge)   ,a(mpidc     ),
+c
      &           numel ,neesq ,nen   ,nsd   ,
      &           nesd  ,nint  ,neg   ,nrowsh,
      &           ned   ,nee   ,numnp ,ndof  ,
      &           ncon  ,nencon,necon ,neep  ,
      &           nints ,nnods ,nenlad,npars ,
      &           nside ,nenp  ,nedge ,nodsp ,
-     &           index ,nface, userctx)
+     &           index ,nface ,nmultpd, nmultpc, nepcon, 
+     &           userctx)
 c
       write(*,'(A)') "fim da flux2"
       return
@@ -6339,7 +6590,7 @@ c
      &           a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
      &           a(mp(melmdb)),
 c
-     &           a(mp(mshsde)),
+     &           a(mp(mshsde)),a(mped      ),a(mpiedge),
 c
      &           a(mp(mshlpsd)),a(mp(mshlcsd)),
      &           a(mp(mshgpsd)),a(mp(mshgcsd)),
@@ -6351,8 +6602,9 @@ c
      &           ncon  ,nencon,necon ,
      &           neep  ,nints ,nnods ,
      &           nenlad,npars ,nside ,
-     &           nenp  ,nodsp ,index ,nface)
-
+     &           nenp  ,nodsp ,index ,
+     &           nface ,nedge)
+c
       write(*,'(A)') "fim da flux3primal"
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
@@ -6380,7 +6632,10 @@ c
      &            ncon  ,nencon,necon ,index ,
      &            nints ,ipp,   nenp  ,
      &            nside ,nnods ,nenlad,npars ,
-     &            nmultp,nodsp )
+c     
+c     new
+c     
+     &            nmultpc ,nodsp )
 c
       write(*,'(A)') "fim da flnormp"
 c
@@ -6406,7 +6661,8 @@ c
      &                   iprtin,numnp ,ncon  ,
      &                   nencon,necon ,nints ,
      &                   nnods ,nenlad,npars ,
-     &                   nenp  ,nside ,nodsp)
+     &                   nenp  ,nside ,nodsp ,
+     &                   nedge ,nmultpd,nmultpc)
 c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
@@ -6437,8 +6693,6 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
 c
-      write(*,'(A,I5)') " nesd", nesd
-c
       write(ieco,1000) ntype,numel,numat
       write(ieco,2000) nint
 c
@@ -6480,11 +6734,11 @@ c
          write(*,'(A,10I5)') " nint, nen    ", nint, nen
          write(*,'(A,10I5)') " nint, nencon ", nint, nencon
          write(*,'(A,10I5)') " nint, nenp   ", nint, nenp
-         write(*,'(A,10I5)') " nenp, nside  ",nenp,nside
-         write(*,'(A,10I5)') " nencon,nside ",nencon,nside
-         write(*,'(A,10I5)') " nnods,nints  ",nnods, nints
-         write(*,'(A,10I5)') " nrowsh,nenlad",nrowsh,nenlad
-         write(*,'(A,10I5)') " nenlad,nnods,npars",nenlad,nnods,npars
+         write(*,'(A,10I5)') " nenp, nside  ", nenp,nside
+         write(*,'(A,10I5)') " nencon,nside ", nencon,nside
+         write(*,'(A,10I5)') " nnods,nints  ", nnods, nints
+         write(*,'(A,10I5)') " nrowsh,nenlad", nrowsh,nenlad
+         write(*,'(A,10I5)') " nenlad,nnods,npars", nenlad,nnods,npars
 c
 c     treat faces first (2D)
 c     obs: shlq and shlqpk compute the same functions
@@ -6659,7 +6913,7 @@ c
       call genside(idside,nside,nencon)
       write(*,*) "array idside"
       do il=1,6
-         write(*,*) il, (idside(il,j),j=1,4)
+         write(*,*) il, (idside(il,j),j=1,npars)
       end do
 
       write(*,'(A)') "subroutine genelad"
@@ -6671,29 +6925,166 @@ c$$$      do kk=1,numel
 c$$$         write(*,*) (lado(ll,kk),ll=1,6)
 c$$$      end do
 c
-      write(*,'(A)') "subroutine genelpar"
-      call genelpar(ipar,ien,lado,idside,
-     &     nen,nside,nodsp,numel,npars)
-      if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)
+c     TODO: alocar iedge apropriadamente, ver darcy-1m-c
+c     
+
+     
 c
 c     generation of conectivities for the continuous multiplier
-c     
+c
+      write(*,*) "NEDGE",nedge
+      write(*,*) "NPARS",npars
+c      
       do i=1,numnp
          indno(i) = 0
       end do
 c     
-      do n=1,nedge
-         indedg(n) = 0
+      do i=1,nedge
+         indedg(i) = 0
       end do
+c
+      keq = 0  ! contador de dofs
+      kedg = 0 ! contador de face
+c
+c     loop em elemento
 c     
-      keq = 0
-      kedg = 0
+      do nel=1,numel
+c
+c     loop em lado/face
+c
+c$$$         write(*,*) "ELEMENTO", nel
+         do ns=1,nside
+c            
+            neledg = lado(ns,nel)
+c$$$            write(*,*) "FACE (neledg)", neledg
+c
+c     localiza os no's do lado ns
+c
+            ns1 = idside(ns,1)
+            ns2 = idside(ns,2)
+            ns3 = idside(ns,3)
+            ns4 = idside(ns,4)
+c
+c     global
+c            
+            nl1 = ien(ns1,nel)
+            nl2 = ien(ns2,nel)
+            nl3 = ien(ns3,nel)
+            nl4 = ien(ns4,nel)            
+c
+c            write(*,*) nl1,nl2,nl3,nl4
+c            
+            do nn=1,npars
+               idlsd(nn) = idside(ns,nn)
+            end do
+c
+            i1=idlsd(1)
+            i2=idlsd(2)
+            i3=idlsd(3)
+            i4=idlsd(4)
 
-      write(*,*) "indedg" , (indedg(ii),ii=1,nedge)
-      write(*,*) "indedg" , (indedg(ii),ii=1,nedge)
-      
-      stop
-      
+            i1=1
+            i2=2
+            i3=3
+            i4=4
+c            write(*,*) i1,i2,i3,i4
+c    
+c     renumeracao dos dofs do multp baseado no elemento
+c     
+            if(indedg(neledg).eq.0) then
+c     
+               kedg = kedg + 1
+               indedg(neledg) = kedg
+               iedgto(kedg) = neledg
+c$$$               write(*,*) "numerando face", neledg, "->", kedg
+c
+c     numera os nos
+c               
+               if(indno(nl1).eq.0) then
+                  keq = keq + 1
+                  indno(nl1) = keq
+                  iedge(i1,neledg) = keq
+c$$$                  write(*,*) "iedge(",i1,",",neledg,") = ", keq
+               else
+                  iedge(i1,neledg) = indno(nl1)
+               end if
+c     
+               if(indno(nl2).eq.0) then
+                  keq = keq + 1
+                  indno(nl2) = keq 
+                  iedge(i2,neledg) = keq
+c$$$                  write(*,*) "iedge(",i2,",",neledg,") = ", keq
+               else
+                  iedge(i2,neledg) = indno(nl2)
+               end if
+c
+               if(indno(nl3).eq.0) then
+                  keq = keq + 1
+                  indno(nl3) = keq 
+                  iedge(i3,neledg) = keq
+c$$$                  write(*,*) "iedge(",i3,",",neledg,") = ", keq
+               else                  
+                  iedge(i3,neledg) = indno(nl3)
+               end if
+c               
+               if(indno(nl4).eq.0) then
+                  keq = keq + 1
+                  indno(nl4) = keq 
+                  iedge(i4,neledg) = keq
+c$$$                  write(*,*) "iedge(",i4,",",neledg,") = ", keq
+               else
+                  iedge(i4,neledg) = indno(nl4)
+               end if
+c
+c     numera os interiores
+c               
+               if(npars.gt.4) then
+                  do i=5,npars
+                     keq = keq + 1 
+                     isv = idlsd(i)
+                     iedge(isv,neledg) = keq
+                  end do
+               end if
+c
+c           else
+c              write(*,*) "indedg .ne. 0", neledg, indedg(neledg)
+           end if
+c            
+         end do
+c
+c$$$         write(*,*) " "
+c$$$         write(*,*) " "
+c         
+      end do
+c
+c     total number of continuous multipliers
+c     
+      nmultpc = keq
+      write(*,*) "nmultpc",nmultpc      
+c$$$c      
+c$$$c     confere numeracao
+c$$$c
+c$$$      write(*,*) " "
+c$$$      write(*,*) " "
+c$$$      write(*,*) "DEBUG"
+c$$$      write(*,*) " "
+c$$$      write(*,*) " "
+c$$$      do ii=1, numnp
+c$$$         write(*,*) "indno", ii, indno(ii)
+c$$$      end do
+c$$$      write(*,*) "indedg",(indedg(ii),ii=1,nedge)
+c$$$      
+c$$$      do nel=1,numel     
+c$$$         write(*,*) "nel,ns,nd,iedge(npars,nd)"
+c$$$         do ns=1,nside
+c$$$            nd = lado(ns,nel)
+c$$$            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
+c$$$         end do
+c$$$      end do
+c$$$      write(*,*) "FACE / DOFS"
+c$$$      do i=1,nedge
+c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
+c$$$      end do      
 c
       return
 c
@@ -6714,299 +7105,341 @@ c
       end
 
 c-----------------------------------------------------------------------
-      subroutine flux1sd(shl   ,w     ,c     ,
-     &                   grav  ,ien   ,mat   ,
-     &                   id    ,lm    ,ipar  ,
-     &                   x     ,lado  ,shlc  ,
-     &                   wc    ,shlpn ,wpn   ,
-     &                   shln  ,wn    ,shlb  ,
-     &                   shlp  ,wp    ,idside,
-     &                   shsde ,shlpsd,shlcsd,
+      subroutine flux1sd(ien   ,mat   ,
+     &                   lm    ,
+     &                   idc   ,ideg  ,
+     &                   idiag ,ipar  ,
+c
+     &                   lado  ,
+c
+     &                   idside,
+     &                   indno ,
+     &                   indedg,
+     &                   iedge ,
+     &                   iedgto,
+     &                   idlsd ,
+c     
      &                   ntype ,numel ,numat ,
      &                   nint  ,nrowsh,nesd  ,
      &                   nen   ,ndof  ,ned   ,
      &                   iprtin,numnp ,ncon  ,
      &                   nencon,necon ,nints ,
-     &                   nnods ,nenlad,npars ,
-     &                   nenp  ,nside ,nodsp)
+     &                   nnods,nenlad ,npars ,
+     &                   nenp ,nside  ,nodsp ,
+     &                   nedge,nmultpd,nmultpc)
 c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-      dimension c(10,*),grav(*),ien(nen,*),mat(*),
-     &          id(ndof,*),lm(ned,nodsp,*),
-     &          ipar(nodsp,*),idside(nside,*),
-     &          x(nesd,*),lado(nside,*)
+      dimension ien(nen,*),mat(*),
+     &          lm(ndof,nodsp,*),idiag(*),
+     &          ipar(nodsp,*),idside(nside,*)
 c
-      dimension shlb (nrowsh,nenlad,*)
-      dimension shln (nrowsh,nnods,*),wn(*)
-      dimension shlpn(nrowsh,npars,*),wpn(*)
+      dimension lado(nside,*)
+      dimension iedge(npars,*),indno(*),indedg(*),iedgto(*),idlsd(*)
+      dimension idc(ndof,*),ideg(2*ndof,*)
 c
-      dimension shl (nrowsh+1,nen,*),w(*)
-      dimension shlp(nrowsh+1,nenp,*),wp(*)
-      dimension shlc(nrowsh+1,nencon,*),wc(*)
+      common /iounit/ iin,iout,iecho,ioupp,itest1,itest2,
+     &                ierrb,ierrb0,ierrbi
+      common /colhtc / neqc
 c
-      dimension shsde (nrowsh+1,nen,*)
-      dimension shlpsd(nrowsh+1,nenp,*)
-      dimension shlcsd(nrowsh+1,nencon,*)
+      write(*,*) " entrando flux1sd"
+      write(*,*) nmultpc
 c
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-      common /colhtc / neq
-c
-      write(*,'(A,I5)') " nesd", nesd
-c
-      write(ieco,1000) ntype,numel,numat
-      write(ieco,2000) nint
-c
-c     handle 2D problems
-c
-      if(nesd.eq.2) then
-c
-c     geomeria 1D / Lagrange
-c     generation of local shape functions and weight values
-c
-         nintb=nside*nints
-c
-         write(*,'(A)') " subroutine flux1 - 1d local shape "
-         call oneshl(shlb,wp,nints,nenlad)
-         call oneshl(shln,wn,nints,nnods)
-         call oneshl(shlpn,wpn,nints,npars)
-c
-         write(*,'(A)') " subroutine flux1 - 2d local shape tri/quad"
-         if(nen.eq.3.or.nen.eq.6.or.nen.eq.10) then
-            call shlt(shl,w,nint,nen)
-            call shlt(shlc,wc,nint,nencon)
-            call shlt(shlp,wp,nint,nenp)
-c
-            call shltpbk(shlpsd,nenp,nside,nints)
-            call shltpbk(shlcsd,nencon,nside,nints)
-            call shltpbk(shsde,nen,nside,nints)
-         else
-            call shlq(shl,w,nint,nen)
-            call shlqpk(shlc,wc,nint,nencon)
-            call shlqpk(shlp,wp,nint,nenp)
-c
-            call shlqpbk(shlpsd,nenp,nside,nnods,nints)
-            call shlqpbk(shlcsd,nencon,nside,nnods,nints)
-            call shlqpbk(shsde,nen,nside,nenlad,nints)
-         end if
-c
-      else if(nesd.eq.3) then
-         write(*,'(A)') " funcoes de forma shl 2d e 3d"
-         write(*,'(A,10I5)') " nint, nen    ", nint, nen
-         write(*,'(A,10I5)') " nint, nencon ", nint, nencon
-         write(*,'(A,10I5)') " nint, nenp   ", nint, nenp
-         write(*,'(A,10I5)') " nenp, nside  ",nenp,nside
-         write(*,'(A,10I5)') " nencon,nside ",nencon,nside
-         write(*,'(A,10I5)') " nnods,nints  ",nnods, nints
-         write(*,'(A,10I5)') " nrowsh,nenlad",nrowsh,nenlad
-         write(*,'(A,10I5)') " nenlad,nnods,npars",nenlad,nnods,npars
-c
-c     treat faces first (2D)
-c     obs: shlq and shlqpk compute the same functions
-c
-         write(*,'(A)') " calculando shl do multiplicador"
-         write(*,'(4I5)') nenlad,nnods,npars,nints
-
-         write(*,*)
-         write(*,'(A)') " calculando shlb"
-         call shlqpk(shlb,wp,nints,nenlad)
-
-         write(*,*)
-         write(*,'(A)') " calculando shln"
-         call shlqpk(shln,wn,nints,nnods)
-
-         write(*,*)
-         write(*,'(A)') " calculando shlpn"
-         call shlqpk(shlpn,wpn,nints,npars)
-
-c     *** DEBUG ***
-c     shp do multiplicador (dim 2)
-         write(*,*)
-         write(*,'(A,2I5)') " dados shln", nnods, nints
-         do ii=1,nints
-            write(*,999) (shln(3,in,ii),in=1,nnods)
-         end do
-         write(*,*)
-
-         write(*,'(A,2I5)') " dados shlpn", npars, nints
-         do ii=1,nints
-            write(*,999) (shlpn(3,in,ii),in=1,npars)
-         end do
-         write(*,*)
-c
-c     then 3d stuff
-c     calcular: shl, shlc, shlp, shlpsd, shlcsd, shlsde
-c
-         write(*,'(A)') "calculando shl da variavel"
-         write(*,'(A,2I5)') "nint,nen",nint,nen
-
-         write(*,*)
-         write(*,'(A)') " calculando shl"
-         call shlhxpk(shl,w,nint,nen)
-
-         write(*,*)
-         write(*,'(A)') " calculando shlc"
-         call shlhxpk(shlc,wc,nint,nencon)
-
-         write(*,*)
-         write(*,'(A)') " calculando shlp"
-         call shlhxpk(shlp,wp,nint,nenp)
-c
-c     shp on faces
-c
-         nenlad2=2
-         nnods2=2
-
-         if(nencon.eq.27) then
-            nnods2 = 3
-         else if(nencon.eq.64) then
-            nnods2 = 4
-         else if(nencon.eq.125) then
-            nnods2 = 5         
-         else if(nencon.eq.216) then
-            nnods2 = 6
-         endif
-
-         if(nints.eq.1) then
-            nints2 = 1
-         else if(nints.eq.4) then
-            nints2 = 2
-         else if(nints.eq.9) then
-            nints2 = 3
-         else if(nints.eq.16) then
-            nints2 = 4
-         else if(nints.eq.25) then
-            nints2 = 5
-         else if(nints.eq.36) then
-            nints2 = 6
-         else if(nints.eq.49) then
-            nints2 = 7
-         end if
-c
-         write(*,*)
-         write(*,'(A)')  " integral em face/area"
-         write(*,'(A,2I5)') " nints2,nen2",nints2,nnods2
-c
-         write(*,*)
-         write(*,'(A)') " calculando shlpsd (shlhxpbk)"
-         call shlhxpbk(shlpsd,nenp,nside,nnods2,nints2)
-
-         write(*,*)
-         write(*,'(A)') " calculando shlcsd (shlhxpbk)"
-         call shlhxpbk(shlcsd,nencon,nside,nnods2,nints2)
-
-         write(*,*)
-         write(*,'(A)') " calculando shsde (shlhxpbk)"
-         call shlhxpbk(shsde,nen,nside,nenlad2,nints2)
-
-c     *** DEBUG ***
-c     shp on volumes
-         write(*,*) "pesos da integracao de gauss - w"
-         write(*,'(10F8.4)') (w(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wc"
-         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wp"
-         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
-
-         write(*,*) "shl", nint, nen
-         do ii=1,nint
-            write(*,999) (shl(4,in,ii),in=1,nen)
-         end do
-
-         write(*,*) "shlc", nint, nencon
-         do ii=1,nint
-            write(*,999) (shlc(4,in,ii),in=1,nencon)
-         end do
-
-         write(*,*) "shlp", nint, nenp
-         do ii=1,nint
-            write(*,999) (shlp(4,in,ii),in=1,nenp)
-         end do
-
-c     *** DEBUG ***
-c     shp on faces
-         write(*,*)
-         write(*,*) "dados shlpsd - on faces"
-
-         write(*,*) "pesos da integracao de gauss - wn"
-         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
-         write(*,*) "pesos da integracao de gauss - wpn"
-         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
-
-         write(*,*) "shlpsd"
-         do ii=1,nints*nside
-            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
-         end do
-         write(*,*) "shlcsd",nencon,nside
-         do ii=1,nints*nside
-            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
-         end do
-         write(*,*) "shsde"
-         do ii=1,nints*nside
-            write(*,999) (shsde(4,in,ii),in=1,nen)
-         end do
-c
- 999     format(' ',30F8.4)
-c     *** DEBUG ***
-      end if
-c
-      nintb=nside*nints
-c
-c     read material properties
-c
-      call fluxmx(c,numat)
-c
-c     constant body forces
-c
-      read (iin,5000) (grav(i),i=1,3)
-      write (ieco,6000) (grav(i),i=1,3)
-c
-c     generation of conectivities
-c
-      write(*,'(A)') "subroutine genel"
-      call genel(ien,mat,nen)
-c
-      if (iprtin.eq.0) call prntel(mat,ien,nen,numel)
-c
-c     generation of conectivety for element multipliers
-c
-      write(*,'(A)') "subroutine genside"
-      call genside(idside,nside,nencon)
-      write(*,*) "array idside"
-      do il=1,6
-         write(*,*) il, (idside(il,j),j=1,4)
-      end do
-
-      write(*,'(A)') "subroutine genelad"
-      call genelad(lado,nside)
-      if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
-c
-c$$$      write(*,*) "DEBUG LADO(,)"
-c$$$      do kk=1,numel
-c$$$         write(*,*) (lado(ll,kk),ll=1,6)
-c$$$      end do
-c
+c     boundary conditions for the continuous multiplier
+c      
+      write(*,'(A)') "subroutine setbcedgec"
+      call setbcedgec(ideg,idc,iedge,indno,indedg,iedgto,
+     &     npars,nedge,ndof,nmultpc,neqc,iprtin)     
+c     
+c     generation of continuous multiplier equations 
+c      
       write(*,'(A)') "subroutine genelpar"
-      call genelpar(ipar,ien,lado,idside,
-     &     nen,nside,nodsp,numel,npars)
-
-c
+      call genelpar(ipar,ien,lado,idside,iedge,indedg,idlsd,
+     &              nen,nside,nodsp,numel,npars)
       if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)
+c
+c     debug
+c     
+c$$$      write(*,*) "DEBUG ideg"
+c$$$      do i=1,nedge
+c$$$         write(*,*) "ideg", i, ideg(1,i), ideg(2,i)
+c$$$      end do
+c$$$      
+c$$$      write(*,*) "DEBUG"
+c$$$      do i=1,nmultpc
+c$$$         write(*,*) "idc", i, idc(1,i)
+c$$$      end do
+c$$$
+c$$$      write(*,*) "DEBUG", nodsp, numel
+c$$$      do nel=1,numel
+c$$$         write(*,'(A,25I5)') "ipar", nel, (ipar(j,nel),j=1,nodsp)
+c$$$      end do
 c
 c     generation of lm array
 c
-      call formlm(id,ipar,lm,ndof,ned,nodsp,numel)
-c
-c     modification of idiag array
-c
-c     call colht(idiag,lm,ned,nodsp,numel,neq)
+c      call formlm(idc,ipar,lm,ndof,ndof,nodsp,numel)
+c      
+c      do k=1,numel
+c         write(iecho,*)'Matriz LM[',k,']'
+c         do i=1,ndof
+c           write(iecho,8000)(lm(i,j,k),j=1,nodsp)
+c         end do
+c     end do
+c     write(iecho,8000) 
+c     8000 format(8(5x,i10))       
       
-c
-c     Neumann BCs not implemented YET
-c
+c$$$c
+c$$$c
+c$$$c     handle 2D problems
+c$$$c
+c$$$      if(nesd.eq.2) then
+c$$$c
+c$$$c     geomeria 1D / Lagrange
+c$$$c     generation of local shape functions and weight values
+c$$$c
+c$$$         nintb=nside*nints
+c$$$c
+c$$$         write(*,'(A)') " subroutine flux1 - 1d local shape "
+c$$$         call oneshl(shlb,wp,nints,nenlad)
+c$$$         call oneshl(shln,wn,nints,nnods)
+c$$$         call oneshl(shlpn,wpn,nints,npars)
+c$$$c
+c$$$         write(*,'(A)') " subroutine flux1 - 2d local shape tri/quad"
+c$$$         if(nen.eq.3.or.nen.eq.6.or.nen.eq.10) then
+c$$$            call shlt(shl,w,nint,nen)
+c$$$            call shlt(shlc,wc,nint,nencon)
+c$$$            call shlt(shlp,wp,nint,nenp)
+c$$$c
+c$$$            call shltpbk(shlpsd,nenp,nside,nints)
+c$$$            call shltpbk(shlcsd,nencon,nside,nints)
+c$$$            call shltpbk(shsde,nen,nside,nints)
+c$$$         else
+c$$$            call shlq(shl,w,nint,nen)
+c$$$            call shlqpk(shlc,wc,nint,nencon)
+c$$$            call shlqpk(shlp,wp,nint,nenp)
+c$$$c
+c$$$            call shlqpbk(shlpsd,nenp,nside,nnods,nints)
+c$$$            call shlqpbk(shlcsd,nencon,nside,nnods,nints)
+c$$$            call shlqpbk(shsde,nen,nside,nenlad,nints)
+c$$$         end if
+c$$$c
+c$$$      else if(nesd.eq.3) then
+c$$$         write(*,'(A)') " funcoes de forma shl 2d e 3d"
+c$$$         write(*,'(A,10I5)') " nint, nen    ", nint, nen
+c$$$         write(*,'(A,10I5)') " nint, nencon ", nint, nencon
+c$$$         write(*,'(A,10I5)') " nint, nenp   ", nint, nenp
+c$$$         write(*,'(A,10I5)') " nenp, nside  ",nenp,nside
+c$$$         write(*,'(A,10I5)') " nencon,nside ",nencon,nside
+c$$$         write(*,'(A,10I5)') " nnods,nints  ",nnods, nints
+c$$$         write(*,'(A,10I5)') " nrowsh,nenlad",nrowsh,nenlad
+c$$$         write(*,'(A,10I5)') " nenlad,nnods,npars",nenlad,nnods,npars
+c$$$c
+c$$$c     treat faces first (2D)
+c$$$c     obs: shlq and shlqpk compute the same functions
+c$$$c
+c$$$         write(*,'(A)') " calculando shl do multiplicador"
+c$$$         write(*,'(4I5)') nenlad,nnods,npars,nints
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlb"
+c$$$         call shlqpk(shlb,wp,nints,nenlad)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shln"
+c$$$         call shlqpk(shln,wn,nints,nnods)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlpn"
+c$$$         call shlqpk(shlpn,wpn,nints,npars)
+c$$$
+c$$$c     *** DEBUG ***
+c$$$c     shp do multiplicador (dim 2)
+c$$$         write(*,*)
+c$$$         write(*,'(A,2I5)') " dados shln", nnods, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shln(3,in,ii),in=1,nnods)
+c$$$         end do
+c$$$         write(*,*)
+c$$$
+c$$$         write(*,'(A,2I5)') " dados shlpn", npars, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shlpn(3,in,ii),in=1,npars)
+c$$$         end do
+c$$$         write(*,*)
+c$$$c
+c$$$c     then 3d stuff
+c$$$c     calcular: shl, shlc, shlp, shlpsd, shlcsd, shlsde
+c$$$c
+c$$$         write(*,'(A)') "calculando shl da variavel"
+c$$$         write(*,'(A,2I5)') "nint,nen",nint,nen
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shl"
+c$$$         call shlhxpk(shl,w,nint,nen)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlc"
+c$$$         call shlhxpk(shlc,wc,nint,nencon)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlp"
+c$$$         call shlhxpk(shlp,wp,nint,nenp)
+c$$$c
+c$$$c     shp on faces
+c$$$c
+c$$$         nenlad2=2
+c$$$         nnods2=2
+c$$$
+c$$$         if(nencon.eq.27) then
+c$$$            nnods2 = 3
+c$$$         else if(nencon.eq.64) then
+c$$$            nnods2 = 4
+c$$$         else if(nencon.eq.125) then
+c$$$            nnods2 = 5         
+c$$$         else if(nencon.eq.216) then
+c$$$            nnods2 = 6
+c$$$         endif
+c$$$
+c$$$         if(nints.eq.1) then
+c$$$            nints2 = 1
+c$$$         else if(nints.eq.4) then
+c$$$            nints2 = 2
+c$$$         else if(nints.eq.9) then
+c$$$            nints2 = 3
+c$$$         else if(nints.eq.16) then
+c$$$            nints2 = 4
+c$$$         else if(nints.eq.25) then
+c$$$            nints2 = 5
+c$$$         else if(nints.eq.36) then
+c$$$            nints2 = 6
+c$$$         else if(nints.eq.49) then
+c$$$            nints2 = 7
+c$$$         end if
+c$$$c
+c$$$         write(*,*)
+c$$$         write(*,'(A)')  " integral em face/area"
+c$$$         write(*,'(A,2I5)') " nints2,nen2",nints2,nnods2
+c$$$c
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlpsd (shlhxpbk)"
+c$$$         call shlhxpbk(shlpsd,nenp,nside,nnods2,nints2)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shlcsd (shlhxpbk)"
+c$$$         call shlhxpbk(shlcsd,nencon,nside,nnods2,nints2)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,'(A)') " calculando shsde (shlhxpbk)"
+c$$$         call shlhxpbk(shsde,nen,nside,nenlad2,nints2)
+c$$$
+c$$$c     *** DEBUG ***
+c$$$c     shp on volumes
+c$$$         write(*,*) "pesos da integracao de gauss - w"
+c$$$         write(*,'(10F8.4)') (w(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wc"
+c$$$         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wp"
+c$$$         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
+c$$$
+c$$$         write(*,*) "shl", nint, nen
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shl(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlc", nint, nencon
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlc(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlp", nint, nenp
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlp(4,in,ii),in=1,nenp)
+c$$$         end do
+c$$$
+c$$$c     *** DEBUG ***
+c$$$c     shp on faces
+c$$$         write(*,*)
+c$$$         write(*,*) "dados shlpsd - on faces"
+c$$$
+c$$$         write(*,*) "pesos da integracao de gauss - wn"
+c$$$         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
+c$$$         write(*,*) "pesos da integracao de gauss - wpn"
+c$$$         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
+c$$$
+c$$$         write(*,*) "shlpsd"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
+c$$$         end do
+c$$$         write(*,*) "shlcsd",nencon,nside
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$         write(*,*) "shsde"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shsde(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$c
+c$$$ 999     format(' ',30F8.4)
+c$$$c     *** DEBUG ***
+c$$$      end if
+c$$$c
+c$$$      nintb=nside*nints
+c$$$c
+c$$$c     read material properties
+c$$$c
+c$$$      call fluxmx(c,numat)
+c$$$c
+c$$$c     constant body forces
+c$$$c
+c$$$      read (iin,5000) (grav(i),i=1,3)
+c$$$      write (ieco,6000) (grav(i),i=1,3)
+c$$$c
+c$$$c     generation of conectivities
+c$$$c
+c$$$      write(*,'(A)') "subroutine genel"
+c$$$      call genel(ien,mat,nen)
+c$$$c
+c$$$      if (iprtin.eq.0) call prntel(mat,ien,nen,numel)
+c$$$c
+c$$$c     generation of conectivety for element multipliers
+c$$$c
+c$$$      write(*,'(A)') "subroutine genside"
+c$$$      call genside(idside,nside,nencon)
+c$$$      write(*,*) "array idside"
+c$$$      do il=1,6
+c$$$         write(*,*) il, (idside(il,j),j=1,4)
+c$$$      end do
+c$$$
+c$$$      write(*,'(A)') "subroutine genelad"
+c$$$      call genelad(lado,nside)
+c$$$      if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
+c$$$c
+c$$$c$$$      write(*,*) "DEBUG LADO(,)"
+c$$$c$$$      do kk=1,numel
+c$$$c$$$         write(*,*) (lado(ll,kk),ll=1,6)
+c$$$c$$$      end do
+c$$$c
+c$$$      write(*,'(A)') "subroutine genelpar"
+c$$$      call genelpar(ipar,ien,lado,idside,
+c$$$     &     nen,nside,nodsp,numel,npars)
+c$$$
+c$$$c
+c$$$      if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)
+c$$$c
+c$$$c     generation of lm array
+c$$$c
+c$$$      call formlm(id,ipar,lm,ndof,ned,nodsp,numel)
+c$$$c
+c$$$c     modification of idiag array
+c$$$c
+c$$$c     call colht(idiag,lm,ned,nodsp,numel,neq)
+c$$$      
+c$$$c
+c$$$c     Neumann BCs not implemented YET
+c$$$c
       return
 c
  1000 format(///,
@@ -7033,7 +7466,7 @@ c        idside(nside,nnods) = element sides
 c-----------------------------------------------------------------------
       dimension idside(nside,*)
       common /info/ iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-     &     numeg,nmultp,nedge
+     &              numeg,nmultp,nmultpc,nedge
 c
 c     2D definitions
 c
@@ -7892,7 +8325,7 @@ c-----------------------------------------------------------------------
      &                       elfab ,elfbb ,elfcb ,
      &                       elmdb ,
 c
-     &                       shsde ,
+     &                       shsde ,ideg, iedge,
 c
      &                       shlpsd,shlcsd,
      &                       shgpsd,shgcsd,
@@ -7920,6 +8353,7 @@ c-----------------------------------------------------------------------
 c
       logical diag,quad
 c
+      dimension ideg(ndof,*),iedge(npars,*)
 c      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
@@ -8266,14 +8700,25 @@ c
             ngs = npars*(ndgs-1)
             nls = npars*(ns-1)
 c
+c$$$c     Multp. DESCONT
+c$$$            do i=1,npars
+c$$$               indx = ipar(nls+i,nel)
+c$$$               d(1,indx) = dls(i)
+c$$$c              d(1,ngs + i) = dls(i)               
+c$$$            end do
+c
+c     MULTP. CONTINUO
+c            
             do i=1,npars
-               indx = ipar(nls+i,nel)
-               d(1,indx) = dls(i)
-c              d(1,ngs + i) = dls(i)               
+               ngs = iedge(i,ndgs)
+               d(1,ngs) = dls(i)     
+               nls = idlsd(i)
+               dl(1,nls) = dls(i)
             end do
+            
 c     
 c     compute boundary integral - symmetrization
-c
+c     
             do 1000 ls = 1,nints
                lb = (ns-1)*nints + ls
 c
@@ -8425,12 +8870,16 @@ c
      &                 shlpsd,shlcsd,
      &                 shgpsd,shgcsd,
 c
+     &                 iedge, idc, 
+c
      &                 numel ,neesq ,nen   ,nsd   ,
      &                 nesd  ,nint  ,neg   ,nrowsh,
      &                 ned   ,nee   ,numnp ,ndof  ,
      &                 ncon  ,nencon,necon ,neep  ,
      &                 nints ,nnods ,nenlad,npars ,
-     &                 nside ,nenp  ,nedge ,nodsp ,index,nface,
+     &                 nside ,nenp  ,nedge ,nodsp ,
+     &                 index ,nface, nmultpd, nmultpc,
+     &                 nepcon, 
      &                 userctx)
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
@@ -8467,9 +8916,10 @@ c
      &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
      &     detc(*),eleffd(nee,*),elresd(*)
       dimension wn(*),idside(nside,*),xls(nesd,*),idlsd(*),
-     &     dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+     &          dsfl(ncon,nencon,*),ddis(ned,nenp,*)
       dimension det(*),detp(*),detb(*),detpn(*)
-      dimension ideg(2*ndof,*)
+c      
+      dimension ideg(2*ndof,*),iedge(npars,*),idc(ndof,*)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
@@ -8707,15 +9157,14 @@ c
 
             if(dotcn.lt.0.d0) then
                sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             else
                sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             end if
+c            
+c     do nn=1,nenlad
+            do nn=1,npars
+               idlsd(nn) = idside(ns,nn)
+            end do            
 c
 c     confere nos globais depois que trocou (ou nao)
 c
@@ -8758,26 +9207,48 @@ c
 c
 c     Dirichlet boundary conditions on the multiplier
 c
-            ndgs = lado(ns,nel)
+            ndgs = lado(ns,nel) ! numero global do lado/face
 c
+c     Dirichlet
+c            
             if(ideg(1,ndgs).eq.1) then
-               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
-     &              eps,pi,nints,nenlad,npars)
+c     
+c     multiplicador continuo
 c
-               ngs = npars*(ndgs-1)
-               nls = npars*(ns-1)
+               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
+     &              eps,pi,nints,nenlad,npars)                    
+c
+               igl = 1
+c               
                do i=1,npars
-                  index = ipar(nls+i,nel)
-                  d(1,index) = dls(i)                  
-                  dl(1,nls + i) = dls(i)
+                  ngs = iedge(i,ndgs)
+                  d(igl,ngs) = dls(i)
+c     
+                  nls = idlsd(i)
+                  dl(igl,nls) = dls(i)
                end do
+c               
+c$$$c     
+c$$$c     multiplicador descontinuo
+c$$$c     
+c$$$               call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
+c$$$     &              eps,pi,nints,nenlad,npars)                
+c$$$               ngs = npars*(ndgs-1)
+c$$$               nls = npars*(ns-1)
+c$$$               do i=1,npars
+c$$$                  index = ipar(nls+i,nel)
+c$$$                  d(1,index) = dls(i)                  
+c$$$                  dl(1,nls + i) = dls(i)
+c$$$               end do
+c     
             end if
 c
+c     Neumann
+c     
             if(ideg(2,ndgs).eq.1) then
                call dualbc(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,
      &               elresd,eps,pi,sign,nints,nenlad,ns,npars)
             end if
-
 c
 c     compute boundary integral
 c
@@ -8832,7 +9303,14 @@ c     monta matriz xxx
 c
                do j=1,npars
 c
-                  ncj1 = (ns-1)*npars + j
+c     TODO: isso aqui muda pro CONTINUO
+c                  
+c$$$                  ncj1 = (ns-1)*npars + j
+c
+c     NEW
+c     
+                  ncj1 = idlsd(j)
+c                  
                   djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)
 c
 c     no source term
@@ -8874,7 +9352,15 @@ c
 c     monta matriz yyy
 c
                do j=1,npars
-                  ncj1 = (ns-1)*npars + j
+c
+c     OLD descontinuo
+c                  
+c                  ncj1 = (ns-1)*npars + j
+c
+c     NEW continuo
+c
+                  ncj1 = idlsd(j)
+c                  
                   djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)
 c
 c     no source term
@@ -8894,7 +9380,13 @@ c
                   end do
 c
                   do i=1,npars
-                     nci1 = (ns-1)*npars + i
+c
+c     OLD descontinuo
+c                     
+c                     nci1 = (ns-1)*npars + i
+c
+                     nci1 = idlsd(i)
+c                     
                      din = shgpn(3,i,ls)
 c
                      eleffd(nci1,ncj1) = eleffd(nci1,ncj1)
@@ -9075,6 +9567,8 @@ c-------------------------------------------------------------------------------
 c
      &                       shsde ,
 c
+     &                       ideg ,iedge,
+c
      &                       shlpsd,shlcsd,
      &                       shgpsd,shgcsd,
 c
@@ -9085,7 +9579,8 @@ c
      &                       ncon  ,nencon,necon ,
      &                       neep  ,nints ,nnods ,
      &                       nenlad,npars ,nside ,
-     &                       nenp  ,nodsp ,index ,nface)
+     &                       nenp  ,nodsp ,index ,
+     &                       nface ,nedge)
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
 c        plane elasticity element and
@@ -9096,6 +9591,8 @@ c-------------------------------------------------------------------------------
 c
       logical diag,quad
 c
+      dimension ideg(ndof,*),iedge(npars,*)
+c      
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
@@ -9136,6 +9633,8 @@ c
       gf2=grav(2)
       gf3=grav(3)
 c
+c     loop em elementos
+c      
       do 500 nel=1,numel
 c
 c     clear stiffness matrix and force array
@@ -9295,10 +9794,23 @@ c     ------------------------------------------------------------------
 c
 c     localiza os parametros do lado ns
 c
+c     caso continuo
+
+            do il=1,npars
+               idlsd(il) = idside(ns,il)
+	    end do
+
             do nn=1,npars
-               nld = (ns-1)*npars + nn
+               nld = idlsd(nn)
                dls(nn) = dl(1,nld)
             end do
+            
+c$$$c     caso descontinuo
+c$$$            do nn=1,npars
+c$$$               nld = (ns-1)*npars + nn
+c$$$               dls(nn) = dl(1,nld)
+c$$$            end do            
+            
 c
 c     localiza os no's do lado ns
 c
@@ -9926,33 +10438,22 @@ c
 c
 c     debug
 c
-c      write(*,*) "MULTIPLICADORES"
-c      do kk=1,nmultp
-c         write(*,'(I5,F10.6)') kk, d(1,kk)
-c         if(mod(kk,4).eq.0) then
-c            write(*,*) ""
-c         end if
-c      end do
+      write(*,*) "MULTIPLICADORES"
+c      
+      do kk=1,nmultp
+         write(*,'(I5,F10.6)') kk, d(1,kk)
+         if(mod(kk,4).eq.0) then
+            write(*,*) ""
+         end if
+      end do
 
 c
 c     loop on elements
 c
       do 50 n=1,numel
+c         
          call local(ien(1,n),x,xl,nen,nsd,nesd)
          call local(ipar(1,n),d,dl,nodsp,ndof,ned)
-c
-c     debug local
-c     
-c$$$         write(*,*) "copia de D para DL (nos indices dados por IPAR)"
-c$$$         write(*,*) nodsp, ndof, ned
-c$$$         write(*,'(A)') " array dl"
-c$$$         do kk=1,6
-c$$$            write(*,'(24F8.4)') (dl(1,4*(kk-1)+jj),jj=1,4)
-c$$$         end do
-c$$$         write(*,'(A)') " elem nodes"
-c$$$         do kk=1,nen
-c$$$            write(*,'(3F8.4)') xl(1,kk), xl(2,kk), xl(3,kk)
-c$$$         end do         
 c
 c     recupera multiplicador
 c
@@ -10056,10 +10557,20 @@ c
 c
 c     localiza os parametros do lado ns
 c
+c$$$c     multp. descontinuo
+c$$$            do nn=1,npars
+c$$$               nld = (ns-1)*npars + nn
+c$$$               dls(nn) = dl(1,nld)
+c$$$  end do
+
+            do il=1,npars
+               idlsd(il) = idside(ns,il)
+	    end do
+
             do nn=1,npars
-               nld = (ns-1)*npars + nn
+               nld = idlsd(nn)
                dls(nn) = dl(1,nld)
-            end do
+            end do            
 c
 c     localiza os no's do lado ns (local)
 c
