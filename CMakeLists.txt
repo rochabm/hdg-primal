@@ -24,8 +24,8 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
-set (CMAKE_Fortran_FLAGS_RELEASE "-w -mcmodel=large -funroll-all-loops -fno-f2c -O3")
-###set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
+#set (CMAKE_Fortran_FLAGS_RELEASE "-w -mcmodel=large -funroll-all-loops -fno-f2c -O3")
+set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g -fbacktrace -ffpe-trap=zero,overflow,underflow")
 ##set (CMAKE_Fortran_FLAGS_RELEASE "-mcmodel=large -fno-f2c -O0 -g")
 #set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")

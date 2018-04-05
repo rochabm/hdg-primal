@@ -9018,7 +9018,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c
 c     normal da face
@@ -9050,7 +9050,7 @@ c
 c
 c     valor exato do multiplicador
 c
-c$$$           dhs = gf1*sx*sy*sz
+ccc               dhs = sx*sy*sz
 c               
                do j=1,nenp
                   nbj  = ned*(j-1)
