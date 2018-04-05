@@ -6645,8 +6645,15 @@ c
 c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
-c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------    
       implicit real*8 (a-h,o-z)
+c
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscdm.h>
+#include <petsc/finclude/petscdmplex.h>
+!#include <petsc/finclude/petscdm.h90>
 c
       dimension c(10,*),grav(*),ien(nen,*),mat(*),x(nesd,*)
       dimension id(ndof,*),ipar(nodsp,*),idside(nside,*),lado(nside,*)
@@ -6668,6 +6675,14 @@ c     new for continuous multiplier
 c      
       dimension indno(*),indedg(*),iedge(npars,*),idlsd(*)
       dimension iedgto(*)
+c
+c     petsc
+c
+      PetscErrorCode   ierr
+      DM  dm
+      integer ielement(nen*numel)
+      integer icone(100)
+      real*8 xnodes(3*numnp)
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
@@ -6910,7 +6925,113 @@ c
       write(*,*) "FLUX1EL IDSIDE DEPOIS DO GENLAD"
       do j=1,6
          write(*,*) (idside(j,i),i=1,npars)
-      end do       
+      end do
+      
+c ------------------------------------------------------------------------------    
+c     DMPLEX
+c ------------------------------------------------------------------------------
+
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      
+      
+      call DMPlexCreate(PETSC_COMM_WORLD,dm,ierr)
+
+      
+      !double nodes[10] = {0.0, 0.0,1.0,0.0,1.0,1.0,0.0,1.0,0.5,0.5};
+      !int element[12] = {0,1,4, 1,2,4, 2,3,4, 3,0,4};
+
+c$$$      xnodes(1) = 0.0
+c$$$      xnodes(2) = 0.0
+c$$$      xnodes(3) = 1.0
+c$$$      xnodes(4) = 0.0
+c$$$      xnodes(5) = 1.0
+c$$$      xnodes(6) = 1.0
+c$$$      xnodes(7) = 0.0
+c$$$      xnodes(8) = 1.0
+c$$$      xnodes(9) = 0.5
+c$$$      xnodes(10) = 0.5
+
+      do i=1, 3*numnp
+         xnodes(i) = 0.0
+      end do
+
+c$$$      ielement(1) = 0
+c$$$      ielement(2) = 1
+c$$$      ielement(3) = 4
+c$$$      
+c$$$      ielement(4) = 1
+c$$$      ielement(5) = 2
+c$$$      ielement(6) = 4
+c$$$      
+c$$$      ielement(7) = 2
+c$$$      ielement(8) = 3
+c$$$      ielement(9) = 4
+c$$$      
+c$$$      ielement(10) = 3
+c$$$      ielement(11) = 0
+c$$$      ielement(12) = 4
+
+      !ien -> nen x numel
+      k = 0
+      do nel=1,numel
+         do j=1,nen
+            k = k + 1
+            ielement(k) = ien(j,nel)-1
+         end do
+      end do
+      
+      !// double * points -> numDim * numPoints
+      !// int * elements -> numNodePerCell * ne
+
+! DMPlexCreateFromCellList(MPI_Comm comm, PetscInt dim, PetscInt numCells, PetscInt numVertices, PetscInt numCorners, PetscBool interpolate, const int cells[], PetscInt spaceDim, const double vertexCoords[], DM *dm)
+
+!Input Parameters
+
+!comm	- The communicator
+!dim	- The topological dimension of the mesh
+!numCells	- The number of cells
+!numVertices	- The number of vertices
+!numCorners	- The number of vertices for each cell
+!interpolate	- Flag indicating intermediate mesh entities (faces, edges) should be created 
+!cells	- An array of numCells*numCorners numbers, the vertices for each cell
+!spaceDim	- The spatial dimension used for coordinates
+!vertexCoords	- An array of numVertices*spaceDim numbers, the coordinates of each vertex
+
+      ndim = 3
+      
+      call DMPlexCreateFromCellList(PETSC_COMM_WORLD,
+     &                              ndim,numel,numnp,nen,PETSC_TRUE,
+     &                              ielement,ndim,xnodes,dm,ierr)
+
+      
+      call DMPlexGetCone(dm,1,icone,ierr)
+
+      do i=1,100
+         write(*,*) icone(i)
+      end do
+      
+! param      
+! 1    ,               
+! 2    , // numero de dimensao topologica == num dimensao espacial
+! 4    , // numero de elementos (numCells)
+! 5    , // numero de nos (numPoints)
+! 3    , // numero de nos do elemento (p. ex. triangle = 3, hex = 8)
+!      PETSC_FALSE,         // interpolate = FALSE por enqutno
+!      element,             // vetor linear de inteiros com a conectividade (xml <elements size="992"> etc... </elements>
+! 2    ,                   // numero de dimensao topologica == num dimensao espacial
+!      nodes,               // vetor linear de double com as coordenadas x y (e z)
+!      &dm);
+
+      call DMView(dm,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
+      stop
+
+c ------------------------------------------------------------------------------
+      
 c
 c     generation of conectivities for the continuous multiplier
 c
@@ -6936,6 +7057,10 @@ c
 c     loop em elemento
 c     
       do nel=1,numel
+         write(*,*) ""
+         write(*,*) ""         
+         write(*,*) "elemento", nel
+         
 c
 c     loop em lado/face
 c
@@ -6972,7 +7097,9 @@ c
             i2=2
             i3=3
             i4=4
-            
+
+            write(*,*) ""         
+            write(*,*) "face", neledg
 c    
 c     renumeracao dos dofs do multp baseado no elemento
 c     
@@ -6989,36 +7116,40 @@ c
                   keq = keq + 1
                   indno(nl1) = keq
                   iedge(i1,neledg) = keq
-c$$$                  write(*,*) "iedge(",i1,",",neledg,") = ", keq
+                  write(*,*) " no", nl1, keq
                else
                   iedge(i1,neledg) = indno(nl1)
+                  write(*,*) " no", nl1, " ja numerado ", indno(nl1)
                end if
 c     
                if(indno(nl2).eq.0) then
                   keq = keq + 1
                   indno(nl2) = keq 
                   iedge(i2,neledg) = keq
-c$$$                  write(*,*) "iedge(",i2,",",neledg,") = ", keq
+                  write(*,*) " no", nl2, keq
                else
                   iedge(i2,neledg) = indno(nl2)
+                  write(*,*) " no", nl2, " ja numerado ", indno(nl2)
                end if
 c
                if(indno(nl3).eq.0) then
                   keq = keq + 1
                   indno(nl3) = keq 
                   iedge(i3,neledg) = keq
-c$$$                  write(*,*) "iedge(",i3,",",neledg,") = ", keq
+                  write(*,*) " no", nl3, keq
                else                  
                   iedge(i3,neledg) = indno(nl3)
+                  write(*,*) " no", nl3, " ja numerado ", indno(nl3)
                end if
 c               
                if(indno(nl4).eq.0) then
                   keq = keq + 1
                   indno(nl4) = keq 
                   iedge(i4,neledg) = keq
-c$$$                  write(*,*) "iedge(",i4,",",neledg,") = ", keq
+                  write(*,*) " no", nl4, keq
                else
                   iedge(i4,neledg) = indno(nl4)
+                  write(*,*) " no", nl4, " ja numerado ", indno(nl4)
                end if
 c
 c     numera os interiores
@@ -7031,11 +7162,14 @@ c
                   end do
                end if
 c
-c           else
-c              write(*,*) "indedg .ne. 0", neledg, indedg(neledg)
+           else
+              write(*,*) " ja numerada", neledg, indedg(neledg)
            end if
-c            
-         end do
+c
+           write(*,*) "depois da face", keq           
+        end do
+
+        write(*,*) "fim do elemento", keq
 c        
       end do
 
@@ -7052,7 +7186,8 @@ c$$$c     total number of continuous multipliers
 c$$$c     
          nmultpc = keq
          write(*,*) "nmultpc",nmultpc
-      
+         stop
+c      
 c$$$c      
 c$$$c     confere numeracao
 c$$$c
@@ -7462,32 +7597,32 @@ c
        if (nsd.eq.3) then
 c
           if(nen.eq.8) then
-c     face 1
+c     face 1 - frente
             idside(1,1) = 1
             idside(1,2) = 2
             idside(1,3) = 6
             idside(1,4) = 5
-c     face 2
+c     face 2 - esq
             idside(2,1) = 1
             idside(2,2) = 4
             idside(2,3) = 8
             idside(2,4) = 5
-c     face 3
+c     face 3 - dir
             idside(3,1) = 2
             idside(3,2) = 3
             idside(3,3) = 7
             idside(3,4) = 6
-c     face 4
+c     face 4 - tras
             idside(4,1) = 4
             idside(4,2) = 3
             idside(4,3) = 7
             idside(4,4) = 8
-c     face 5
+c     face 5 - baixo
             idside(5,1) = 1
             idside(5,2) = 2
             idside(5,3) = 3
             idside(5,4) = 4
-c     face 6
+c     face 6 - cima
             idside(6,1) = 5
             idside(6,2) = 6
             idside(6,3) = 7
