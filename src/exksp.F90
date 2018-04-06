@@ -41,11 +41,11 @@
 !     petscviewer.h - viewers
 !     petscis.h     - index sets
 !
-#include <petsc/finclude/petscsys.h90>
-#include <petsc/finclude/petscvec.h90>
-#include <petsc/finclude/petscmat.h90>
-#include <petsc/finclude/petscksp.h90>
-#include <petsc/finclude/petscpc.h90>
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
 !
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !                   Variable declarations
