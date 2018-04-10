@@ -15,6 +15,29 @@ c     ******************************************************************
 c
 c     program to set storage capacity, precision and input/output units
 c
+      module UserModule
+#include <petsc/finclude/petscksp.h>
+      use petscksp      
+      type User
+        Vec x
+        Vec b
+        Mat A
+        KSP ksp
+        PetscInt m
+        PetscInt n
+      end type User
+      end module
+
+c ------------------------------------------------------------------------------      
+
+      program main
+      
+#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
+      use petscksp
+      use petscpc
+      use UserModule
+      
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
@@ -24,17 +47,10 @@ c
       common /dictn/ ia(10000000)
 c
 c     PETSC includes 
-c      
-      
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-
+c          
       PetscErrorCode   ierr
       PetscMPIInt size,rank
-      PetscFortranAddr userctx(6)
+      type(User) userctx
 
       external UserInitializeLinearSolver
       external UserFinalizeLinearSolver
@@ -83,7 +99,7 @@ c
          if (rank .eq. 0) then
             write(6,*) 'This is a uniprocessor example only!'
          endif
-         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+         SETERRQ(PETSC_COMM_WORLD,1,' ')
       endif
 c
 c     test if PETSc is working fine
@@ -119,17 +135,21 @@ c
 c----------------------------------------------------------------------
       subroutine UserInitializeLinearSolver(m,n,userctx,ierr)
 c----------------------------------------------------------------------      
-      implicit none
-
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
 #include <petsc/finclude/petscksp.h>
 #include <petsc/finclude/petscpc.h>
-
+      use petscvec
+      use petscmat
+      use petscksp
+      use UserModule
+c      
+      implicit none
+      
        PetscInt m,n
        PetscErrorCode ierr
-       PetscFortranAddr userctx(*)
+       type(User) userctx
        Mat      A
        Vec      b,x
        KSP      ksp
@@ -171,12 +191,19 @@ c     the linear solves needed.
 
       call KSPCreate(PETSC_COMM_SELF,ksp,ierr)
 c
-      userctx(1) = x
-      userctx(2) = b
-      userctx(3) = A
-      userctx(4) = ksp
-      userctx(5) = m
-      userctx(6) = n
+c$$$      userctx(1) = x
+c$$$      userctx(2) = b
+c$$$      userctx(3) = A
+c$$$      userctx(4) = ksp
+c$$$      userctx(5) = m
+c$$$  userctx(6) = n
+
+      userctx%x = x
+      userctx%b = b
+      userctx%A = A
+      userctx%ksp = ksp
+      userctx%m = m
+      userctx%n = n      
 c      
       write(*,'(A)') "PETSC: matriz criada OK"
 c      
@@ -186,16 +213,17 @@ c
 c-----------------------------------------------------------------------
       subroutine UserFinalizeLinearSolver(userctx,ierr)
 c-----------------------------------------------------------------------      
-      implicit none
-
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
 #include <petsc/finclude/petscksp.h>
 #include <petsc/finclude/petscpc.h>
-
+      use petsc
+      use UserModule
+c      
+      implicit none
       PetscErrorCode ierr
-      PetscFortranAddr userctx(*)
+      type(User) userctx
       Vec  x,b
       Mat  A
       KSP ksp
@@ -204,10 +232,10 @@ c     We are all done and don't need to solve any more linear systems, so
 c     we free the work space.  All PETSc objects should be destroyed when
 c     they are no longer needed.
 c     
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
 c
       call VecDestroy(x,ierr)
       call VecDestroy(b,ierr)
@@ -222,10 +250,12 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Solve Ax=b
 c----------------------------------------------------------------------
+#include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
+c      
       implicit none
 c      
-#include <petsc/finclude/petsc.h>
-c
 #define xx_a(ib) xx_v(xx_i + (ib))      
 c      
       real*8 sol(*)
@@ -239,7 +269,7 @@ c
       PetscInt         i,n,col(3),its,i1,i2,i3
       PetscBool        flg
       PetscScalar      none,one,value(3)     
-      PetscFortranAddr userctx(*)
+      type(User) userctx
       IS               isrow,iscol
       PetscViewer      viewer
 
@@ -248,11 +278,11 @@ c
 c      
 c     Get PETSC data
 c      
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
-      n    = int(userctx(5))      
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
+      n    = int(userctx%n)      
 c      
 c     Create linear solver context
 c
@@ -320,7 +350,9 @@ c----------------------------------------------------------------------
 c     Test PETSc by solving Ax=b
 c----------------------------------------------------------------------
 #include <petsc/finclude/petsc.h>
-     
+      use petsc
+      use UserModule
+c      
       Vec              x,b,u
       Mat              A
       KSP              ksp
@@ -331,15 +363,15 @@ c----------------------------------------------------------------------
       PetscBool        flg
       PetscScalar      none,one,value(3)
       
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 
       one  = 1
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
-      m    = int(userctx(5))
-      n    = int(userctx(6))
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
+      m    = int(userctx%m)
+      n    = int(userctx%n)
       
       none = -1.0
       one  = 1.0
@@ -461,11 +493,13 @@ c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
 #include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
 c      
-      PetscFortranAddr userctx(*)
+      type(User) userctx
       PetscErrorCode   ierr           
 c
 c     catalog of common statements
@@ -662,6 +696,10 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
+#include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
+c
       common /etimec/ etime(6)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nedge
@@ -672,9 +710,8 @@ c
       common a(1)
       common /dictn/ ia(10000000)
 c
-#include <petsc/finclude/petscsys.h>      
       PetscLogDouble t1, t2
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 c
 c     clear left and right hand side
 c
@@ -740,24 +777,26 @@ c        global left-hand-side matrix
 c        diag = .true., add diagonal element matrix
 c        diag = .false, add upper triangle of full element matrix
 c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
 #include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
+c
+      implicit real*8 (a-h,o-z)      
 c            
       Vec              x,b
       Mat              A
       PetscErrorCode   ierr
       PetscInt         i,n
       PetscScalar      val      
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 c
       logical diag
       dimension eleffm(nee,*),lm(*)
 c      dimension indx(nee)
 c
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
 c
 c     TODO: implement this correctly, only assemble lm(j)>0        
 c     all local values at once
@@ -766,7 +805,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo      
 c$$$      call MatSetValues(A,nee,indx,nee,indx,eleffm,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif      
       
       if (diag) then
@@ -777,10 +815,8 @@ c
 c$$$               l = idiag(k)
 c$$$               alhs(l) = alhs(l) + eleffm(j,j)               
                val = eleffm(j,j)
-               call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)               
-               if (ierr.ne.0) then
-                  SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-               endif
+               call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)
+               CHKERRQ(ierr)
             endif
          end do
 c
@@ -802,15 +838,9 @@ c$$$                     alhs(l) = alhs(l) + eleffm(i,j)
 c
                      val = eleffm(i,j)
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
-                     if (ierr.ne.0) then
-                        SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                     endif
 c
                      if(k.ne.m) then
                         call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
-                        if (ierr.ne.0) then
-                           SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                        endif                        
                      end if                        
 c                     
                   endif
@@ -830,19 +860,21 @@ c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
 c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
 #include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
+c
+      implicit real*8 (a-h,o-z)
 c     
       Vec              b
       PetscScalar      val
       PetscErrorCode   ierr
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 c      
       dimension elresf(*),lm(*)
       dimension indx(nee)
 c      
-      b = userctx(2)
+      b = userctx%b
 c      
       do j=1,nee
          k = lm(j)
@@ -852,7 +884,7 @@ c$$$            brhs(k) = brhs(k) + elresf(j)
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
             if (ierr.ne.0) then
-               SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+               SETERRQ(PETSC_COMM_WORLD,1,' ')
             endif            
          end if
       end do
@@ -863,7 +895,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo       
 c$$$      call VecSetValues(b,nee,indx,elresf,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif
 c
       return
@@ -1273,6 +1304,8 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to calculate element task number
 c-----------------------------------------------------------------------
+      use UserModule
+      
       character*8 task,eltask(4)
       dimension ngrp(*)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
@@ -1281,7 +1314,7 @@ c-----------------------------------------------------------------------
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
 c
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 c      
       common na(1)
       common /dictn/ ia(10000000)
@@ -5695,7 +5728,9 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to call element routines
 c-----------------------------------------------------------------------
-      PetscFortranAddr userctx(*)      
+      use UserModule
+c      
+      type(User) userctx      
       common a(1)
 c
       go to (10,20) ntype
@@ -5714,9 +5749,10 @@ c-----------------------------------------------------------------------
 c     program to set storage and call tasks for the
 c     primal mixed Poisson  problem
 c     with continuous temperature and discontinuous flux
-c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------      
+      use UserModule
 c      
-      PetscFortranAddr userctx(*)
+      type(User) userctx
 c      
       dimension npar(*),mp(*)
 c      
@@ -5725,7 +5761,7 @@ c
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nedge
       common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
-
+      
       character*4 ia
       common a(1)
       common /dictn/ ia(10000000)
@@ -8064,18 +8100,15 @@ c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
 c------------------------------------------------------------------------------
-c     
-      implicit real*8 (a-h,o-z)
-c
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
+#include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-#include <petsc/finclude/petscviewer.h>
-#include <petsc/finclude/petscviewer.h90>
+      use petsc
+      use petscksp
+      use UserModule
+c
+      implicit real*8 (a-h,o-z)
 c      
-      PetscFortranAddr userctx(*)
+      type(User) userctx
       PetscViewer viewer
       PetscErrorCode ierr
       Mat A
@@ -8119,8 +8152,8 @@ c
 c
 c     PETSC stuff
 c      
-      b = userctx(2)
-      A = userctx(3)
+      b = userctx%b
+      A = userctx%A
 c
 c     consistent matrix
 c      

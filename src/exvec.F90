@@ -1,9 +1,11 @@
       program main
-      implicit none
 
 #include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscvec.h>      
+      use petscvec
+      use petscsys
 
+      implicit none
 !     
 !     This example demonstrates basic use of the PETSc Fortran interface
 !     to vectors.

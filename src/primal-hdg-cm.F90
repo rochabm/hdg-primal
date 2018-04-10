@@ -12,6 +12,22 @@ c     ******************************************************************
 c
 c     program to set storage capacity, precision and input/output units
 c
+      module UserModule
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      
+      type User
+      Vec x
+      Vec b
+      Mat A
+      KSP ksp
+      PetscInt m
+      PetscInt n
+      end type User
+      end module
+      
+      program main
+      use UserModule
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
@@ -21,17 +37,13 @@ c
       common /dictn/ ia(10000000)
 c
 c     PETSC includes 
-c      
-      
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-
+c          
+#include <petsc/finclude/petsc.h>
+c
       PetscErrorCode   ierr
       PetscMPIInt size,rank
-      PetscFortranAddr userctx(6)
+      type(User) userctx
+c      PetscFortranAddr userctx(6)
 
       external UserInitializeLinearSolver
       external UserFinalizeLinearSolver
@@ -80,7 +92,6 @@ c
          if (rank .eq. 0) then
             write(6,*) 'This is a uniprocessor example only!'
          endif
-         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
       endif     
 c
 c     main subroutine
@@ -106,43 +117,44 @@ c
 
 c----------------------------------------------------------------------
       subroutine UserInitializeLinearSolver(m,n,userctx,ierr)
-c----------------------------------------------------------------------      
-      implicit none
-
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
+c----------------------------------------------------------------------
+#include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-
-       PetscInt m,n
-       PetscErrorCode ierr
-       PetscFortranAddr userctx(*)
-       Mat      A
-       Vec      b,x
-       KSP      ksp
-       PetscInt tot,nnz
+      use petsc
+      use petscksp
+      use UserModule
 c
-       nnz = 450
-       tot = n
-c
+      implicit none
+c      
+      PetscInt m,n
+      PetscErrorCode ierr
+      type(User) userctx
+c      PetscFortranAddr userctx(*)
+      Mat      A
+      Vec      b,x
+      KSP      ksp
+      PetscInt tot,nnz
+c     
+      nnz = 450
+      tot = n
+c     
 c     Create matrix.  When using MatCreate(), the matrix format can
 c     be specified at runtime.
-c       
-       call MatCreate(PETSC_COMM_WORLD,A,ierr)
-       call MatSetType(A,MATSEQAIJ,ierr)
-       call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)      
-       call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+c     
+      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+      call MatSetType(A,MATSEQAIJ,ierr)
+      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)      
+      call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
 
 c     For debugging this option should use: PETSC_TRUE
-       call MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR,
-     &      PETSC_FALSE, ierr)
+      call MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR,
+     &     PETSC_FALSE, ierr)
       
-       call MatSetFromOptions(A,ierr)
-       call MatSetUp(A,ierr)
-c
-       call MatZeroEntries(A,ierr)
-       
+      call MatSetFromOptions(A,ierr)
+      call MatSetUp(A,ierr)
+c     
+      call MatZeroEntries(A,ierr)
+      
 c     call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
 c     &      PETSC_NULL_INTEGER,A,ierr)
 
@@ -150,7 +162,7 @@ c
 c     Create vectors. Here we create vectors with no memory allocated.
 c     This way, we can use the data structures already in the program
 c     by using VecPlaceArray() subroutine at a later stage.
-c
+c     
       call VecCreateSeq(PETSC_COMM_SELF,tot,b,ierr)
       call VecDuplicate(b,x,ierr)
 
@@ -159,31 +171,36 @@ c     the linear solves needed.
 
       call KSPCreate(PETSC_COMM_SELF,ksp,ierr)
 c
-      userctx(1) = x
-      userctx(2) = b
-      userctx(3) = A
-      userctx(4) = ksp
-      userctx(5) = m
-      userctx(6) = n
-c      
+      userctx%x = x
+      userctx%b = b
+      userctx%A = A
+      userctx%ksp = ksp
+      userctx%m = m
+      userctx%n = n
+c     
+c$$$      userctx(1) = x
+c$$$      userctx(2) = b
+c$$$      userctx(3) = A
+c$$$      userctx(4) = ksp
+c$$$      userctx(5) = m
+c$$$      userctx(6) = n     
+c     
       write(*,'(A)') "PETSC: matriz criada OK"
-c      
+c     
       return
       end
 
 c-----------------------------------------------------------------------
       subroutine UserFinalizeLinearSolver(userctx,ierr)
 c-----------------------------------------------------------------------      
-      implicit none
-
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
 #include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-
+      use petscksp
+      use UserModule
+c
+      implicit none
+c
+      type(User) userctx
       PetscErrorCode ierr
-      PetscFortranAddr userctx(*)
       Vec  x,b
       Mat  A
       KSP ksp
@@ -192,10 +209,10 @@ c     We are all done and don't need to solve any more linear systems, so
 c     we free the work space.  All PETSc objects should be destroyed when
 c     they are no longer needed.
 c     
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
 c
       call VecDestroy(x,ierr)
       call VecDestroy(b,ierr)
@@ -209,10 +226,12 @@ c----------------------------------------------------------------------
       subroutine UserDoLinearSolver(userctx,sol)
 c----------------------------------------------------------------------
 c     Solve Ax=b
-c----------------------------------------------------------------------
+c----------------------------------------------------------------------     
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      use UserModule
+c
       implicit none
-c      
-#include <petsc/finclude/petsc.h>
 c
 #define xx_a(ib) xx_v(xx_i + (ib))      
 c      
@@ -226,21 +245,20 @@ c
       PetscErrorCode   ierr
       PetscInt         i,n,col(3),its,i1,i2,i3
       PetscBool        flg
-      PetscScalar      none,one,value(3)     
-      PetscFortranAddr userctx(*)
+      PetscScalar      none,one,value(3)           
       IS               isrow,iscol
       PetscViewer      viewer
-
       PetscScalar xx_v(1)
-      PetscOffset xx_i,yy_i      
+      PetscOffset xx_i,yy_i
+      type(User) userctx
 c      
 c     Get PETSC data
 c      
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
-      n    = int(userctx(5))      
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
+      n    = int(userctx%n)      
 c      
 c     Create linear solver context
 c
@@ -307,8 +325,10 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Test PETSc by solving Ax=b
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-     
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      use UserModule
+c      
       Vec              x,b,u
       Mat              A
       KSP              ksp
@@ -318,16 +338,15 @@ c----------------------------------------------------------------------
       PetscInt         i,n,col(3),its,i1,i2,i3
       PetscBool        flg
       PetscScalar      none,one,value(3)
-      
-      PetscFortranAddr userctx(*)
+      type(User)       userctx
 
       one  = 1
-      x    = userctx(1)
-      b    = userctx(2)
-      A    = userctx(3)
-      ksp  = userctx(4)
-      m    = int(userctx(5))
-      n    = int(userctx(6))
+      x    = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+      ksp  = userctx%ksp
+      m    = int(userctx%m)
+      n    = int(userctx%n)
       
       none = -1.0
       one  = 1.0
@@ -449,11 +468,14 @@ c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
 #include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
-c      
-      PetscFortranAddr userctx(*)
+c
+      type(User) userctx
+c      PetscFortranAddr userctx(*)
       PetscErrorCode   ierr           
 c
 c     catalog of common statements
@@ -664,6 +686,10 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
+#include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule      
+c
       common /etimec/ etime(6)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nmultpc,nedge
@@ -673,10 +699,10 @@ c
       character*4 ia
       common a(1)
       common /dictn/ ia(10000000)
-c
-#include <petsc/finclude/petscsys.h>      
+c      
       PetscLogDouble t1, t2
-      PetscFortranAddr userctx(*)
+      type(User) userctx
+c      PetscFortranAddr userctx(*)
 c
 c     debug
 c
@@ -746,23 +772,26 @@ c        global left-hand-side matrix
 c        diag = .true., add diagonal element matrix
 c        diag = .false, add upper triangle of full element matrix
 c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      use UserModule
 c
-#include <petsc/finclude/petsc.h>
+      implicit real*8 (a-h,o-z)      
 c            
       Vec              x,b
       Mat              A
       PetscErrorCode   ierr
       PetscInt         i,n
-      PetscScalar      val      
-      PetscFortranAddr userctx(*)
+      PetscScalar      val
+      type(User) userctx
+c     PetscFortranAddr userctx(*)      
 c
       logical diag
       dimension eleffm(nee,*),lm(*)
 c
-      x = userctx(1)
-      b = userctx(2)
-      A = userctx(3)
+      x = userctx%x
+      b = userctx%b
+      A = userctx%A
 c
 c     DEBUG
 c      
@@ -778,7 +807,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo      
 c$$$      call MatSetValues(A,nee,indx,nee,indx,eleffm,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif      
 c      
       if (diag) then
@@ -788,7 +816,7 @@ c
             if (k.gt.0) then 
                val = eleffm(j,j)
                call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)           
-               if (ierr.ne.0) SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+               CHKERRQ(ierr)
             endif
          end do
 c
@@ -804,15 +832,9 @@ c
 c
                      val = eleffm(i,j)
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
-                     if (ierr.ne.0) then
-                        SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                     endif
 c
-                     if(k.ne.m) then
+                     if(k.ne.m) then                       
                         call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
-                        if (ierr.ne.0) then
-                           SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                        endif                        
                      end if                        
 c                     
                   endif
@@ -832,26 +854,29 @@ c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
 c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      use UserModule
 c
-#include <petsc/finclude/petsc.h>
+      implicit real*8 (a-h,o-z)
 c     
       Vec              b
       PetscScalar      val
       PetscErrorCode   ierr
-      PetscFortranAddr userctx(*)
+      type(User) userctx
+c      PetscFortranAddr userctx(*)
 c      
       dimension elresf(*),lm(*)
       dimension indx(nee)
 c      
-      b = userctx(2)
+      b = userctx%b
 c      
       do j=1,nee
          k = lm(j)
          if (k.gt.0) then
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
-            if (ierr.ne.0) SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
+            CHKERRQ(ierr)
          end if
       end do
 
@@ -861,7 +886,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo       
 c$$$      call VecSetValues(b,nee,indx,elresf,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif
 c
       return
@@ -6646,14 +6670,12 @@ c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
 c-----------------------------------------------------------------------    
-      implicit real*8 (a-h,o-z)
-c
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscdm.h>
+#include <petsc/finclude/petsc.h>
 #include <petsc/finclude/petscdmplex.h>
-!#include <petsc/finclude/petscdm.h90>
+      use petsc
+      use petscdmplex
+c
+      implicit real*8 (a-h,o-z)
 c
       dimension c(10,*),grav(*),ien(nen,*),mat(*),x(nesd,*)
       dimension id(ndof,*),ipar(nodsp,*),idside(nside,*),lado(nside,*)
@@ -6678,11 +6700,24 @@ c
 c
 c     petsc
 c
-      PetscErrorCode   ierr
-      DM  dm
-      integer ielement(nen*numel)
-      integer icone(100)
-      real*8 xnodes(3*numnp)
+      DM dm
+      PetscErrorCode ierr
+      PetscInt hbcells(3)
+      PetscInt pStart, pEnd
+      PetscInt fStart, fEnd, f
+      PetscInt cStart, cEnd, c
+      PetscInt vStart, vEnd, v
+      PetscInt eStart, eEnd, e
+      PetscInt npts
+c      
+      PetscInt, pointer :: pp(:)
+      PetscInt, target, dimension(54) :: pts
+c
+      PetscInt, pointer :: pc(:)
+      PetscInt, target, dimension(6) :: cone
+c     
+      PetscInt ielement(nen*2)
+      PetscScalar xnodes(3*12)
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
@@ -6935,100 +6970,140 @@ c ------------------------------------------------------------------------------
       write(*,*) ""
       write(*,*) ""
       write(*,*) ""
-      write(*,*) ""
-      
+      write(*,*) ""      
       
       call DMPlexCreate(PETSC_COMM_WORLD,dm,ierr)
+      CHKERRQ(ierr)
 
+      numnp = 12
       
-      !double nodes[10] = {0.0, 0.0,1.0,0.0,1.0,1.0,0.0,1.0,0.5,0.5};
-      !int element[12] = {0,1,4, 1,2,4, 2,3,4, 3,0,4};
-
-c$$$      xnodes(1) = 0.0
-c$$$      xnodes(2) = 0.0
-c$$$      xnodes(3) = 1.0
-c$$$      xnodes(4) = 0.0
-c$$$      xnodes(5) = 1.0
-c$$$      xnodes(6) = 1.0
-c$$$      xnodes(7) = 0.0
-c$$$      xnodes(8) = 1.0
-c$$$      xnodes(9) = 0.5
-c$$$      xnodes(10) = 0.5
-
-      do i=1, 3*numnp
-         xnodes(i) = 0.0
+      k = 0
+      do i=1,numnp
+         k = k + 1
+         xnodes(k) = x(1,i)
+         k = k + 1
+         xnodes(k) = x(2,i)
+         k = k + 1
+         xnodes(k) = x(3,i)
       end do
 
-c$$$      ielement(1) = 0
-c$$$      ielement(2) = 1
-c$$$      ielement(3) = 4
-c$$$      
-c$$$      ielement(4) = 1
-c$$$      ielement(5) = 2
-c$$$      ielement(6) = 4
-c$$$      
-c$$$      ielement(7) = 2
-c$$$      ielement(8) = 3
-c$$$      ielement(9) = 4
-c$$$      
-c$$$      ielement(10) = 3
-c$$$      ielement(11) = 0
-c$$$      ielement(12) = 4
+      do i=1,3*numnp
+         write(*,*) xnodes(i)
+      end do
 
-      !ien -> nen x numel
+      numel = 2
+
       k = 0
       do nel=1,numel
          do j=1,nen
             k = k + 1
-            ielement(k) = ien(j,nel)-1
+            ielement(k) = ien(j,nel)-1      
          end do
+         write(*,*) nel, (ien(j,nel),j=1,nen)
       end do
-      
-      !// double * points -> numDim * numPoints
-      !// int * elements -> numNodePerCell * ne
 
-! DMPlexCreateFromCellList(MPI_Comm comm, PetscInt dim, PetscInt numCells, PetscInt numVertices, PetscInt numCorners, PetscBool interpolate, const int cells[], PetscInt spaceDim, const double vertexCoords[], DM *dm)
+      do i=1,k
+         write(*,*) ielement(i)
+      end do
 
-!Input Parameters
-
-!comm	- The communicator
-!dim	- The topological dimension of the mesh
-!numCells	- The number of cells
-!numVertices	- The number of vertices
-!numCorners	- The number of vertices for each cell
-!interpolate	- Flag indicating intermediate mesh entities (faces, edges) should be created 
-!cells	- An array of numCells*numCorners numbers, the vertices for each cell
-!spaceDim	- The spatial dimension used for coordinates
-!vertexCoords	- An array of numVertices*spaceDim numbers, the coordinates of each vertex
-
+      ielement(1) = 0
+      ielement(2) = 1
+      ielement(3) = 4
+      ielement(4) = 3
+      ielement(5) = 6
+      ielement(6) = 7
+      ielement(7) = 10
+      ielement(8) = 9
+c
+      ielement( 9) = 1
+      ielement(10) = 2
+      ielement(11) = 5
+      ielement(12) = 4
+      ielement(13) = 7
+      ielement(14) = 8
+      ielement(15) = 11
+      ielement(16) = 10 
+c     
       ndim = 3
-      
+      npts = 27
+      hbcells(1) = 2
+      hbcells(2) = 2
+      hbcells(3) = 2
+c      
+c$$$      call DMPlexCreateHexBoxMesh(PETSC_COMM_WORLD, ndim, hbcells,
+c$$$     &   DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, dm, ierr)
+c$$$      CHKERRQ(ierr)
+c
+      write(*,*) ndim, numel, numnp, nen
       call DMPlexCreateFromCellList(PETSC_COMM_WORLD,
      &                              ndim,numel,numnp,nen,PETSC_TRUE,
      &                              ielement,ndim,xnodes,dm,ierr)
-
-      
-      call DMPlexGetCone(dm,1,icone,ierr)
-
-      do i=1,100
-         write(*,*) icone(i)
-      end do
-      
-! param      
-! 1    ,               
-! 2    , // numero de dimensao topologica == num dimensao espacial
-! 4    , // numero de elementos (numCells)
-! 5    , // numero de nos (numPoints)
-! 3    , // numero de nos do elemento (p. ex. triangle = 3, hex = 8)
-!      PETSC_FALSE,         // interpolate = FALSE por enqutno
-!      element,             // vetor linear de inteiros com a conectividade (xml <elements size="992"> etc... </elements>
-! 2    ,                   // numero de dimensao topologica == num dimensao espacial
-!      nodes,               // vetor linear de double com as coordenadas x y (e z)
-!      &dm);
-
+      CHKERRQ(ierr)
+c
       call DMView(dm,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      CHKERRQ(ierr)
 
-      stop
+c      stop
+c      
+      call DMPlexGetChart(dm, pStart, pEnd, ierr)
+      call DMPlexGetHeightStratum(dm, 0, cStart, cEnd, ierr) !heigt=0 cells
+      call DMPlexGetDepthStratum(dm, 2, fStart, fEnd, ierr)  !depth=2 faces
+      call DMPlexGetDepthStratum(dm, 1, eStart, eEnd, ierr)  !depth=1 edges
+      call DMPlexGetDepthStratum(dm, 0, vStart, vEnd, ierr)  !depth=0 vertices
+
+      pc => cone
+
+      write(*,*)
+      write(*,*) "Cells", cStart, cEnd
+      write(*,*) "Faces", fStart, fEnd
+      write(*,*) "Edges", eStart, eEnd
+      write(*,*) "Verts", vStart, vEnd
+      write(*,*)
+     
+      do ic=cStart,cEnd-1
+         pp => pts
+         
+         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+
+         write(*,*)
+         write(*,*) "element", ic, pp(1)
+                  
+         write(*,'(A)', advance="no") "  faces"
+         do j=1,2*npts
+            ix = pp(j)
+            if(fStart.le.ix .and. ix.lt.fEnd) then
+               write(*,'(I5)', advance="no") ix
+            end if
+         end do
+         write(*,*)
+
+         write(*,'(A)', advance="no") "  edges"
+         do j=1,2*npts
+            ix = pp(j)
+            if(eStart.le.ix .and. ix.lt.eEnd) then
+               write(*,'(I5)', advance="no") ix
+            end if
+         end do
+         write(*,*)
+
+         write(*,'(A)', advance="no") "  verts"
+         do j=1,2*npts
+            ix = pp(j)
+            if(vStart.le.ix .and. ix.lt.vEnd) then
+               write(*,'(I5)', advance="no") ix
+            end if
+         end do
+         write(*,*)       
+         
+         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+c         
+      end do
+
+
+      
+c      stop
 
 c ------------------------------------------------------------------------------
       
@@ -7172,8 +7247,6 @@ c
         write(*,*) "fim do elemento", keq
 c        
       end do
-
-
       
 c$$$
 c$$$      write(*,*) "FLUX1EL IDSIDE"
@@ -7186,7 +7259,7 @@ c$$$c     total number of continuous multipliers
 c$$$c     
          nmultpc = keq
          write(*,*) "nmultpc",nmultpc
-         stop
+c$$$         stop
 c      
 c$$$c      
 c$$$c     confere numeracao
@@ -7196,18 +7269,24 @@ c$$$      write(*,*) " "
 c$$$      write(*,*) "DEBUG"
 c$$$      write(*,*) " "
 c$$$      write(*,*) " "
-      do ii=1, numnp
-         write(*,*) "indno", ii, indno(ii)
-      end do
+
+c$$$      do ii=1, numnp
+c$$$         write(*,*) "indno", ii, indno(ii)
+c$$$  end do
+         
 c$$$      write(*,*) "indedg",(indedg(ii),ii=1,nedge)
-c$$$      
-      do nel=1,numel     
-         write(*,*) "nel,ns,nd,iedge(npars,nd)"
-         do ns=1,nside
-            nd = lado(ns,nel)
-            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
-         end do
-      end do
+c$$$
+
+      
+c$$$      do nel=1,numel     
+c$$$         write(*,*) "nel,ns,nd,iedge(npars,nd)"
+c$$$         do ns=1,nside
+c$$$            nd = lado(ns,nel)
+c$$$            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
+c$$$         end do
+c$$$      end do
+      
+      
 c$$$      write(*,*) "FACE / DOFS"
 c$$$      do i=1,nedge
 c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
@@ -8774,18 +8853,13 @@ c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
 c------------------------------------------------------------------------------
-c     
-      implicit real*8 (a-h,o-z)
+#include <petsc/finclude/petsc.h>
+      use petsc
+      use UserModule
 c
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-#include <petsc/finclude/petscviewer.h>
-#include <petsc/finclude/petscviewer.h90>
+      implicit real*8 (a-h,o-z)
 c      
-      PetscFortranAddr userctx(*)
+      type(User) userctx
       PetscViewer viewer
       PetscErrorCode ierr
       Mat A
@@ -8830,8 +8904,11 @@ c
 c
 c     PETSC stuff
 c      
-      b = userctx(2)
-      A = userctx(3)
+c      b = userctx(2)
+c      A = userctx(3)
+
+      b = userctx%b
+      A = userctx%A
 c
 c     consistent matrix
 c      

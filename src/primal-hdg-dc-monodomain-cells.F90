@@ -85,7 +85,6 @@ c
          if (rank .eq. 0) then
             write(6,*) 'This is a uniprocessor example only!'
          endif
-         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
       endif     
 c
 c     main subroutine
@@ -676,7 +675,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo      
 c$$$      call MatSetValues(A,nee,indx,nee,indx,eleffm,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif      
       
       if (diag) then
@@ -687,10 +685,8 @@ c
 c$$$               l = idiag(k)
 c$$$               alhs(l) = alhs(l) + eleffm(j,j)               
                val = eleffm(j,j)
-               call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)               
-               if (ierr.ne.0) then
-                  SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-               endif
+               call MatSetValue(A,k-1,k-1,val,ADD_VALUES,ierr)
+               CHKERRQ(ierr)
             endif
          end do
 c
@@ -712,15 +708,11 @@ c$$$                     alhs(l) = alhs(l) + eleffm(i,j)
 c
                      val = eleffm(i,j)
                      call MatSetValue(A,k-1,m-1,val,ADD_VALUES,ierr)
-                     if (ierr.ne.0) then
-                        SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                     endif
+                     CHKERRQ(ierr)
 c
                      if(k.ne.m) then
                         call MatSetValue(A,m-1,k-1,val,ADD_VALUES,ierr)
-                        if (ierr.ne.0) then
-                           SETERRQ(PETSC_COMM_WORLD,1,' addlhs',ierr)
-                        endif                        
+                        CHKERRQ(ierr)
                      end if                        
 c                     
                   endif
@@ -761,9 +753,7 @@ c$$$c           old code
 c$$$            brhs(k) = brhs(k) + elresf(j)            
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
-            if (ierr.ne.0) then
-               SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
-            endif            
+            CHKERRQ(ierr)
          end if
       end do
 
@@ -773,7 +763,6 @@ c$$$         indx(j) = lm(j)-1
 c$$$      enddo       
 c$$$      call VecSetValues(b,nee,indx,elresf,ADD_VALUES,ierr)
 c$$$      if (ierr.ne.0) then
-c$$$         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
 c$$$      endif
 c
       return
@@ -7346,17 +7335,8 @@ c
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
-c------------------------------------------------------------------------------
-c     
+c------------------------------------------------------------------------------     
       implicit real*8 (a-h,o-z)
-c
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-#include <petsc/finclude/petscviewer.h>
-#include <petsc/finclude/petscviewer.h90>
 c      
       PetscFortranAddr userctx(*)
       PetscViewer viewer
@@ -8058,13 +8038,13 @@ c        and right-hand side vector
 c-------------------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-#include <petsc/finclude/petscviewer.h>
-#include <petsc/finclude/petscviewer.h90>
+!#include <petsc/finclude/petscsys.h>
+!#include <petsc/finclude/petscvec.h>
+!#include <petsc/finclude/petscmat.h>
+!#include <petsc/finclude/petscksp.h>
+!#include <petsc/finclude/petscpc.h>
+!#include <petsc/finclude/petscviewer.h>
+#include <petsc/finclude/petsc.h90>
 c      
       PetscFortranAddr userctx(*)
       PetscViewer viewer

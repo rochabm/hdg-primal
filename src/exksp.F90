@@ -8,6 +8,7 @@
 ! -----------------------------------------------------------------------
 
       program main
+      use petsc
       implicit none
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -40,12 +41,14 @@
 !  routines in a Fortran program, e.g.,
 !     petscviewer.h - viewers
 !     petscis.h     - index sets
-!
+      !
+
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
 #include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
+#include <petsc/finclude/petsc.h>
+
 !
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !                   Variable declarations
@@ -79,10 +82,10 @@
       call MPI_Comm_size(PETSC_COMM_WORLD,size,ierr)
       if (size .ne. 1) then
          call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
+         CHKERRQ(ierr)
          if (rank .eq. 0) then
             write(6,*) 'This is a uniprocessor example only!'
          endif
-         SETERRQ(PETSC_COMM_WORLD,1,' ',ierr)
       endif
       none = -1.0
       one  = 1.0
@@ -90,7 +93,7 @@
       i1 = 1
       i2 = 2
       i3 = 3
-      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+c      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
 
 ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !         Compute the matrix and right-hand-side vector that define
