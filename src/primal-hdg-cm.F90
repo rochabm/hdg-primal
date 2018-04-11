@@ -255,7 +255,7 @@ c
 c      
 c     Create linear solver context
 c
-      write(*,*) "PETSC: criando solver"
+      write(*,'(A)') "PETSC: creating KSP context"
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
 c     Set operators. Here the matrix that defines the linear system
@@ -289,7 +289,7 @@ c$$$      call ISView(isrow,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
 c$$$
 
-      write(*,*) "PETSC: resolvendo sistema"
+      write(*,'(A)') "PETSC: solving system"
       call KSPSolve(ksp,b,x,ierr)
       CHKERRQ(ierr)
 c
@@ -693,7 +693,9 @@ c
 c
 c     debug
 c
-      write(*,*) "NEQ",neq,"NMULTP",nmultp,"NMULTPC",nmultpc
+c      write(*,'(A,I5)') "NMULTP",nmultp
+      write(*,'(A,I5)') " nmultpc:",nmultpc
+      write(*,'(A,I5)') " neq:",neq
 c
 c     clear left and right hand side
 c
@@ -730,7 +732,7 @@ c$$$      call vecprint(a(mpbrhs),neq)
 c
 c     PETSC solver
 c
-      write(*,*) "PETSC solving linear system"
+      write(*,'(A)') "PETSC solving linear system"
       call UserDoLinearSolver(userctx,a(mpbrhs))
 c
  1111 continue
@@ -1899,8 +1901,8 @@ c
          end do     
       end do
 c
-      write(*,*) "NEQC",neqc
-c      stop
+      write(*,'(A,I5)') " neqc:",neqc
+      
 c    
  1000 format(//,10x,' edge/face BCs '//
      &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
@@ -6033,7 +6035,6 @@ c     2D elements
 c
       if(nsd.eq.2) then
 c
-         write(*,'(A,I5)') " elementos 2D"
          if(nen.eq.0) nen=4
 c
 c     quad
@@ -6101,8 +6102,6 @@ c
 c     3D elements
 c
       if (nsd.eq.3) then
-c
-         write(*,'(A)') " elementos 3D"
 c
          nenlad = 4
 
@@ -6662,13 +6661,12 @@ c
 c
 c     new for continuous multiplier
 c      
-      dimension indno(*),indedg(*),iedge(npars,*),idlsd(*)
-      dimension iedgto(*)
+      dimension indno(*),indedg(*),iedge(npars,*),idlsd(*),iedgto(*)
+      dimension idmlado(nside,numel),iddml(nedge)
 c
 c     petsc
 c
       DM dm
-      
       PetscErrorCode ierr
       PetscInt hbcells(3)
       PetscReal low(3),upp(3)
@@ -6681,8 +6679,8 @@ c
       PetscInt, pointer :: pp(:)
       PetscInt, target, dimension(54) :: pts
       PetscInt, pointer :: pc(:)
-      PetscInt, target, dimension(6) :: cone     
-      PetscInt ielem(nen*numel)
+      PetscInt, target, dimension(6) :: cone    
+      PetscInt ielem(nen*numel)      
       PetscScalar xnodes(3*numnp)
       PetscSection sec
 c
@@ -6924,15 +6922,24 @@ c$$$      end do
 c
 c     TODO: alocar iedge apropriadamente, ver darcy-1m-c
 c     
-      write(*,*) "FLUX1EL IDSIDE DEPOIS DO GENLAD"
-      do j=1,6
-         write(*,*) (idside(j,i),i=1,npars)
-      end do
+c$$$      write(*,*) "FLUX1EL IDSIDE DEPOIS DO GENLAD"
+c$$$      do j=1,6
+c$$$         write(*,*) (idside(j,i),i=1,npars)
+c$$$      end do
       
 c ------------------------------------------------------------------------------    
 c     DMPLEX
 c ------------------------------------------------------------------------------
 
+      do i=1,numnp
+         indno(i) = 0
+      end do
+c     
+      do i=1,nedge
+         indedg(i) = 0
+      end do
+
+      
       write(*,*) ""
       write(*,*) ""
       write(*,*) ""
@@ -7025,110 +7032,24 @@ c
       write(*,*) "Verts", vStart, vEnd
       write(*,*)
      
-      do ic=cStart,cEnd-1
-         pp => pts
-         
-         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
-         CHKERRQ(ierr)
-
-         write(*,*)
-         write(*,*) "element", ic, pp(1)
-                  
-         write(*,'(A)', advance="no") "  faces"
-         do j=1,2*npts
-            ix = pp(j)
-            if(fStart.le.ix .and. ix.lt.fEnd) then
-               write(*,'(I5)', advance="no") ix
-            end if
-         end do
-         write(*,*)
-
-         write(*,'(A)', advance="no") "  edges"
-         do j=1,2*npts
-            ix = pp(j)
-            if(eStart.le.ix .and. ix.lt.eEnd) then
-               write(*,'(I5)', advance="no") ix
-            end if
-         end do
-         write(*,*)
-
-         write(*,'(A)', advance="no") "  verts"
-         do j=1,2*npts
-            ix = pp(j)
-            if(vStart.le.ix .and. ix.lt.vEnd) then
-               write(*,'(I5)', advance="no") ix
-            end if
-         end do
-         write(*,*)       
-         
-         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
-         CHKERRQ(ierr)
-c         
-      end do
-c
-c     generate DOFs
-c
-      call PetscSectionCreate(PETSC_COMM_WORLD,sec,ierr)
-      CHKERRQ(ierr)
-      call PetscSectionSetChart(sec,pStart,pEnd,ierr)
-      CHKERRQ(ierr)
-      write(*,*)
-      write(*,'(A,I5,A,I5,A)') "Section chart [",pStart,",",pEnd,")"      
-      write(*,*)
-c
-c     FIXED FOR Q1
-c     FIXED FOR Q2 ACTUALLY
-c     TODO: generalize for Qk
-c      
-      do v=vStart,vEnd-1
-         call PetscSectionSetDof(sec,v,1,ierr)
-         CHKERRQ(ierr)
-      end do
-
-      do e=eStart,eEnd-1
-         call PetscSectionSetDof(sec,e,1,ierr)
-         CHKERRQ(ierr)
-      end do
-
-      do f=fStart,fEnd-1
-         call PetscSectionSetDof(sec,f,1,ierr)
-         CHKERRQ(ierr)
-      end do
-
-      call PetscSectionSetUp(sec,ierr)
-      CHKERRQ(ierr)
-      
-      call PetscSectionGetStorageSize(sec,nsec,ierr)
-      CHKERRQ(ierr)
-
-      write(*,*) "ndofs",nsec
-      
-      call PetscSectionView(sec,PETSC_VIEWER_STDOUT_WORLD,ierr)
-      CHKERRQ(ierr)     
-c
-c     check DOFs
-c     
-      do ic=cStart,cEnd-1
-         pp => pts
-         
-         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
-         CHKERRQ(ierr)
-
-         write(*,*)
-         write(*,*) "element", pp(1)
-                
-         do j=1,2*npts,2
-            ix = pp(j)
-            
-            call PetscSectionGetOffset(sec,ix,ioff,ierr)
-            CHKERRQ(ierr)
-            call PetscSectionGetDof(sec,ix,idof,ierr)
-            CHKERRQ(ierr)
-            
-            write(*,'(5I5)') ix,idof,ioff,idof+ioff               
-         end do
-         
-
+c$$$      do ic=cStart,cEnd-1
+c$$$         pp => pts
+c$$$         
+c$$$         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+c$$$         CHKERRQ(ierr)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,*) "element", ic, pp(1)
+c$$$                  
+c$$$         write(*,'(A)', advance="no") "  faces"
+c$$$         do j=1,2*npts
+c$$$            ix = pp(j)
+c$$$            if(fStart.le.ix .and. ix.lt.fEnd) then
+c$$$               write(*,'(I5)', advance="no") ix
+c$$$            end if
+c$$$         end do
+c$$$         write(*,*)
+c$$$
 c$$$         write(*,'(A)', advance="no") "  edges"
 c$$$         do j=1,2*npts
 c$$$            ix = pp(j)
@@ -7145,162 +7066,380 @@ c$$$            if(vStart.le.ix .and. ix.lt.vEnd) then
 c$$$               write(*,'(I5)', advance="no") ix
 c$$$            end if
 c$$$         end do
-         write(*,*)       
-         
+c$$$         write(*,*)
+c$$$
+c$$$         write(*,'(A)', advance="no") "  v(int) "
+c$$$         do j=1,2*npts
+c$$$            ix = pp(j)
+c$$$            if(vStart.le.ix .and. ix.lt.vEnd) then
+c$$$               write(*,'(I5)', advance="no") ix-vStart+1
+c$$$            end if
+c$$$         end do
+c$$$         write(*,*)       
+c$$$         
+c$$$         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+c$$$         CHKERRQ(ierr)
+c$$$c         
+c$$$      end do
+c
+c     generate DOFs
+c     
+      call PetscSectionCreate(PETSC_COMM_WORLD,sec,ierr)
+      CHKERRQ(ierr)
+      call PetscSectionSetChart(sec,pStart,pEnd,ierr)
+      CHKERRQ(ierr)
+      
+      write(*,*)
+      write(*,'(A,I10,A,I10,A)') "Section chart [",pStart,",",pEnd,")"      
+      write(*,*)
+
+c
+c     FIXED FOR Q1
+c     FIXED FOR Q2 ACTUALLY
+c     TODO: generalize for Qk
+c      
+      do v=vStart,vEnd-1
+         call PetscSectionSetDof(sec,v,1,ierr)
+         CHKERRQ(ierr)
+      end do
+
+c      do e=eStart,eEnd-1
+c         call PetscSectionSetDof(sec,e,1,ierr)
+c         CHKERRQ(ierr)
+c      end do
+
+c      do f=fStart,fEnd-1
+c         call PetscSectionSetDof(sec,f,1,ierr)
+c         CHKERRQ(ierr)
+c      end do
+
+      call PetscSectionSetUp(sec,ierr)
+      CHKERRQ(ierr)
+      
+      call PetscSectionGetStorageSize(sec,nsec,ierr)
+      CHKERRQ(ierr)
+
+      write(*,*) "ndofs",nsec
+      nmultpc = nsec
+
+      
+c$$$      call PetscSectionView(sec,PETSC_VIEWER_STDOUT_WORLD,ierr)
+c$$$      CHKERRQ(ierr)     
+c
+c     check DOFs
+c     
+      do ic=cStart,cEnd-1
+         pp => pts         
+         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+c$$$         write(*,*)
+c$$$         write(*,*) "element", pp(1)                
+         do j=1,2*npts,2
+            ix = pp(j)            
+            call PetscSectionGetOffset(sec,ix,ioff,ierr)
+            CHKERRQ(ierr)
+            call PetscSectionGetDof(sec,ix,idof,ierr)
+            CHKERRQ(ierr)            
+c$$$            write(*,'(5I5)') ix,idof,ioff,idof+ioff
+         end do         
          call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
          CHKERRQ(ierr)
 c         
+      end do      
+c     
+c     cria array (idmlado) para relacionar lado <=> dm (DMPlex)
+c      
+      do ic=cStart,cEnd-1
+         pp => pts
+         
+         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+
+         nel = ic+1
+         icnode = 0 ! conta no
+         icface = 0 ! conta face
+               
+         do j=1,2*npts,2
+            ix = pp(j)
+            if(fStart.le.ix .and. ix.lt.fEnd) then               
+               icface = icface + 1
+
+               if(icface.eq.1) then
+                  idmlado(5,nel) = ix
+               else if(icface.eq.2) then
+                  idmlado(6,nel) = ix
+               else if(icface.eq.3) then
+                  idmlado(1,nel) = ix
+               else if(icface.eq.4) then
+                  idmlado(4,nel) = ix
+               else if(icface.eq.5) then
+                  idmlado(3,nel) = ix
+               else if(icface.eq.6) then
+                  idmlado(2,nel) = ix
+               end if
+               
+c               idmlado(icface,nel) = ix
+            end if            
+         end do
+
+         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+      end do      
+c
+c     ajeita idmlado, lineariza para iddml
+c      
+      do nel=1,numel
+         do ns=1,nside
+            neledg = lado(ns,nel)
+            iddml(neledg) = idmlado(ns,nel)
+         end do
+      end do         
+c
+c     guarda em iedge(npars,nedge)
+c
+      nptf = 9
+      keq = 0
+      
+      do i=1,nedge
+         ifc = iddml(i) ! indice da face no dmplex
+         pp => pts
+         
+         call DMPlexGetTransitiveClosure(dm,ifc,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+
+c         write(*,*) pp
+         inode = 0
+
+         iaux = iddml(i) - fStart + 1
+c         
+         indedg(i) = iaux
+         iedgto(iaux) = i
+c
+c     primeiro dofs nos nodes
+c     
+         do j=1,2*nptf,2
+            ix = pp(j)
+            if(vStart.le.ix .and. ix.lt.vEnd) then
+               call PetscSectionGetOffset(sec,ix,ioff,ierr)
+               CHKERRQ(ierr)
+               call PetscSectionGetDof(sec,ix,idof,ierr)
+               CHKERRQ(ierr)
+               inode = inode + 1
+               iedge(inode,i) = ioff + 1 ! 0-based to 1-based
+c               
+c     marca o no
+c     
+               ignode = ix - vStart + 1
+c               write(*,*) "ignode",ignode
+               if(indno(ignode).eq.0) then
+                  keq = keq + 1
+                  indno(ignode) = keq
+               end if
+            end if            
+         end do
+c     
+c     TODO: FALTA TERMINAR AQUI PARA O CASO Qk, k>1
+c     segundo, dofs nas arestas
+c
+
+c     
+c     terceiro dofs nas faces
+c                 
+         call DMPlexRestoreTransitiveClosure(dm,ifc,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+         
       end do
 
+      
+C
+C     DEBUG
+C      
+c$$$      do nel=1,numel
+c$$$         write(*,*) "elem",nel
+c$$$         write(*,*) " my num", (lado(ns,nel),ns=1,nside)
+c$$$         write(*,*) " idmlado", (idmlado(ns,nel),ns=1,nside)
+c$$$         write(*,*)
+c$$$      end do
 
       call PetscSectionDestroy(sec,ierr)
       CHKERRQ(ierr)
       
-      stop
+c     stop
+
+      
+c$$$      do ii=1, numnp
+c$$$         write(*,*) "indno", ii, indno(ii)
+c$$$      end do
+c$$$
+c$$$      do ii=1,nedge
+c$$$         write(*,*) "indedg",ii,indedg(ii)
+c$$$      end do
+c$$$
+c$$$      do ii=1,nedge
+c$$$         write(*,*) "iedgto",ii,iedgto(ii)
+c$$$      end do
+
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) "NOVA NUMERACAO CONFERIR"
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
+      write(*,*) ""
 
 c ------------------------------------------------------------------------------
+c     OLD CODE FOR NUMBERING DOFs, NODES, EDGES/FACES
+c ------------------------------------------------------------------------------    
       
-c
-c     generation of conectivities for the continuous multiplier
-c
-      write(*,*) "NEDGE",nedge
-      write(*,*) "NPARS",npars
-c      
-      do i=1,numnp
-         indno(i) = 0
-      end do
-c     
-      do i=1,nedge
-         indedg(i) = 0
-      end do
-c
-      write(*,*) "IDLSD ANTES", (idlsd(ii),ii=1,npars)
-      do i=1,npars
-         idlsd(i) = 0
-      end do
-c
-      keq = 0  ! contador de dofs
-      kedg = 0 ! contador de faces
-c
-c     loop em elemento
-c     
-      do nel=1,numel
-         write(*,*) ""
-         write(*,*) ""         
-         write(*,*) "elemento", nel
-         
-c
-c     loop em lado/face
-c
-c$$$         write(*,*) "ELEMENTO", nel
-         do ns=1,nside
-c            
-            neledg = lado(ns,nel)
-c$$$            write(*,*) "FACE (neledg)", neledg
-c
-c     localiza os no's do lado ns
-c
-            ns1 = idside(ns,1)
-            ns2 = idside(ns,2)
-            ns3 = idside(ns,3)
-            ns4 = idside(ns,4)
-c
-c     global
-c            
-            nl1 = ien(ns1,nel)
-            nl2 = ien(ns2,nel)
-            nl3 = ien(ns3,nel)
-            nl4 = ien(ns4,nel)            
-c            
-            do nn=1,npars
-               idlsd(nn) = idside(ns,nn)
-            end do
-c
-            i1=idlsd(1)
-            i2=idlsd(2)
-            i3=idlsd(3)
-            i4=idlsd(4)
-c
-            i1=1
-            i2=2
-            i3=3
-            i4=4
+c$$$c
+c$$$c     generation of conectivities for the continuous multiplier
+c$$$c
+c$$$      write(*,*) "NEDGE",nedge
+c$$$      write(*,*) "NPARS",npars
+c$$$c      
+c$$$      do i=1,numnp
+c$$$         indno(i) = 0
+c$$$      end do
+c$$$c     
+c$$$      do i=1,nedge
+c$$$         indedg(i) = 0
+c$$$      end do
+c$$$c
+c$$$      write(*,*) "IDLSD ANTES", (idlsd(ii),ii=1,npars)
+c$$$      do i=1,npars
+c$$$         idlsd(i) = 0
+c$$$      end do
+c$$$c
+c$$$      keq = 0  ! contador de dofs
+c$$$      kedg = 0 ! contador de faces
+c$$$c
+c$$$c     loop em elemento
+c$$$c     
+c$$$      do nel=1,numel
+c$$$         write(*,*) ""
+c$$$         write(*,*) ""         
+c$$$         write(*,*) "elemento", nel
+c$$$         
+c$$$c
+c$$$c     loop em lado/face
+c$$$c
+c$$$c$$$         write(*,*) "ELEMENTO", nel
+c$$$         do ns=1,nside
+c$$$c            
+c$$$            neledg = lado(ns,nel)
+c$$$c$$$            write(*,*) "FACE (neledg)", neledg
+c$$$c
+c$$$c     localiza os no's do lado ns
+c$$$c
+c$$$            ns1 = idside(ns,1)
+c$$$            ns2 = idside(ns,2)
+c$$$            ns3 = idside(ns,3)
+c$$$            ns4 = idside(ns,4)
+c$$$c
+c$$$c     global
+c$$$c            
+c$$$            nl1 = ien(ns1,nel)
+c$$$            nl2 = ien(ns2,nel)
+c$$$            nl3 = ien(ns3,nel)
+c$$$            nl4 = ien(ns4,nel)            
+c$$$c            
+c$$$            do nn=1,npars
+c$$$               idlsd(nn) = idside(ns,nn)
+c$$$            end do
+c$$$c
+c$$$            i1=idlsd(1)
+c$$$            i2=idlsd(2)
+c$$$            i3=idlsd(3)
+c$$$            i4=idlsd(4)
+c$$$c
+c$$$            i1=1
+c$$$            i2=2
+c$$$            i3=3
+c$$$            i4=4
+c$$$
+c$$$            write(*,*) ""         
+c$$$            write(*,*) "face", neledg
+c$$$c    
+c$$$c     renumeracao dos dofs do multp baseado no elemento
+c$$$c     
+c$$$            if(indedg(neledg).eq.0) then
+c$$$c     
+c$$$               kedg = kedg + 1
+c$$$               indedg(neledg) = kedg
+c$$$               iedgto(kedg) = neledg
+c$$$c$$$               write(*,*) "numerando face", neledg, "->", kedg
+c$$$c
+c$$$c     numera os nos
+c$$$c               
+c$$$               if(indno(nl1).eq.0) then
+c$$$                  keq = keq + 1
+c$$$                  indno(nl1) = keq
+c$$$                  iedge(i1,neledg) = keq
+c$$$                  write(*,*) " no", nl1, keq
+c$$$               else
+c$$$                  iedge(i1,neledg) = indno(nl1)
+c$$$                  write(*,*) " no", nl1, " ja numerado ", indno(nl1)
+c$$$               end if
+c$$$c     
+c$$$               if(indno(nl2).eq.0) then
+c$$$                  keq = keq + 1
+c$$$                  indno(nl2) = keq 
+c$$$                  iedge(i2,neledg) = keq
+c$$$                  write(*,*) " no", nl2, keq
+c$$$               else
+c$$$                  iedge(i2,neledg) = indno(nl2)
+c$$$                  write(*,*) " no", nl2, " ja numerado ", indno(nl2)
+c$$$               end if
+c$$$c
+c$$$               if(indno(nl3).eq.0) then
+c$$$                  keq = keq + 1
+c$$$                  indno(nl3) = keq 
+c$$$                  iedge(i3,neledg) = keq
+c$$$                  write(*,*) " no", nl3, keq
+c$$$               else                  
+c$$$                  iedge(i3,neledg) = indno(nl3)
+c$$$                  write(*,*) " no", nl3, " ja numerado ", indno(nl3)
+c$$$               end if
+c$$$c               
+c$$$               if(indno(nl4).eq.0) then
+c$$$                  keq = keq + 1
+c$$$                  indno(nl4) = keq 
+c$$$                  iedge(i4,neledg) = keq
+c$$$                  write(*,*) " no", nl4, keq
+c$$$               else
+c$$$                  iedge(i4,neledg) = indno(nl4)
+c$$$                  write(*,*) " no", nl4, " ja numerado ", indno(nl4)
+c$$$               end if
+c$$$c
+c$$$c     numera os interiores
+c$$$c               
+c$$$               if(npars.gt.4) then
+c$$$                  do i=5,npars
+c$$$                     keq = keq + 1 
+c$$$                     isv = idlsd(i)
+c$$$                     iedge(i,neledg) = keq
+c$$$                  end do
+c$$$               end if
+c$$$c
+c$$$           else
+c$$$              write(*,*) " ja numerada", neledg, indedg(neledg)
+c$$$           end if
+c$$$c
+c$$$           write(*,*) "depois da face", keq           
+c$$$        end do
+c$$$
+c$$$        write(*,*) "fim do elemento", keq
+c$$$c        
+c$$$      end do
 
-            write(*,*) ""         
-            write(*,*) "face", neledg
-c    
-c     renumeracao dos dofs do multp baseado no elemento
-c     
-            if(indedg(neledg).eq.0) then
-c     
-               kedg = kedg + 1
-               indedg(neledg) = kedg
-               iedgto(kedg) = neledg
-c$$$               write(*,*) "numerando face", neledg, "->", kedg
 c
-c     numera os nos
-c               
-               if(indno(nl1).eq.0) then
-                  keq = keq + 1
-                  indno(nl1) = keq
-                  iedge(i1,neledg) = keq
-                  write(*,*) " no", nl1, keq
-               else
-                  iedge(i1,neledg) = indno(nl1)
-                  write(*,*) " no", nl1, " ja numerado ", indno(nl1)
-               end if
-c     
-               if(indno(nl2).eq.0) then
-                  keq = keq + 1
-                  indno(nl2) = keq 
-                  iedge(i2,neledg) = keq
-                  write(*,*) " no", nl2, keq
-               else
-                  iedge(i2,neledg) = indno(nl2)
-                  write(*,*) " no", nl2, " ja numerado ", indno(nl2)
-               end if
+c     DEBUG 
 c
-               if(indno(nl3).eq.0) then
-                  keq = keq + 1
-                  indno(nl3) = keq 
-                  iedge(i3,neledg) = keq
-                  write(*,*) " no", nl3, keq
-               else                  
-                  iedge(i3,neledg) = indno(nl3)
-                  write(*,*) " no", nl3, " ja numerado ", indno(nl3)
-               end if
-c               
-               if(indno(nl4).eq.0) then
-                  keq = keq + 1
-                  indno(nl4) = keq 
-                  iedge(i4,neledg) = keq
-                  write(*,*) " no", nl4, keq
-               else
-                  iedge(i4,neledg) = indno(nl4)
-                  write(*,*) " no", nl4, " ja numerado ", indno(nl4)
-               end if
-c
-c     numera os interiores
-c               
-               if(npars.gt.4) then
-                  do i=5,npars
-                     keq = keq + 1 
-                     isv = idlsd(i)
-                     iedge(i,neledg) = keq
-                  end do
-               end if
-c
-           else
-              write(*,*) " ja numerada", neledg, indedg(neledg)
-           end if
-c
-           write(*,*) "depois da face", keq           
-        end do
 
-        write(*,*) "fim do elemento", keq
-c        
-      end do
-      
 c$$$
 c$$$      write(*,*) "FLUX1EL IDSIDE"
 c$$$      do j=1,6
@@ -7309,10 +7448,11 @@ c$$$      end do
 c$$$      
 c$$$c
 c$$$c     total number of continuous multipliers
-c$$$c     
-         nmultpc = keq
-         write(*,*) "nmultpc",nmultpc
-c$$$         stop
+c$$$c
+c      
+c      nmultpc = keq
+c      nmulptc = nsec
+      write(*,*) "nmultpc",nmultpc
 c      
 c$$$c      
 c$$$c     confere numeracao
@@ -7325,11 +7465,13 @@ c$$$      write(*,*) " "
 
 c$$$      do ii=1, numnp
 c$$$         write(*,*) "indno", ii, indno(ii)
-c$$$  end do
-         
-c$$$      write(*,*) "indedg",(indedg(ii),ii=1,nedge)
+c$$$      end do
 c$$$
+c$$$      do ii=1,nedge
+c$$$         write(*,*) "indedg",ii,indedg(ii)
+c$$$      end do
 
+c      stop
       
 c$$$      do nel=1,numel     
 c$$$         write(*,*) "nel,ns,nd,iedge(npars,nd)"
@@ -7340,12 +7482,12 @@ c$$$         end do
 c$$$      end do
       
       
-c$$$      write(*,*) "FACE / DOFS"
-c$$$      do i=1,nedge
-c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
-c$$$      end do      
-c
-c     stop
+c      write(*,*) "FACE / DOFS"
+c      do i=1,nedge
+c         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
+c      end do      
+
+c      stop
       
 c      write(*,*) "FIM FLUX1EL IDSIDE"
 c      do j=1,6
@@ -7399,19 +7541,15 @@ c     four-node quadrilateral, elastic continuum element
 c-----------------------------------------------------------------------
       implicit real*8 (a-h,o-z)
 c
-      dimension ien(nen,*),mat(*),
-     &          lm(ndof,nodsp,*),idiag(*),
-     &          ipar(nodsp,*),idside(nside,*)
-c
-      dimension lado(nside,*)
-      dimension iedge(npars,*),indno(*),indedg(*),iedgto(*),idlsd(*)
+      dimension ien(nen,*),mat(*),lm(ndof,nodsp,*),idiag(*)
+      dimension ipar(nodsp,*),idside(nside,*)
+      dimension lado(nside,*),iedge(npars,*)
+      dimension indno(*),indedg(*),iedgto(*),idlsd(*)
       dimension idc(ndof,*),ideg(2*ndof,*)
 c
       common /iounit/ iin,iout,iecho,ioupp,itest1,itest2,
      &                ierrb,ierrb0,ierrbi
       common /colhtc / neq
-c
-      write(*,*) "xxx",nmultpc            
 c
 c     boundary conditions for the continuous multiplier
 c      
@@ -7429,20 +7567,20 @@ c
 c
 c     debug
 c     
-      write(*,*) "DEBUG ideg"
-      do i=1,nedge
-         write(*,*) "ideg", i, ideg(1,i), ideg(2,i)
-      end do
-      
-      write(*,*) "DEBUG"
-      do i=1,nmultpc
-         write(*,*) "idc", i, idc(1,i)
-      end do
-c$$$
-      write(*,*) "DEBUG DEPOIS GENELPAR IPAR"
-      do nel=1,numel
-         write(*,'(A,I5,A,30I5)') "el",nel," ip",(ipar(j,nel),j=1,nodsp)
-      end do
+c$$$      write(*,*) "DEBUG ideg"
+c$$$      do i=1,nedge
+c$$$         write(*,*) "ideg", i, ideg(1,i), ideg(2,i)
+c$$$      end do
+c$$$      
+c$$$      write(*,*) "DEBUG"
+c$$$      do i=1,nmultpc
+c$$$         write(*,*) "idc", i, idc(1,i)
+c$$$      end do
+c$$$c$$$
+c$$$      write(*,*) "DEBUG DEPOIS GENELPAR IPAR"
+c$$$      do nel=1,numel
+c$$$         write(*,'(A,I5,A,30I5)') "el",nel," ip",(ipar(j,nel),j=1,nodsp)
+c$$$      end do
 c$$$      
 c      stop
 c
@@ -8952,14 +9090,9 @@ c
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c      
-      write(*,*) "subroutine flux2"
 c
 c     PETSC stuff
-c      
-c      b = userctx(2)
-c      A = userctx(3)
-
+c
       b = userctx%b
       A = userctx%A
 c
@@ -9207,7 +9340,8 @@ c
 c
 c     localize the coordinates of the side nodes
 c
-            write(*,*) "idlsd,nenlad:", (idlsd(nn),nn=1,nenlad)
+c$$$            write(*,*) "idlsd,nenlad:", (idlsd(nn),nn=1,nenlad)
+
             do nn=1,nenlad
                nl=idlsd(nn)
                xls(1,nn)=xl(1,nl)
@@ -9953,7 +10087,8 @@ c
 c
 c     valor exato do multiplicador
 c
-               dhs = gf1*sx*sy*sz              
+ccc               write(*,*) "flux3 valor exato multp"
+ccc               dhs = gf1*sx*sy*sz              
 c               
                do j=1,nenp
                   nbj  = ned*(j-1)
