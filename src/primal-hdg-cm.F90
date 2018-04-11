@@ -10,8 +10,6 @@ c        lambda((u-up) , grad(v).n)
 c
 c     ******************************************************************
 c
-c     program to set storage capacity, precision and input/output units
-c
       module UserModule
 #include <petsc/finclude/petscksp.h>
       use petscksp
@@ -25,6 +23,8 @@ c
       PetscInt n
       end type User
       end module
+
+c ----------------------------------------------------------------------      
       
       program main
       use UserModule
@@ -43,7 +43,6 @@ c
       PetscErrorCode   ierr
       PetscMPIInt size,rank
       type(User) userctx
-c      PetscFortranAddr userctx(6)
 
       external UserInitializeLinearSolver
       external UserFinalizeLinearSolver
@@ -118,22 +117,16 @@ c
 c----------------------------------------------------------------------
       subroutine UserInitializeLinearSolver(m,n,userctx,ierr)
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-#include <petsc/finclude/petscksp.h>
-      use petsc
-      use petscksp
       use UserModule
-c
       implicit none
-c      
-      PetscInt m,n
-      PetscErrorCode ierr
-      type(User) userctx
-c      PetscFortranAddr userctx(*)
-      Mat      A
-      Vec      b,x
-      KSP      ksp
-      PetscInt tot,nnz
+c            
+      type(User)     userctx
+      Mat            A
+      Vec            b,x
+      KSP            ksp
+      PetscInt       tot,nnz
+      PetscInt       m,n
+      PetscErrorCode ierr      
 c     
       nnz = 450
       tot = n
@@ -467,15 +460,12 @@ c----------------------------------------------------------------------
 c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
 c
       type(User) userctx
-c      PetscFortranAddr userctx(*)
       PetscErrorCode   ierr           
 c
 c     catalog of common statements
@@ -686,8 +676,6 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule      
 c
       common /etimec/ etime(6)
@@ -702,7 +690,6 @@ c
 c      
       PetscLogDouble t1, t2
       type(User) userctx
-c      PetscFortranAddr userctx(*)
 c
 c     debug
 c
@@ -770,21 +757,19 @@ c-----------------------------------------------------------------------
 c     program to add element left-hand-side matrix to
 c        global left-hand-side matrix
 c        diag = .true., add diagonal element matrix
-c        diag = .false, add upper triangle of full element matrix
+c     diag = .false, add upper triangle of full element matrix
+c     TODO: implement this efficiently, only assemble lm(j)>0        
+c     all local values at once      
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petscksp.h>
-      use petscksp
       use UserModule
-c
       implicit real*8 (a-h,o-z)      
 c            
-      Vec              x,b
-      Mat              A
-      PetscErrorCode   ierr
-      PetscInt         i,n
-      PetscScalar      val
-      type(User) userctx
-c     PetscFortranAddr userctx(*)      
+      Vec            x,b
+      Mat            A
+      PetscErrorCode ierr
+      PetscInt       i,n
+      PetscScalar    val
+      type(User)     userctx
 c
       logical diag
       dimension eleffm(nee,*),lm(*)
@@ -792,22 +777,6 @@ c
       x = userctx%x
       b = userctx%b
       A = userctx%A
-c
-c     DEBUG
-c      
-c$$$      write(*,*) "addlhs"
-c$$$      do i=1,nee
-c$$$         write(*,*) "i,lm(i)", i, lm(i)
-c$$$      end do
-c     
-c     TODO: implement this efficiently, only assemble lm(j)>0        
-c     all local values at once
-c$$$      do j=1,nee
-c$$$         indx(j) = lm(j)-1
-c$$$      enddo      
-c$$$      call MatSetValues(A,nee,indx,nee,indx,eleffm,ADD_VALUES,ierr)
-c$$$      if (ierr.ne.0) then
-c$$$      endif      
 c      
       if (diag) then
 c
@@ -854,17 +823,13 @@ c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petscksp.h>
-      use petscksp
       use UserModule
-c
       implicit real*8 (a-h,o-z)
 c     
       Vec              b
       PetscScalar      val
       PetscErrorCode   ierr
       type(User) userctx
-c      PetscFortranAddr userctx(*)
 c      
       dimension elresf(*),lm(*)
       dimension indx(nee)
@@ -1336,6 +1301,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to calculate element task number
 c-----------------------------------------------------------------------
+      use UserModule
       character*8 task,eltask(5)
       dimension ngrp(*)
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
@@ -1351,7 +1317,7 @@ c-----------------------------------------------------------------------
      &           'pos_proc'/
 c      
       character*4 ia
-      PetscFortranAddr userctx(*)      
+      type(User) userctx
 c
       do 100 i=1,ntask
       if (task.eq.eltask(i)) itask = i
@@ -5911,7 +5877,8 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     program to call element routines
 c-----------------------------------------------------------------------
-      PetscFortranAddr userctx(*)      
+      use UserModule
+      type(User) userctx
       common a(1)
 c
       go to (10,20) ntype
@@ -5931,8 +5898,8 @@ c     program to set storage and call tasks for the
 c     primal mixed Poisson  problem
 c     with continuous temperature and discontinuous flux
 c-----------------------------------------------------------------------
-c      
-      PetscFortranAddr userctx(*)
+      use UserModule
+      type(User) userctx
 c      
       dimension npar(*),mp(*)
 c      
@@ -6701,23 +6668,23 @@ c
 c     petsc
 c
       DM dm
+      
       PetscErrorCode ierr
       PetscInt hbcells(3)
+      PetscReal low(3),upp(3)
       PetscInt pStart, pEnd
       PetscInt fStart, fEnd, f
       PetscInt cStart, cEnd, c
       PetscInt vStart, vEnd, v
       PetscInt eStart, eEnd, e
-      PetscInt npts
-c      
+      PetscInt npts, nsec, idof, ioff
       PetscInt, pointer :: pp(:)
       PetscInt, target, dimension(54) :: pts
-c
       PetscInt, pointer :: pc(:)
-      PetscInt, target, dimension(6) :: cone
-c     
-      PetscInt ielement(nen*2)
-      PetscScalar xnodes(3*12)
+      PetscInt, target, dimension(6) :: cone     
+      PetscInt ielem(nen*numel)
+      PetscScalar xnodes(3*numnp)
+      PetscSection sec
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
@@ -6970,80 +6937,78 @@ c ------------------------------------------------------------------------------
       write(*,*) ""
       write(*,*) ""
       write(*,*) ""
-      write(*,*) ""      
+      write(*,*) ""
       
-      call DMPlexCreate(PETSC_COMM_WORLD,dm,ierr)
-      CHKERRQ(ierr)
-
-      numnp = 12
-      
-      k = 0
-      do i=1,numnp
-         k = k + 1
-         xnodes(k) = x(1,i)
-         k = k + 1
-         xnodes(k) = x(2,i)
-         k = k + 1
-         xnodes(k) = x(3,i)
-      end do
-
-      do i=1,3*numnp
-         write(*,*) xnodes(i)
-      end do
-
-      numel = 2
-
-      k = 0
-      do nel=1,numel
-         do j=1,nen
-            k = k + 1
-            ielement(k) = ien(j,nel)-1      
-         end do
-         write(*,*) nel, (ien(j,nel),j=1,nen)
-      end do
-
-      do i=1,k
-         write(*,*) ielement(i)
-      end do
-
-      ielement(1) = 0
-      ielement(2) = 1
-      ielement(3) = 4
-      ielement(4) = 3
-      ielement(5) = 6
-      ielement(6) = 7
-      ielement(7) = 10
-      ielement(8) = 9
-c
-      ielement( 9) = 1
-      ielement(10) = 2
-      ielement(11) = 5
-      ielement(12) = 4
-      ielement(13) = 7
-      ielement(14) = 8
-      ielement(15) = 11
-      ielement(16) = 10 
-c     
       ndim = 3
       npts = 27
-      hbcells(1) = 2
-      hbcells(2) = 2
-      hbcells(3) = 2
-c      
-c$$$      call DMPlexCreateHexBoxMesh(PETSC_COMM_WORLD, ndim, hbcells,
-c$$$     &   DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, dm, ierr)
-c$$$      CHKERRQ(ierr)
 c
-      write(*,*) ndim, numel, numnp, nen
+c     create DM
+c
+      call DMPlexCreate(PETSC_COMM_WORLD,dm,ierr)
+      CHKERRQ(ierr)
+c
+c     copy coordinates
+c      
+      k = 0
+      do i=1,numnp
+         k = (i-1)*3
+         xnodes(k+1) = x(1,i)
+         xnodes(k+2) = x(2,i)
+         xnodes(k+3) = x(3,i)
+      end do
+c
+c     copy element conectivity in the expected ordering
+c     petsc fromCellList order (1,4,3,2,5,6,7,8)
+c      
+      k = 0
+      do nel=1,numel
+         i1 = ien(1,nel)
+         i2 = ien(2,nel)
+         i3 = ien(3,nel)
+         i4 = ien(4,nel)
+         i5 = ien(5,nel)
+         i6 = ien(6,nel)
+         i7 = ien(7,nel)
+         i8 = ien(8,nel)
+         k = (nel-1)*nen
+         ielem(k+1) = i1; ielem(k+2) = i4
+         ielem(k+3) = i3; ielem(k+4) = i2
+         ielem(k+5) = i5; ielem(k+6) = i6
+         ielem(k+7) = i7; ielem(k+8) = i8
+      end do      
+c     
+c     change to 0-based index
+c      
+      do i=1,numel*nen
+         ielem(i) = ielem(i)-1
+      end do
+      
+
+c$$$c
+c$$$      hbcells(1)=2
+c$$$      hbcells(2)=2
+c$$$      hbcells(3)=2
+c$$$c
+c$$$      low(1)=0.0
+c$$$      low(2)=0.0
+c$$$      low(3)=0.0
+c$$$c      
+c$$$      upp(1)=1.0
+c$$$      upp(2)=1.0
+c$$$      upp(3)=1.0
+c$$$c     
+c$$$      call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, ndim, PETSC_FALSE,
+c$$$     &      hbcells,low,upp,DM_BOUNDARY_NONE, PETSC_TRUE, dm, ierr)
+c$$$      call DMPlexCreateGmshFromFile(PETSC_COMM_WORLD, "malha.msh",
+c$$$     &                              PETSC_TRUE, dm, ierr)
+c      
       call DMPlexCreateFromCellList(PETSC_COMM_WORLD,
      &                              ndim,numel,numnp,nen,PETSC_TRUE,
-     &                              ielement,ndim,xnodes,dm,ierr)
+     &                              ielem,ndim,xnodes,dm,ierr)
       CHKERRQ(ierr)
 c
       call DMView(dm,PETSC_VIEWER_STDOUT_WORLD,ierr)
       CHKERRQ(ierr)
-
-c      stop
 c      
       call DMPlexGetChart(dm, pStart, pEnd, ierr)
       call DMPlexGetHeightStratum(dm, 0, cStart, cEnd, ierr) !heigt=0 cells
@@ -7100,10 +7065,98 @@ c
          CHKERRQ(ierr)
 c         
       end do
+c
+c     generate DOFs
+c
+      call PetscSectionCreate(PETSC_COMM_WORLD,sec,ierr)
+      CHKERRQ(ierr)
+      call PetscSectionSetChart(sec,pStart,pEnd,ierr)
+      CHKERRQ(ierr)
+      write(*,*)
+      write(*,'(A,I5,A,I5,A)') "Section chart [",pStart,",",pEnd,")"      
+      write(*,*)
+c
+c     FIXED FOR Q1
+c     FIXED FOR Q2 ACTUALLY
+c     TODO: generalize for Qk
+c      
+      do v=vStart,vEnd-1
+         call PetscSectionSetDof(sec,v,1,ierr)
+         CHKERRQ(ierr)
+      end do
 
+      do e=eStart,eEnd-1
+         call PetscSectionSetDof(sec,e,1,ierr)
+         CHKERRQ(ierr)
+      end do
 
+      do f=fStart,fEnd-1
+         call PetscSectionSetDof(sec,f,1,ierr)
+         CHKERRQ(ierr)
+      end do
+
+      call PetscSectionSetUp(sec,ierr)
+      CHKERRQ(ierr)
       
-c      stop
+      call PetscSectionGetStorageSize(sec,nsec,ierr)
+      CHKERRQ(ierr)
+
+      write(*,*) "ndofs",nsec
+      
+      call PetscSectionView(sec,PETSC_VIEWER_STDOUT_WORLD,ierr)
+      CHKERRQ(ierr)     
+c
+c     check DOFs
+c     
+      do ic=cStart,cEnd-1
+         pp => pts
+         
+         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+
+         write(*,*)
+         write(*,*) "element", pp(1)
+                
+         do j=1,2*npts,2
+            ix = pp(j)
+            
+            call PetscSectionGetOffset(sec,ix,ioff,ierr)
+            CHKERRQ(ierr)
+            call PetscSectionGetDof(sec,ix,idof,ierr)
+            CHKERRQ(ierr)
+            
+            write(*,'(5I5)') ix,idof,ioff,idof+ioff               
+         end do
+         
+
+c$$$         write(*,'(A)', advance="no") "  edges"
+c$$$         do j=1,2*npts
+c$$$            ix = pp(j)
+c$$$            if(eStart.le.ix .and. ix.lt.eEnd) then
+c$$$               write(*,'(I5)', advance="no") ix
+c$$$            end if
+c$$$         end do
+c$$$         write(*,*)
+c$$$
+c$$$         write(*,'(A)', advance="no") "  verts"
+c$$$         do j=1,2*npts
+c$$$            ix = pp(j)
+c$$$            if(vStart.le.ix .and. ix.lt.vEnd) then
+c$$$               write(*,'(I5)', advance="no") ix
+c$$$            end if
+c$$$         end do
+         write(*,*)       
+         
+         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+         CHKERRQ(ierr)
+c         
+      end do
+
+
+      call PetscSectionDestroy(sec,ierr)
+      CHKERRQ(ierr)
+      
+      stop
 
 c ------------------------------------------------------------------------------
       
