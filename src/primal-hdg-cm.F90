@@ -1983,7 +1983,6 @@ c               neds = idlsd(np)
                neds = np
                lada = iedge(neds,la)
                nsp = idside(ns,np)
-c               nsp = np + (ns-1)*npars
                ipar(nsp,nel) = lada
             end do
 c     
@@ -1993,23 +1992,21 @@ c     segundo passo: nos dos lados/interior das faces
 c
          if(npars.gt.4) then
             do ns=1,nside
-c
+c               
                la = lado(ns,nel)
                kedg = indedg(la)
 c     
                do np=5,npars
 c                  neds = idlsd(np)
-                  neds = np
-                  
+                  neds = np                  
                   lada = iedge(neds,la)
                   nsp = idside(ns,np)
-c                 nsp = np + (ns-1)*npars
                   ipar(nsp,nel) = lada
-c                  write(*,*) np,la,lada,nsp
+c                  write(*,*) ns,np,neds,la,nsp,lada
                end do
 c               
             end do
-         end if
+         end if !npars>4
       end do
 c
 c$$$      do nel=1,numel
@@ -6686,6 +6683,8 @@ c
       PetscInt npts, nsec, idof, ioff
       PetscInt, pointer :: pp(:)
       PetscInt, target, dimension(54) :: pts
+      PetscInt, pointer :: pa(:)
+      PetscInt, target, dimension(54) :: paux
       PetscInt ielem(nen*numel)
       PetscScalar xnodes(3*numnp)
       PetscSection sec
@@ -6936,7 +6935,7 @@ c$$$      end do
 c ------------------------------------------------------------------------------    
 c     DMPLEX
 c ------------------------------------------------------------------------------
-
+      
       do i=1,numnp
          indno(i) = 0
       end do
@@ -6944,11 +6943,7 @@ c
       do i=1,nedge
          indedg(i) = 0
       end do
-
-      write(*,*) ""
-      write(*,*) ""
-      write(*,*) ""
-      
+c     
       ndim = 3
       npts = 27
 c
@@ -6994,9 +6989,9 @@ c
       end do     
 c
 c$$$c
-c$$$      hbcells(1)=2
-c$$$      hbcells(2)=2
-c$$$      hbcells(3)=2
+c$$$      hbcells(1)=1
+c$$$      hbcells(2)=1
+c$$$      hbcells(3)=1
 c$$$c
 c$$$      low(1)=0.0
 c$$$      low(2)=0.0
@@ -7024,14 +7019,14 @@ c
       call DMPlexGetDepthStratum(dm, 2, fStart, fEnd, ierr)  !depth=2 faces
       call DMPlexGetDepthStratum(dm, 1, eStart, eEnd, ierr)  !depth=1 edges
       call DMPlexGetDepthStratum(dm, 0, vStart, vEnd, ierr)  !depth=0 vertices
-
+c
       write(*,*)
       write(*,*) "Cells", cStart, cEnd
       write(*,*) "Faces", fStart, fEnd
       write(*,*) "Edges", eStart, eEnd
       write(*,*) "Verts", vStart, vEnd
       write(*,*)
-     
+c
 c$$$      do ic=cStart,cEnd-1
 c$$$         pp => pts
 c$$$         
@@ -7050,11 +7045,11 @@ c$$$            end if
 c$$$         end do
 c$$$         write(*,*)
 c$$$
-c$$$         write(*,'(A)', advance="no") "  lado()"
-c$$$         do j=1,6
-c$$$            write(*,'(2I5)', advance="no") lado(j,ic+1)
-c$$$         end do
-c$$$         write(*,*)
+c$$$c$$$         write(*,'(A)', advance="no") "  lado()"
+c$$$c$$$         do j=1,6
+c$$$c$$$            write(*,'(2I5)', advance="no") lado(j,ic+1)
+c$$$c$$$         end do
+c$$$c$$$         write(*,*)
 c$$$
 c$$$         write(*,'(A)', advance="no") "  edges"
 c$$$         do j=1,2*npts,2
@@ -7074,14 +7069,14 @@ c$$$            end if
 c$$$         end do
 c$$$         write(*,*)
 c$$$
-c$$$         write(*,'(A)', advance="no") "  v(int) "
-c$$$         do j=1,2*npts,2
-c$$$            ix = pp(j)
-c$$$            if(vStart.le.ix .and. ix.lt.vEnd) then
-c$$$               write(*,'(I5)', advance="no") ix-vStart+1
-c$$$            end if
-c$$$         end do
-c$$$         write(*,*)       
+c$$$c$$$         write(*,'(A)', advance="no") "  v(int) "
+c$$$c$$$         do j=1,2*npts,2
+c$$$c$$$            ix = pp(j)
+c$$$c$$$            if(vStart.le.ix .and. ix.lt.vEnd) then
+c$$$c$$$               write(*,'(I5)', advance="no") ix-vStart+1
+c$$$c$$$            end if
+c$$$c$$$         end do
+c$$$c$$$         write(*,*)       
 c$$$         
 c$$$         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
 c$$$         CHKERRQ(ierr)
@@ -7151,7 +7146,9 @@ c
       nmultpc = nsec
 c      
 c$$$      call PetscSectionView(sec,PETSC_VIEWER_STDOUT_WORLD,ierr)
-c$$$      CHKERRQ(ierr)     
+c$$$      CHKERRQ(ierr)
+
+      
 c$$$c
 c$$$c     check DOFs
 c$$$c     
@@ -7175,19 +7172,15 @@ c
 c     cria array (idmlado) para relacionar lado <=> dm (DMPlex)
 c      
       do ic=cStart,cEnd-1
-         pp => pts
-         
+         pp => pts         
          call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
          CHKERRQ(ierr)
-
          nel = ic+1
-         icface = 0 ! conta face
-               
+         icface = 0 ! conta face               
          do j=1,2*npts,2
             ix = pp(j)
             if(fStart.le.ix .and. ix.lt.fEnd) then               
                icface = icface + 1
-
                if(icface.eq.1) then
                   idmlado(5,nel) = ix
                else if(icface.eq.2) then
@@ -7200,15 +7193,13 @@ c
                   idmlado(3,nel) = ix
                else if(icface.eq.6) then
                   idmlado(2,nel) = ix
-               end if
-               
+               end if               
 c               idmlado(icface,nel) = ix
             end if            
          end do
-
          call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
          CHKERRQ(ierr)
-      end do      
+      end do
 c
 c     ajeita idmlado, lineariza para iddml
 c      
@@ -7370,16 +7361,72 @@ c
                   end do
 c     
                end if
-
-
-               
+              
 c     
             end if              ! face nao marcada
 c     
          call DMPlexRestoreTransitiveClosure(dm,ifc,PETSC_TRUE,pp,ierr)
 c            
          end do ! side         
-      end do    ! elem
+      end do ! elem
+      
+c
+c     DEBUGSssss
+c      
+
+c$$$      do ic=cStart,cEnd-1
+c$$$         pp => pts
+c$$$         
+c$$$         call DMPlexGetTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+c$$$         CHKERRQ(ierr)
+c$$$
+c$$$         write(*,*)
+c$$$         write(*,*) "element", ic, pp(1)
+c$$$                  
+c$$$
+c$$$         write(*,'(A)') "  edges, dofs"
+c$$$         do j=1,2*npts,2
+c$$$            ix = pp(j)
+c$$$            if(eStart.le.ix .and. ix.lt.eEnd) then
+c$$$               call PetscSectionGetOffset(sec,ix,ioff,ierr)
+c$$$               call PetscSectionGetDof(sec,ix,idof,ierr)
+c$$$              call DMPlexGetTransitiveClosure(dm,ix,PETSC_TRUE,pa,ierr)
+c$$$               write(*,*) "edge",ix,ioff,"nodes", pa(3),pa(5)
+c$$$         call DMPlexRestoreTransitiveClosure(dm,ix,PETSC_TRUE,pa,ierr)               
+c$$$            end if
+c$$$         end do
+c$$$         write(*,*)
+c$$$
+c$$$         
+c$$$         call DMPlexRestoreTransitiveClosure(dm,ic,PETSC_TRUE,pp,ierr)
+c$$$         CHKERRQ(ierr)
+c$$$c         
+c$$$      end do
+c$$$      
+c$$$
+c$$$      do i=1, nedge
+c$$$         ifc = iddml(i)
+c$$$         pp=> pts
+c$$$         call DMPlexGetTransitiveClosure(dm,ifc,PETSC_TRUE,pp,ierr)
+c$$$
+c$$$         write(*,*) "my_face", i, ifc
+c$$$         write(*,*) (pp(ii),ii=1,2*nptf,2)
+c$$$
+c$$$         do j=1,2*9,2
+c$$$            ix = pp(j)
+c$$$            if(eStart.le.ix .and. ix.lt.eEnd) then
+c$$$               pa => paux
+c$$$            call DMPlexGetTransitiveClosure(dm,ix,PETSC_TRUE,pa,ierr)
+c$$$               write(*,*) "edge",ix,"nodes", pa(3),pa(5)
+c$$$         call DMPlexRestoreTransitiveClosure(dm,ix,PETSC_TRUE,pa,ierr)               
+c$$$               
+c$$$            end if
+c$$$         end do
+c$$$         
+c$$$         call DMPlexRestoreTransitiveClosure(dm,ifc,PETSC_TRUE,pp,ierr)
+c$$$
+c$$$         write(*,*) ""
+c$$$      end do
 
 ccccccccccccccccccccccccccccccccccccccccc      
 c$$$      do i=1,nedge
@@ -7691,13 +7738,8 @@ c      do i=1,nedge
 c         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
 c      end do      
 
-c      stop
-      
-c      write(*,*) "FIM FLUX1EL IDSIDE"
-c      do j=1,6
-c         write(*,*) (idside(j,i),i=1,npars)
-c      end do
-      
+     
+
       return
 c
  1000 format(///,
@@ -7781,11 +7823,13 @@ c$$$      do i=1,nmultpc
 c$$$         write(*,*) "idc", i, idc(1,i)
 c$$$      end do
 c$$$
-c$$$      write(*,*) "DOFS por ELEMENTO"
-c$$$      do nel=1,numel
-c$$$         write(*,'(A,I5,A,30I5)') "el",nel," ip",(ipar(j,nel),j=1,nodsp)
-c$$$      end do
-c      stop
+c      write(*,*) "DOFS por ELEMENTO"
+c      do nel=1,numel
+c         write(*,'(A,I10,A,30I0)') "el",nel,"ip",(ipar(j,nel),j=1,nodsp)
+c     end do
+      
+c     stop
+      
 c
 c     generation of lm array
 c
@@ -7799,7 +7843,9 @@ c           write(iecho,8000)(lm(i,j,k),j=1,nodsp)
 c         end do
 c     end do
 c     write(iecho,8000) 
-c     8000 format(8(5x,i10))       
+c     8000 format(8(5x,i10))
+
+
       
       return
 c
@@ -8101,6 +8147,41 @@ c     face 6 - cima
             idside(6,3) = 7
             idside(6,4) = 8
          end if
+c$$$c          
+c$$$c     DMPLEX
+c$$$c          
+c$$$          if(nen.eq.8) then
+c$$$c     face 1 - bottom
+c$$$            idside(1,1) = 1
+c$$$            idside(1,2) = 2
+c$$$            idside(1,3) = 3
+c$$$            idside(1,4) = 4
+c$$$c     face 2 - top
+c$$$            idside(2,1) = 5
+c$$$            idside(2,2) = 6
+c$$$            idside(2,3) = 7
+c$$$            idside(2,4) = 8
+c$$$c     face 3 - front
+c$$$            idside(3,1) = 1
+c$$$            idside(3,2) = 4
+c$$$            idside(3,3) = 6
+c$$$            idside(3,4) = 5
+c$$$c     face 4 - back
+c$$$            idside(4,1) = 3
+c$$$            idside(4,2) = 2
+c$$$            idside(4,3) = 8
+c$$$            idside(4,4) = 7
+c$$$c     face 5 - right
+c$$$            idside(5,1) = 4
+c$$$            idside(5,2) = 3
+c$$$            idside(5,3) = 7
+c$$$            idside(5,4) = 6
+c$$$c     face 6 - left
+c$$$            idside(6,1) = 1
+c$$$            idside(6,2) = 5
+c$$$            idside(6,3) = 8
+c$$$            idside(6,4) = 2
+c$$$         end if          
 c
 c
 c     p=2
@@ -10904,8 +10985,8 @@ c
          edpx = edpx + dpex
          edpy = edpy + dpey
          edpz = edpz + dpez
-cc
-     boundary terms - multiplier
+c     
+c     boundary terms - multiplier
 c
          xmlte = 0.d00
 c         
