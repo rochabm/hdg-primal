@@ -57,6 +57,7 @@ set(PROGRAMS
   teste
   primal-hdg-dc
   primal-hdg-cm
+  primal-hdg-cm_DMPLEX
   primal-hdg-dc-monomial
   primal-hdg-dc-parabolic
 )
