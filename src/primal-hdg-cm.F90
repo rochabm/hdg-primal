@@ -2111,9 +2111,8 @@ c
  100  continue
       read(iin,1000) n,m,(itemp(i),i=1,nen),ng
 c
-      write(*,*) "subroutine genel"
-      write(*,*) "n,m,ng",n,m,ng
-      write(*,*) (itemp(i),i=1,nen)
+c      write(*,*) "n,m,ng",n,m,ng
+c      write(*,*) (itemp(i),i=1,nen)
 c
       if (n.eq.0) return
       call imove(ien(1,n),itemp,nen)
@@ -6698,11 +6697,9 @@ c     new for treating edges
 c
       dimension ielemar(2,4,nedge) ! arestas de cada elemento
       dimension iarglob(2,4*nedge) ! lineariza e guarda as arestas global
-      dimension indarglob(2,4*nedge) ! indice GLOBAL daquela aresta
-      dimension indarw(4*nedge),indarn(2,4*nedge)
-      dimension iarnum(4,nedge)
-     
-       dimension imarkar(4*nedge) !marca arestas 
+      dimension indarw(4*nedge)    ! numeracao global das arestas (linear)
+      dimension iarnum(4,nedge)    ! numeracao global das arestas por face
+      dimension imarkar(4*nedge)   ! numero do dof das arestas
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
@@ -6836,6 +6833,8 @@ c
             nints2 = 7
          end if
 c
+         nints2 = int(sqrt(real(nints)))
+c
          write(*,*)
          write(*,'(A)')  " integral em face/area"
          write(*,'(A,2I5)') " nints2,nen2",nints2,nnods2
@@ -6928,7 +6927,7 @@ c
       
       write(*,*) "array idside"
       do il=1,6
-         write(*,*) (idside(il,j),j=1,npars)
+         write(*,'(40I4)') (idside(il,j),j=1,npars)
       end do
 
       write(*,'(A)') "subroutine genelad"
@@ -6936,7 +6935,7 @@ c
       if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
 c
 c ------------------------------------------------------------------------------    
-c     NEW CODE FOR EDGES
+c     new code for treating edges
 c ------------------------------------------------------------------------------
       
       do i=1,numnp
@@ -6947,22 +6946,14 @@ c
          indedg(i) = 0
       end do
 c      
-c$$$      do nel=1,numel
-c$$$         write(*,*) "lado",(lado(j,nel),j=1,nside)
-c$$$      end do
-c
       kar = 0
       kedg = 0
       do nel=1,numel
-
          do ns=1,nside
             neledg = lado(ns,nel)
             if(indedg(neledg).eq.0) then
-c               
                kedg = kedg + 1
-               indedg(neledg) = kedg
-
-               
+               indedg(neledg) = kedg               
 c     localiza os no's do lado ns
                ns1 = idside(ns,1)
                ns2 = idside(ns,2)
@@ -6973,9 +6964,6 @@ c     global
                nl2 = ien(ns2,nel)
                nl3 = ien(ns3,nel)
                nl4 = ien(ns4,nel)            
-
-c               write(*,'(A,I5)',advance="no") "face",ns
-c               write(*,*) " nodes",nl1,nl2,nl3,nl4
 c     
 c     arestas
 c     
@@ -6993,14 +6981,10 @@ c
                kar = kar + 1
                iarnum(4,neledg) = kar
             end if
-            
+c            
          end do
       end do
-
-c$$$      do i=1,nedge
-c$$$         write(*,*) "iarnum  0000",(iarnum(j,i),j=1,4)
-c$$$  end do
-
+c      
 c$$$      write(*,*)
 c$$$      write(*,*)
 c$$$      write(*,*) "ELEMENTO / NODES"
@@ -7066,12 +7050,6 @@ c
             end if            
          end do
       end do
-c      
-c$$$      write(*,*)
-c$$$      write(*,*) "IARGLOB"
-c$$$      do i=1,nedge*4
-c$$$         write(*,*) "face",i,"iarglob",iarglob(1,i),iarglob(2,i)
-c$$$      end do     
 c     
 c     conta o numero de arestas
 c
@@ -7101,25 +7079,6 @@ c
          end if         
       end do
 c
-c$$$      write(*,*)
-c$$$      write(*,*) "INDARW"
-c$$$      do i=1,nedge*4
-c$$$         write(*,*) "face",i,"indarw",indarw(i),
-c$$$     &              "nodes",iarglob(1,i),iarglob(2,i)
-c$$$      end do             
-c
-c     copia so os >0 para indarn
-c
-      do i=1,4*nedge
-         if(indarw(i).gt.0) then
-            ind = indarw(i)
-            indarn(1,ind) = iarglob(1,i)
-            indarn(2,ind) = iarglob(2,i)
-         end if
-      end do
-c      
-c      write(*,*) ind
-c
       imax = indarw(1)
       do i=2,4*nedge
          if(indarw(i).ge.imax) then
@@ -7148,18 +7107,18 @@ c$$$  end do
             iarnum(j,i) = 0
          end do
       end do
-      
+c
+c     TODO: melhorar isso
+c
       do i=1,4*nedge
          ian1 = iarglob(1,i)
          ian2 = iarglob(2,i)
          inda = indarw(i)
          indx = abs(inda)
-c         write(*,*) i,ian1,ian2,indx,
          do nel=1,numel
             do ns=1,nside
                neledg = lado(ns,nel)
                do j=1,4
-c                  write(*,*) "EDGE",j,"NELEDG",neledg,indx
                   ixn1 = ielemar(1,j,neledg)
                   ixn2 = ielemar(2,j,neledg)
                   if(ian1.eq.ixn1.and.ian2.eq.ixn2) then
@@ -7171,8 +7130,7 @@ c                  write(*,*) "EDGE",j,"NELEDG",neledg,indx
             end do
          end do         
       end do
-
-
+c
 c      write(*,*)
 c      write(*,*) "ARESTAS, e NODES"
 c      do i=1,nar
@@ -7186,15 +7144,11 @@ c$$$         write(*,*) "face",i,"num",iarnum(1,i),iarnum(2,i),
 c$$$     &                             iarnum(3,i),iarnum(4,i)
 c$$$      end do
 
-c      stop
-c -------------------------------------------------------------------------      
-      
-c     
+c ----------------------------------------------------------------------           
 c     generation of conectivities for the continuous multiplier
-c
-      write(*,*) "NEDGE",nedge
-      write(*,*) "NPARS",npars
-c      
+c ----------------------------------------------------------------------      
+      write(*,*) "treating edges"
+c     
       do i=1,numnp
          indno(i) = 0
       end do
@@ -7206,17 +7160,32 @@ c
       do i=1,4*nedge
          imarkar(i) = 0
       end do
-
-c     
+c
+      ndedge = 0
+      ndface = 0
+      if (npars.eq.9) then
+         ndedge = 1
+         ndface = 1
+      else if (npars.eq.16) then
+         ndedge = 2
+         ndface = 4
+      else if (npars.eq.25) then
+         ndedge = 3
+         ndface = 9
+      else if (npars.eq.36) then
+         ndedge = 4
+         ndface = 16
+      end if         
+c      
       keq = 0  ! contador de dofs
       kedg = 0 ! contador de faces
 c
 c     loop em elemento
 c     
       do nel=1,numel
-c
+c     
 c     loop em lado/face
-c
+c     
          do ns=1,nside
             neledg = lado(ns,nel)
 c     localiza os no's do lado ns
@@ -7229,16 +7198,16 @@ c     global
             nl2 = ien(ns2,nel)
             nl3 = ien(ns3,nel)
             nl4 = ien(ns4,nel)            
-c            
+c     
             do nn=1,npars
                idlsd(nn) = idside(ns,nn)
             end do
-c
+c     
             i1=1
             i2=2
             i3=3
             i4=4
-c    
+c     
 c     renumeracao dos dofs do multp baseado no elemento
 c     
             if(indedg(neledg).eq.0) then
@@ -7246,63 +7215,51 @@ c
                kedg = kedg + 1
                indedg(neledg) = kedg
                iedgto(kedg) = neledg
-c
+c     
 c     numera os nos
-c               
+c     
                if(indno(nl1).eq.0) then
                   keq = keq + 1
                   indno(nl1) = keq
                   iedge(i1,neledg) = keq
-c                  write(*,*) " no", nl1, keq
                else
                   iedge(i1,neledg) = indno(nl1)
-c                  write(*,*) " no", nl1, " ja numerado ", indno(nl1)
                end if
 c     
                if(indno(nl2).eq.0) then
                   keq = keq + 1
                   indno(nl2) = keq 
                   iedge(i2,neledg) = keq
-c                  write(*,*) " no", nl2, keq
                else
                   iedge(i2,neledg) = indno(nl2)
-c                  write(*,*) " no", nl2, " ja numerado ", indno(nl2)
                end if
-c
+c     
                if(indno(nl3).eq.0) then
                   keq = keq + 1
                   indno(nl3) = keq 
                   iedge(i3,neledg) = keq
-c                  write(*,*) " no", nl3, keq
                else                  
                   iedge(i3,neledg) = indno(nl3)
-c                  write(*,*) " no", nl3, " ja numerado ", indno(nl3)
                end if
-c               
+c     
                if(indno(nl4).eq.0) then
                   keq = keq + 1
                   indno(nl4) = keq 
                   iedge(i4,neledg) = keq
-c                  write(*,*) " no", nl4, keq
                else
                   iedge(i4,neledg) = indno(nl4)
-c                  write(*,*) " no", nl4, " ja numerado ", indno(nl4)
                end if
 
                if(npars.gt.4) then
 c     
-c     agora numera as arestas da face (ielemar, iarnum, imarkar)
-c               
+c     agora numera os dofs das arestas da face
+c     
                   ind1 = iarnum(1,neledg)
                   if(imarkar(ind1).eq.0) then
                      keq = keq + 1
                      iedge(5,neledg) = keq
                      imarkar(ind1) = keq
                   else
-c
-c     ACHO QUE AQUI NAO eh imarkar(ind1)
-c     ind1 eh o numero global da aresta
-c
                      iedge(5,neledg) = imarkar(ind1)
                   end if
                   
@@ -7333,24 +7290,19 @@ c
                      iedge(8,neledg) = imarkar(ind1)
                   end if                    
 c     
-c     agora os dofs da face
-c
+c     agora numera os dofs da face
+c     
                   keq = keq + 1
                   iedge(9,neledg) = keq
-               
-               end if !npars>4
-               
-           end if
-c           write(*,*) "depois da face", keq           
-            end do
-c        write(*,*) "fim do elemento", keq
-c        
+                  
+               end if  ! npars>4               
+            end if     ! face nao marcada
+c
+         end do       
       end do
-      
-      write(*,*) keq
-      nmultpc = keq            
-c      stop
-      
+c      
+      nmultpc = keq
+c      
 c ------------------------------------------------------------------------------
 c     OLD CODE FOR NUMBERING DOFs, NODES, EDGES/FACES
 c ------------------------------------------------------------------------------    
@@ -7499,30 +7451,17 @@ c$$$      end do
 c
 c     DEBUG 
 c
-
-c$$$
-c$$$      write(*,*) "FLUX1EL IDSIDE"
-c$$$      do j=1,6
-c$$$         write(*,*) (idside(j,i),i=1,npars)
-c$$$      end do  
-c$$$      
+      
 c$$$c
 c$$$c     total number of continuous multipliers
 c$$$c
 c      
 c      nmultpc = keq
-c      nmulptc = nsec
-c      write(*,*) "nmultpc",nmultpc
 c      
 c$$$c      
 c$$$c     confere numeracao
 c$$$c
-c$$$      write(*,*) " "
-c$$$      write(*,*) " "
-c$$$      write(*,*) "DEBUG"
-c$$$      write(*,*) " "
-c$$$      write(*,*) " "
-
+      
 c$$$      do ii=1, numnp
 c$$$         write(*,*) "indno", ii, indno(ii)
 c$$$      end do
@@ -7538,16 +7477,13 @@ c$$$            nd = lado(ns,nel)
 c$$$            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
 c$$$         end do
 c$$$      end do
-
-
-      
+     
 c$$$      write(*,*) "FACE / DOFS"
 c$$$      do i=1,nedge
 c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
 c$$$      end do      
 
-c      stop
-      
+c$$$      stop
       
       return
 c
