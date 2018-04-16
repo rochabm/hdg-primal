@@ -7253,53 +7253,79 @@ c
                if(npars.gt.4) then
 c     
 c     agora numera os dofs das arestas da face
+c
+                  do k=1,4
 c     
-                  ind1 = iarnum(1,neledg)
-                  if(imarkar(ind1).eq.0) then
-                     keq = keq + 1
-                     iedge(5,neledg) = keq
-                     imarkar(ind1) = keq
-                  else
-                     iedge(5,neledg) = imarkar(ind1)
-                  end if
+c     TODO: conferir aqui para Q3, etc
+c
+                     
+                     ind1 = iarnum(k,neledg)
+                     if(imarkar(ind1).eq.0) then
+                        keq = keq + 1
+                        kof = 5 + (k-1)*ndedge
+                        iedge(kof,neledg) = keq
+                        imarkar(ind1) = keq
+c                        write(*,*) kof
+                        do ie=2,ndedge
+                           keq = keq + 1
+                           kof = 5 + (k-1)*ndedge + (ie-1)
+c                           write(*,*) kof
+                           iedge(kof,neledg) = keq
+                        end do
+                     else
+                        kof = 5 + (k-1)*ndedge
+c                        write(*,*) kof
+                        iedge(kof,neledg) = imarkar(ind1)
+                        do ie=2,ndedge
+                           kof = 5 + (k-1)*ndedge + (ie-1)
+c                           write(*,*) kof
+                           iedge(kof,neledg) = imarkar(ind1) + (ie-1)
+                        end do
+                     end if
+                  end do
+c                  stop
                   
-                  ind1 = iarnum(2,neledg)
-                  if(imarkar(ind1).eq.0) then
-                     keq = keq + 1
-                     iedge(6,neledg) = keq
-                     imarkar(ind1) = keq
-                  else
-                     iedge(6,neledg) = imarkar(ind1)
-                  end if
-                  
-                  ind1 = iarnum(3,neledg)
-                  if(imarkar(ind1).eq.0) then
-                     keq = keq + 1
-                     iedge(7,neledg) = keq
-                     imarkar(ind1) = keq
-                  else
-                     iedge(7,neledg) = imarkar(ind1)
-                  end if
-
-                  ind1 = iarnum(4,neledg)
-                  if(imarkar(ind1).eq.0) then
-                     keq = keq + 1
-                     iedge(8,neledg) = keq
-                     imarkar(ind1) = keq
-                  else
-                     iedge(8,neledg) = imarkar(ind1)
-                  end if                    
+c$$$                  ind1 = iarnum(2,neledg)
+c$$$                  if(imarkar(ind1).eq.0) then
+c$$$                     keq = keq + 1
+c$$$                     iedge(6,neledg) = keq
+c$$$                     imarkar(ind1) = keq
+c$$$                  else
+c$$$                     iedge(6,neledg) = imarkar(ind1)
+c$$$                  end if
+c$$$                  
+c$$$                  ind1 = iarnum(3,neledg)
+c$$$                  if(imarkar(ind1).eq.0) then
+c$$$                     keq = keq + 1
+c$$$                     iedge(7,neledg) = keq
+c$$$                     imarkar(ind1) = keq
+c$$$                  else
+c$$$                     iedge(7,neledg) = imarkar(ind1)
+c$$$                  end if
+c$$$
+c$$$                  ind1 = iarnum(4,neledg)
+c$$$                  if(imarkar(ind1).eq.0) then
+c$$$                     keq = keq + 1
+c$$$                     iedge(8,neledg) = keq
+c$$$                     imarkar(ind1) = keq
+c$$$                  else
+c$$$                     iedge(8,neledg) = imarkar(ind1)
+c$$$                  end if                    
 c     
 c     agora numera os dofs da face
-c     
-                  keq = keq + 1
-                  iedge(9,neledg) = keq
+c
+                  kof = 4 + 4*ndedge                  
+                  do idf=1,ndface
+                     keq = keq + 1
+                     iedge(kof+idf,neledg) = keq
+                  end do
                   
                end if  ! npars>4               
             end if     ! face nao marcada
 c
-         end do       
+         end do
       end do
+
 c      
       nmultpc = keq
 c      
