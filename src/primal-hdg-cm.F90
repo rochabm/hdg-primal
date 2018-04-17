@@ -977,13 +977,15 @@ c
 c     
             if (pflag) then      
                nn = nn + 1
-               if (mod(nn,50).eq.1) write(iecho,1000) (i,i=1,2*ndof)
+               if (mod(nn,50).eq.1) then
+                  write(ieco,1000) (i,i=1,2*ndof)
+               end if
                write(ieco,2000) n,(ideg(i,n),i=1,2*ndof)
             endif
          end do
       endif
 c
- 1000 format(//, 10x, ' edge BCs'///
+ 1000 format(//, 10x, ' edge BCsxxx'///
      &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
  1100 format(//, 10x,' nodal BCs'///
      &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
@@ -6850,9 +6852,9 @@ c
          write(*,*)
          write(*,'(A)') " calculando shsde (shlhxpbk)"
          call shlhxpbk(shsde,nen,nside,nenlad2,nints2)
-
-c     *** DEBUG ***
-c     shp on volumes
+c
+c     debug - shp on volumes
+c     
          write(*,*) "pesos da integracao de gauss - w"
          write(*,'(10F8.4)') (w(ii),ii=1,nint)
          write(*,*) "pesos da integracao de gauss - wc"
@@ -6874,9 +6876,9 @@ c     shp on volumes
          do ii=1,nint
             write(*,999) (shlp(4,in,ii),in=1,nenp)
          end do
-
-c     *** DEBUG ***
-c     shp on faces
+c
+c     debug - shp on faces
+c     
          write(*,*)
          write(*,*) "dados shlpsd - on faces"
 
@@ -7257,31 +7259,74 @@ c
                   do k=1,4
 c     
 c     TODO: conferir aqui para Q3, etc
-c
-                     
+c     problema com orientacao dos DOFs das arestas
+c     numerar dofs da aresta: do menor NODE para o maior que FORMAM
+c     aquela aresta
+c                     
                      ind1 = iarnum(k,neledg)
+                     iarn1 = ielemar(1,k,neledg)
+                     iarn2 = ielemar(2,k,neledg)
+c                     write(*,*) "num aresta",ind1,"nodes",iarn1,iarn2
+                     ! se aresta nao esta numerada, cria DOFs
                      if(imarkar(ind1).eq.0) then
-                        keq = keq + 1
-                        kof = 5 + (k-1)*ndedge
-                        iedge(kof,neledg) = keq
-                        imarkar(ind1) = keq
-c                        write(*,*) kof
-                        do ie=2,ndedge
+                        ! numera do menor NODE pro maior
+                        if(iarn1.lt.iarn2) then
+c                           write(*,*) "numera normal"
                            keq = keq + 1
-                           kof = 5 + (k-1)*ndedge + (ie-1)
-c                           write(*,*) kof
+                           kof = 5 + (k-1)*ndedge
                            iedge(kof,neledg) = keq
-                        end do
+                           imarkar(ind1) = keq
+c                           write(*,*) kof,keq
+                           do ie=2,ndedge
+                              keq = keq + 1
+                              kof = 5 + (k-1)*ndedge + (ie-1)
+                              iedge(kof,neledg) = keq
+c                              write(*,*) kof,keq
+                           end do
+                        else 
+                           ! numera (invertido)
+c                           write(*,*) "numera invertido"
+                           keq = keq + 1
+                           kofs = 5 + (k-1)*ndedge
+                           kofe = kofs + (ndedge-1)
+                           iedge(kofe,neledg) = keq
+                           imarkar(ind1) = keq
+c                           write(*,*) kofe,keq
+                           do ie=1,ndedge-1
+                              keq = keq + 1
+                              kof = kofe - ie
+                              iedge(kof,neledg) = keq
+c                              write(*,*) kof,keq
+                           end do                           
+                        end if
+                     ! se aresta ja esta numerada, recupera DOFs   
                      else
-                        kof = 5 + (k-1)*ndedge
-c                        write(*,*) kof
-                        iedge(kof,neledg) = imarkar(ind1)
-                        do ie=2,ndedge
-                           kof = 5 + (k-1)*ndedge + (ie-1)
-c                           write(*,*) kof
-                           iedge(kof,neledg) = imarkar(ind1) + (ie-1)
-                        end do
-                     end if
+                        ! recupera do menor NODE pro maior
+                        if(iarn1.lt.iarn2) then
+c                           write(*,*) "recupera normal"
+                           kof = 5 + (k-1)*ndedge
+                           iedge(kof,neledg) = imarkar(ind1)
+c                           write(*,*) imarkar(ind1)
+                           do ie=2,ndedge
+                              kof = 5 + (k-1)*ndedge + (ie-1)
+                              iedge(kof,neledg) = imarkar(ind1) + (ie-1)
+c                              write(*,*) imarkar(ind1) + (ie-1)
+                           end do
+                        else
+                          ! recupera (invertido)   
+c                           write(*,*) "recupera invertido"
+                           kofs = 5 + (k-1)*ndedge
+                           kofe = kofs + (ndedge-1)
+                           iedge(kofe,neledg) = imarkar(ind1)
+c                           write(*,*) kofe,imarkar(ind1)
+                           do ie=1,ndedge-1
+                              kof = kofe - ie
+                              iedge(kof,neledg) = imarkar(ind1) + ie
+c                              write(*,*) kof,imarkar(ind1)+ie
+                           end do
+                        end if
+c                        
+                     end if ! fim da aresta ja/nao marcada
                   end do
 c                  stop
                   
@@ -7325,9 +7370,9 @@ c
 c
          end do
       end do
-
 c      
       nmultpc = keq
+      write(*,*) "nmultpc:", nmultpc
 c      
 c ------------------------------------------------------------------------------
 c     OLD CODE FOR NUMBERING DOFs, NODES, EDGES/FACES
@@ -7504,12 +7549,12 @@ c$$$            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
 c$$$         end do
 c$$$      end do
      
-c$$$      write(*,*) "FACE / DOFS"
-c$$$      do i=1,nedge
-c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
-c$$$      end do      
+c      write(*,*) "FACE / DOFS"
+c      do i=1,nedge
+c         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
+c      end do      
 
-c$$$      stop
+c      stop
       
       return
 c
@@ -7596,16 +7641,9 @@ c$$$      end do
 c$$$
 
 c      
-c     PROBLEMAS AQUI. NEM TODOS OS DOFS APARECEM em IPAR
-c     117 no 2x2x2 , 13 sumiram
-c      
-c      write(*,*) "DOFS por ELEMENTO"
+c      write(*,*) "DOFS por ELEMENTO",nodsp
 c      do nel=1,numel
-c      write(*,'(A,30I4)') "el",(ipar(j,nel),j=1,nodsp)
-c         write(*,*)
-c         do j=1,nodsp
-c            write(*,*) ipar(j,nel)
-c         end do
+c      write(*,'(A,70I4)') "el",(ipar(j,nel),j=1,nodsp)
 c      end do
       
 c      stop
@@ -7624,8 +7662,6 @@ c         end do
 c     end do
 c     write(iecho,8000) 
 c     8000 format(8(5x,i10))
-
-
     
       return
 c
@@ -7926,43 +7962,7 @@ c     face 6 - cima
             idside(6,2) = 6
             idside(6,3) = 7
             idside(6,4) = 8
-         end if
-c$$$c          
-c$$$c     DMPLEX
-c$$$c          
-c$$$          if(nen.eq.8) then
-c$$$c     face 1 - bottom
-c$$$            idside(1,1) = 1
-c$$$            idside(1,2) = 2
-c$$$            idside(1,3) = 3
-c$$$            idside(1,4) = 4
-c$$$c     face 2 - top
-c$$$            idside(2,1) = 5
-c$$$            idside(2,2) = 6
-c$$$            idside(2,3) = 7
-c$$$            idside(2,4) = 8
-c$$$c     face 3 - front
-c$$$            idside(3,1) = 1
-c$$$            idside(3,2) = 4
-c$$$            idside(3,3) = 6
-c$$$            idside(3,4) = 5
-c$$$c     face 4 - back
-c$$$            idside(4,1) = 3
-c$$$            idside(4,2) = 2
-c$$$            idside(4,3) = 8
-c$$$            idside(4,4) = 7
-c$$$c     face 5 - right
-c$$$            idside(5,1) = 4
-c$$$            idside(5,2) = 3
-c$$$            idside(5,3) = 7
-c$$$            idside(5,4) = 6
-c$$$c     face 6 - left
-c$$$            idside(6,1) = 1
-c$$$            idside(6,2) = 5
-c$$$            idside(6,3) = 8
-c$$$            idside(6,4) = 2
-c$$$         end if          
-c
+         end if       
 c
 c     p=2
 c
@@ -8030,7 +8030,111 @@ c
          end if
 c         
 c     p=3
-c         
+c
+c$$$         if(nen.eq.64) then    
+c$$$            idside(1,1)  = 1
+c$$$            idside(1,2)  = 2 
+c$$$            idside(1,3)  = 6
+c$$$            idside(1,4)  = 5
+c$$$            idside(1,5)  = 9
+c$$$            idside(1,6)  = 10
+c$$$            idside(1,7)  = 27
+c$$$            idside(1,8)  = 28
+c$$$            idside(1,9)  = 18
+c$$$            idside(1,10) = 17
+c$$$            idside(1,11) = 26
+c$$$            idside(1,12) = 25
+c$$$            idside(1,13) = 33
+c$$$            idside(1,14) = 34
+c$$$            idside(1,15) = 35
+c$$$            idside(1,16) = 36
+c$$$c     
+c$$$            idside(2,1)  = 1
+c$$$            idside(2,2)  = 4
+c$$$            idside(2,3)  = 8
+c$$$            idside(2,4)  = 5
+c$$$            idside(2,5)  = 16
+c$$$            idside(2,6)  = 15
+c$$$            idside(2,7)  = 31
+c$$$            idside(2,8)  = 32
+c$$$            idside(2,9)  = 23
+c$$$            idside(2,10) = 24
+c$$$            idside(2,11) = 26
+c$$$            idside(2,12) = 25
+c$$$            idside(2,13) = 46
+c$$$            idside(2,14) = 45
+c$$$            idside(2,15) = 48 
+c$$$            idside(2,16) = 47
+c$$$c     
+c$$$            idside(3,1)  = 2
+c$$$            idside(3,2)  = 3
+c$$$            idside(3,3)  = 7
+c$$$            idside(3,4)  = 6
+c$$$            idside(3,5)  = 11
+c$$$            idside(3,6)  = 12
+c$$$            idside(3,7)  = 29
+c$$$            idside(3,8)  = 30
+c$$$            idside(3,9)  = 20
+c$$$            idside(3,10) = 19
+c$$$            idside(3,11) = 28
+c$$$            idside(3,12) = 27
+c$$$            idside(3,13) = 37 
+c$$$            idside(3,14) = 38
+c$$$            idside(3,15) = 39
+c$$$            idside(3,16) = 40
+c$$$c     
+c$$$            idside(4,1)  = 4
+c$$$            idside(4,2)  = 3
+c$$$            idside(4,3)  = 7
+c$$$            idside(4,4)  = 8
+c$$$            idside(4,5)  = 14
+c$$$            idside(4,6)  = 13
+c$$$            idside(4,7)  = 29
+c$$$            idside(4,8)  = 30
+c$$$            idside(4,9)  = 21
+c$$$            idside(4,10) = 22
+c$$$            idside(4,11) = 32
+c$$$            idside(4,12) = 31
+c$$$            idside(4,13) = 42
+c$$$            idside(4,14) = 41
+c$$$            idside(4,15) = 44
+c$$$            idside(4,16) = 43
+c$$$c     
+c$$$            idside(5,1)  = 1
+c$$$            idside(5,2)  = 2
+c$$$            idside(5,3)  = 3
+c$$$            idside(5,4)  = 4
+c$$$            idside(5,5)  = 9
+c$$$            idside(5,6)  = 10
+c$$$            idside(5,7)  = 11
+c$$$            idside(5,8)  = 12
+c$$$            idside(5,9)  = 13
+c$$$            idside(5,10) = 14
+c$$$            idside(5,11) = 15
+c$$$            idside(5,12) = 16
+c$$$            idside(5,13) = 49
+c$$$            idside(5,14) = 50
+c$$$            idside(5,15) = 52
+c$$$            idside(5,16) = 51
+c$$$c      
+c$$$            idside(6,1)  = 5
+c$$$            idside(6,2)  = 6
+c$$$            idside(6,3)  = 7
+c$$$            idside(6,4)  = 8
+c$$$            idside(6,5)  = 17
+c$$$            idside(6,6)  = 18
+c$$$            idside(6,7)  = 19
+c$$$            idside(6,8)  = 20
+c$$$            idside(6,9)  = 21
+c$$$            idside(6,10) = 22
+c$$$            idside(6,11) = 23
+c$$$            idside(6,12) = 24
+c$$$            idside(6,13) = 53
+c$$$            idside(6,14) = 54
+c$$$            idside(6,15) = 55
+c$$$            idside(6,16) = 56
+c$$$         end if 
+         
          if(nen.eq.64) then    
             idside(1,1) =  1
             idside(1,2) =  2
@@ -8576,7 +8680,6 @@ c
       logical diag,quad
 c
       dimension ideg(ndof,*),iedge(npars,*),idlsd(*)
-c      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*),
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
       dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*),
@@ -8711,7 +8814,8 @@ c
          do l=1,nint
             c1=detc(l)*w(l)
 c
-c     f = gf1*sin(pix)*sin(piy) + gf2*(Prob2)
+c     termo fonte
+c     f = gf1*sin(pix)*sin(piy)
 c
             xx = 0.d00
             yy = 0.d00
@@ -8734,21 +8838,7 @@ c
             pi2 = pi*pi
             co = 1.d00
 c
-            pss = gf1*(3.d00*eps*pi2*sx*sy*sz + b1*pi*cx*sy+b2*pi*sx*cy)
-     &           + gf2*(-pi*(-dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps
-     &           + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)*eps*dexp((yy -
-     &           0.1D1)/eps) + dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-     &  *eps*dexp((xx - 0.1D1)/eps) - dsin(pix/0.2D1)*pi*dsin(piy/0.2D1)
-     &      *eps*dexp((xx - 0.2D1 + yy)/eps) - dcos(pix/0.2D1
-     &        )*dsin(piy/0.2D1)*dexp((xx - 0.1D1)/eps) + dcos(pix/0.2D1
-     &    )*dsin(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps) - dsin(pix/0.2D1
-     &      )*dcos(piy/0.2D1)*dexp((yy - 0.1D1)/eps) + dsin(pix/0.2D1
-     &           )*dcos(piy/0.2D1)*dexp((xx - 0.2D1 + yy)/eps)
-     &           - dcos(pix/0.2D1)*dsin(piy/0.2D1) + dcos(pix/0.2D1)
-     &          *dsin(piy/0.2D1)*dexp((yy - 0.1D1)/eps) - dsin(pix/0.2D1
-     &           )*dcos(piy/0.2D1) + dsin(pix / 0.2D1)*dcos(piy/0.2D1
-     &           )*dexp((xx - 0.1D1)/eps))/0.2D1)
-     &           + gf3*1.d00
+            pss = gf1*(3.d00*eps*pi2*sx*sy*sz)
 c
 c     loop to compute volume integrals
 c
@@ -8800,7 +8890,6 @@ c     loop to compute area integrals - symmetrization - boundary terms
 c     ------------------------------------------------------------------         
 
          do 4000 ns=1,nside
-c           write(*,'(//,A,I5)') "face ", ns
 c
 c     localiza os no's do lado ns
 c
@@ -8808,7 +8897,9 @@ c
             ns2=idside(ns,2)
             ns3=idside(ns,3)
             ns4=idside(ns,4)
-
+c
+c     no global
+c     
             nl1=ien(ns1,nel)
             nl2=ien(ns2,nel)
             nl3=ien(ns3,nel)
@@ -8843,7 +8934,6 @@ c
             if(dotcn.lt.0.d0) then
                sign = 1.d00
             else
-c              write(*,'(A)') " trocou sinal"
                sign = -1.d00
             end if
 c            
@@ -8871,9 +8961,6 @@ c
 c
 c     localize the coordinates of the side nodes
 c
-c$$$            write(*,*) "COPIA LOCAL de XL para XLS",nenlad
-c$$$            write(*,*) nl1,nl2,nl3,nl4
-c$$$            write(*,*) "ELEM",nel
             do nn=1,nenlad
                nl=idlsd(nn)
                xls(1,nn)=xl(1,nl)
@@ -8898,25 +8985,6 @@ c
             call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
      &           eps,pi,nints,nenlad,npars)
 c
-c     debug - confere projecao local do multiplicador
-c
-c$$$            write(*,'(A)') " proj l2 local "
-c$$$            do i=1,npars
-c$$$               axx = xls(1,i)
-c$$$               ayy = xls(2,i)
-c$$$               azz = xls(3,i)
-c$$$               sx=dsin(pi*axx)
-c$$$               sy=dsin(pi*ayy)
-c$$$               sz=dsin(pi*azz)
-c$$$               pi2=pi*pi
-c$$$               co=1.d00/(pi2*2.d00+gamas)
-c$$$               dhex = gf1*sx*sy*sz
-c$$$               solex(i) = dhex
-c$$$            end do
-c$$$            write(*,'(A,4I8)')    " idlsd ", (idlsd(i),i=1,npars)
-c$$$            write(*,'(A,20F8.4)') " proje ", (dls(i),i=1,npars)
-c$$$            write(*,'(A,20F8.4)') " exata ", (solex(i),i=1,npars)
-c
 c$$$  c     Multp. DESCONT
 c$$$            ngs = npars*(ndgs-1)
 c$$$            nls = npars*(ns-1)            
@@ -8930,8 +8998,8 @@ c     MULTP. CONTINUO
 c            
             do i=1,npars
                ngs = iedge(i,ndgs)
-               d(1,ngs) = dls(i)     
                nls = idlsd(i)
+               d(1,ngs) = dls(i)
                dl(1,nls) = dls(i)
             end do
 c     
@@ -9029,7 +9097,6 @@ c
 c
 c     debug - confere valor nodal da flux0
 c
-c$$$         write(*,*)
 c$$$         write(*,'(A)') " confere valor da flux0 - x,y,z,ex,fl0,err"
 c$$$c        tamanho do loop (conferir)          
 c$$$         do i=1,npars
@@ -9058,11 +9125,6 @@ c$$$         if(mod(kk,4).eq.0) then
 c$$$            write(*,*) " "
 c$$$         end if
 c$$$      end do
-c
-c$$$      write(*,*) "DEBUG FIM FLUX0primal IDSIDE, npars",npars,nodsp
-c$$$      do j=1,6
-c$$$         write(*,*) (idside(j,i),i=1,npars)
-c$$$      end do     
 c
       return
       end
@@ -11152,9 +11214,6 @@ c
 c     valor exato do multiplicador
 c
          dhse = gf1*sx*sy*sz
-     &        + gf2*(dsin(pix/2.d00)*dsin(piy/2.d00)*(1.d00 - dexp((x1
-     &        - 1.d00)/eps))*(1.d00 - dexp((x2 - 1.d00)/eps)))
-     &        + gf3*1.d00
 c
          do j=1,npars
             djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)
