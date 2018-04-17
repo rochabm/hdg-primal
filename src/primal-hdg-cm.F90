@@ -7201,14 +7201,6 @@ c     global
             nl3 = ien(ns3,nel)
             nl4 = ien(ns4,nel)            
 c     
-            do nn=1,npars
-               idlsd(nn) = idside(ns,nn)
-            end do
-c     
-            i1=1
-            i2=2
-            i3=3
-            i4=4
 c     
 c     renumeracao dos dofs do multp baseado no elemento
 c     
@@ -7218,7 +7210,7 @@ c
                indedg(neledg) = kedg
                iedgto(kedg) = neledg
 c     
-c     numera os nos
+c     numera os NODES
 c     
                if(indno(nl1).eq.0) then
                   keq = keq + 1
@@ -7254,11 +7246,11 @@ c
 
                if(npars.gt.4) then
 c     
-c     agora numera os dofs das arestas da face
+c     agora numera os dofs das ARESTAS da face
 c
                   do k=1,4
 c     
-c     TODO: conferir aqui para Q3, etc
+c     OK FUNCIONANDO
 c     problema com orientacao dos DOFs das arestas
 c     numerar dofs da aresta: do menor NODE para o maior que FORMAM
 c     aquela aresta
@@ -7392,10 +7384,6 @@ c$$$      do i=1,nedge
 c$$$         indedg(i) = 0
 c$$$      end do
 c$$$c
-c$$$      write(*,*) "IDLSD ANTES", (idlsd(ii),ii=1,npars)
-c$$$      do i=1,npars
-c$$$         idlsd(i) = 0
-c$$$      end do
 c$$$c
 c$$$      keq = 0  ! contador de dofs
 c$$$      kedg = 0 ! contador de faces
