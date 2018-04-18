@@ -6651,8 +6651,6 @@ c
 c     new for continuous multiplier
 c      
       dimension indno(*),indedg(*),iedge(npars,*),idlsd(*),iedgto(*)
-c      dimension idmlado(nside,numel),iddml(nedge)
-c      dimension ifacenodes(4)
 c
 c     new for treating edges
 c
@@ -6866,6 +6864,13 @@ c
 c ------------------------------------------------------------------------------    
 c     new code for treating edges
 c ------------------------------------------------------------------------------
+
+c
+c     TODO: renomear
+c     nedge -> nfaces
+c     etc..
+c     
+      
       write(*,*) "treating edges"
 c     
       do i=1,nedge
@@ -6990,21 +6995,25 @@ c
       do i=1,4*nedge
          ian1 = iarglob(1,i)
          ian2 = iarglob(2,i)
+         indface = int((i-1)/4) + 1
+         indedge = mod((i-1),4) + 1
          if(indarw(i).eq.0) then
             kar = kar + 1
-            indarw(i) = kar         
+            indarw(i) = kar
+            iarnum(indedge,indface) = kar
             do j=1,4*nedge
                if(j.ne.i) then
                   ibn1 = iarglob(1,j)
                   ibn2 = iarglob(2,j)               
                   if(ian1.eq.ibn1.and.ian2.eq.ibn2) then
                      indarw(j) = -kar
+                     iarnum(indedge,indface) = kar
                   end if
                end if
             end do
          end if         
       end do
-c
+c      
       imax = indarw(1)
       do i=2,4*nedge
          if(indarw(i).ge.imax) then
@@ -7013,49 +7022,37 @@ c
       end do
 c      
       nar = imax
+c      
+c$$$c
+c$$$c     OLD: Nao precisa desses loops mais....
+c$$$c    
 c
-c$$$      
-c$$$      kar = 0
-c$$$      do nel=1,numel
-c$$$         do ns=1,nside
-c$$$            neledg = lado(ns,nel)
-c$$$
-c$$$            do j=1,4
-c$$$               ind1 = iarnum(j,neledg)
-c$$$               indx = indarw(ind1)               
-c$$$               iarnum(j,neledg) = abs(indx)               
-c$$$            end do
+c$$$      do i=1,nedge
+c$$$         do j=1,4
+c$$$            iarnum(j,i) = 0
 c$$$         end do
-c$$$  end do
-
-      do i=1,nedge
-         do j=1,4
-            iarnum(j,i) = 0
-         end do
-      end do
-c
-c     TODO: melhorar isso
-c
-      do i=1,4*nedge
-         ian1 = iarglob(1,i)
-         ian2 = iarglob(2,i)
-         inda = indarw(i)
-         indx = abs(inda)
-         do nel=1,numel
-            do ns=1,nside
-               neledg = lado(ns,nel)
-               do j=1,4
-                  ixn1 = ielemar(1,j,neledg)
-                  ixn2 = ielemar(2,j,neledg)
-                  if(ian1.eq.ixn1.and.ian2.eq.ixn2) then
-                     iarnum(j,neledg) = indx
-                  else if(ian2.eq.ixn1.and.ian1.eq.ixn2) then
-                     iarnum(j,neledg) = indx
-                  end if
-               end do
-            end do
-         end do         
-      end do
+c$$$      end do
+c      
+c$$$      do i=1,4*nedge
+c$$$         ian1 = iarglob(1,i)
+c$$$         ian2 = iarglob(2,i)
+c$$$         inda = indarw(i)
+c$$$         indx = abs(inda)
+c$$$         do nel=1,numel
+c$$$            do ns=1,nside
+c$$$               neledg = lado(ns,nel)
+c$$$               do j=1,4
+c$$$                  ixn1 = ielemar(1,j,neledg)
+c$$$                  ixn2 = ielemar(2,j,neledg)
+c$$$                  if(ian1.eq.ixn1.and.ian2.eq.ixn2) then
+c$$$                     iarnum(j,neledg) = indx
+c$$$                  else if(ian2.eq.ixn1.and.ian1.eq.ixn2) then
+c$$$                     iarnum(j,neledg) = indx
+c$$$                  end if
+c$$$               end do
+c$$$            end do
+c$$$         end do         
+c$$$      end do
 c
 c      write(*,*)
 c      write(*,*) "ARESTAS, e NODES"
@@ -11233,7 +11230,7 @@ c
          c(9,m) = del9
 c         
          write(ieco,3000) m,del1,del2,del3,del4,del5,del6,del7,del8,del9
-         write(*,'(A,F6.2)') " beta:", c(7,m)
+         write(*,'(A,F6.2)') " beta: ", c(7,m)
 c     
       end do
       return
