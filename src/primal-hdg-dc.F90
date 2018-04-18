@@ -31,11 +31,7 @@ c
 c ------------------------------------------------------------------------------      
 
       program main
-      
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-      use petscksp
-      use petscpc
+c      
       use UserModule
       
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
@@ -45,8 +41,6 @@ c ------------------------------------------------------------------------------
 c
       common a(ndim)
       common /dictn/ ia(10000000)
-c
-c     PETSC includes 
 c          
       PetscErrorCode   ierr
       PetscMPIInt size,rank
@@ -97,7 +91,7 @@ c
       if (size .ne. 1) then
          call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
          if (rank .eq. 0) then
-            write(6,*) 'This is a uniprocessor example only!'
+            write(6,*) 'This is a uniprocessor program!'
          endif
          SETERRQ(PETSC_COMM_WORLD,1,' ')
       endif
@@ -135,14 +129,6 @@ c
 c----------------------------------------------------------------------
       subroutine UserInitializeLinearSolver(m,n,userctx,ierr)
 c----------------------------------------------------------------------      
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-      use petscvec
-      use petscmat
-      use petscksp
       use UserModule
 c      
       implicit none
@@ -172,12 +158,7 @@ c     For debugging this option should use: PETSC_TRUE
       
        call MatSetFromOptions(A,ierr)
        call MatSetUp(A,ierr)
-c
        call MatZeroEntries(A,ierr)
-       
-c     call MatCreateSeqAIJ(PETSC_COMM_SELF,tot,tot,nnz,
-c     &      PETSC_NULL_INTEGER,A,ierr)
-
 c     
 c     Create vectors. Here we create vectors with no memory allocated.
 c     This way, we can use the data structures already in the program
@@ -191,13 +172,6 @@ c     the linear solves needed.
 
       call KSPCreate(PETSC_COMM_SELF,ksp,ierr)
 c
-c$$$      userctx(1) = x
-c$$$      userctx(2) = b
-c$$$      userctx(3) = A
-c$$$      userctx(4) = ksp
-c$$$      userctx(5) = m
-c$$$  userctx(6) = n
-
       userctx%x = x
       userctx%b = b
       userctx%A = A
@@ -205,20 +179,12 @@ c$$$  userctx(6) = n
       userctx%m = m
       userctx%n = n      
 c      
-      write(*,'(A)') "PETSC: matriz criada OK"
-c      
       return
       end
 
 c-----------------------------------------------------------------------
       subroutine UserFinalizeLinearSolver(userctx,ierr)
 c-----------------------------------------------------------------------      
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscvec.h>
-#include <petsc/finclude/petscmat.h>
-#include <petsc/finclude/petscksp.h>
-#include <petsc/finclude/petscpc.h>
-      use petsc
       use UserModule
 c      
       implicit none
@@ -250,10 +216,8 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Solve Ax=b
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
-c      
+c     
       implicit none
 c      
 #define xx_a(ib) xx_v(xx_i + (ib))      
@@ -286,7 +250,7 @@ c
 c      
 c     Create linear solver context
 c
-      write(*,*) "PETSC: criando solver"
+      write(*,'(A)') "petsc: creating ksp context"
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
 c     Set operators. Here the matrix that defines the linear system
@@ -320,7 +284,7 @@ c$$$      call ISView(isrow,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
 c$$$
 
-      write(*,*) "PETSC: resolvendo sistema"
+      write(*,'(A)') "petsc: solving system"
       call KSPSolve(ksp,b,x,ierr)
       CHKERRQ(ierr)
 c
@@ -332,7 +296,7 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E16.8,' iterations = ',I5)
+ 100  format(' norm of residual: ',E16.8,' iterations: ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -349,8 +313,6 @@ c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c     Test PETSc by solving Ax=b
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c      
       Vec              x,b,u
@@ -492,8 +454,6 @@ c----------------------------------------------------------------------
 c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
@@ -568,11 +528,15 @@ c
       return
       end if
       read(iin,2000) iexec,iprtin,irank,
-     &           nsd,numnp,ndof,nlvect,numeg,nedge,npar
-c     *** DEBUG ***
-      write(*,"(A,10I8)") "firstline ", iexec,iprtin,irank,nsd,numnp,
+     &     nsd,numnp,ndof,nlvect,numeg,nedge,npar
+c
+c     show information for new problem
+c
+      write(*,*)
+      write(*,'(A)') "solving problem"
+      write(*,"(A,10I8)") " firstline ", iexec,iprtin,irank,nsd,numnp,
      &           ndof,nlvect,numeg,nedge,npar
-c     *** DEBUG ***
+c     
       write(ieco,3000) title, iexec,iprtin
       write(ieco,4000) irank, nsd, numnp, ndof,
      &                 nlvect,numeg,nedge,npar
@@ -629,16 +593,17 @@ c     allocate memory for global equation system
 c
 c      mpalhs = mpoint('alhs    ',nalhs,0,0,iprec)
 c      mpdlhs = mpoint('dlhs    ',nalhs,0,0,iprec)
-       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
 c      mpalhs = mpoint('alhs    ',1,0,0,iprec)
 c      mpdlhs = mpoint('dlhs    ',1,0,0,iprec)
        meanbw = nalhs/neq
        nwords = mtot - mlast + mfirst - 1
+       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
 c
 c     allocate matrices
 c
-      write(*,'(A,I10)') "PETSC: initialize",neq
-      call UserInitializeLinearSolver(neq,neq,userctx,ierr)      
+       write(*,'(A,I10)') " petsc: initialize solver"
+       write(*,'(A,I10)') " num. of equations (neq):",neq
+       call UserInitializeLinearSolver(neq,neq,userctx,ierr)      
 c
 c     write equation system data
 c
@@ -696,8 +661,6 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c
       common /etimec/ etime(6)
@@ -713,25 +676,25 @@ c
       PetscLogDouble t1, t2
       type(User) userctx
 c
-c     clear left and right hand side
+c     clear left and right hand side (old: clear mpalhs, mpdlhs, size nalhs)
 c
-c$$$      call clear(a(mpalhs),nalhs)
-c$$$      call clear(a(mpdlhs),nalhs)
       call clear(a(mpbrhs),neq)
 c
       call elemnt('form_stb',a(mpngrp),userctx)
 c
 c      account the nodal forces in the r.h.s.
 c
-      if (nlvect.gt.0)
-     &   call load(a(mpid),a(mpf),a(mpbrhs),ndof,nmultp,nlvect)
+      if (nlvect.gt.0) then
+         call load(a(mpid),a(mpf),a(mpbrhs),ndof,nmultp,nlvect)
+      end if
 c
 c     clear displacement array
 c
       call clear(a(mpd),ndof*nmultp)
 c
-      if (nlvect.gt.0)
-     &   call ftod(a(mpid),a(mpd),a(mpf),ndof,nmultp,nlvect)
+      if (nlvect.gt.0) then
+         call ftod(a(mpid),a(mpd),a(mpf),ndof,nmultp,nlvect)
+      end if
 c
 c     form the l.h.s and r.h.s. at element level
 c
@@ -743,12 +706,10 @@ c     solve: factorization and back-substitution
 c      
 c$$$      call factor(a(mpalhs),a(mpdiag),neq)
 c$$$      call back(a(mpalhs),a(mpbrhs),a(mpdiag),neq)
-c$$$      call vecprint(a(mpbrhs),neq)
-      
+c$$$      call vecprint(a(mpbrhs),neq)      
 c
-c     PETSC solver
+c     solve: using PETSC solver
 c
-      write(*,*) "PETSC solving linear system"
       call UserDoLinearSolver(userctx,a(mpbrhs))
 c
  1111 continue
@@ -764,8 +725,6 @@ c     post-processing phase
 c
       call elemnt('pos_proc',a(mpngrp),userctx)
 c
-c100   continue
-c
       return
       end
 
@@ -777,8 +736,6 @@ c        global left-hand-side matrix
 c        diag = .true., add diagonal element matrix
 c        diag = .false, add upper triangle of full element matrix
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c
       implicit real*8 (a-h,o-z)      
@@ -860,8 +817,6 @@ c-----------------------------------------------------------------------
 c     program to add element residual-force vector to
 c     global right-hand-side vector
 c-----------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-      use petsc
       use UserModule
 c
       implicit real*8 (a-h,o-z)
@@ -1928,9 +1883,9 @@ c
  100  continue
       read(iin,1000) n,m,(itemp(i),i=1,nen),ng
 c
-      write(*,*) "subroutine genel"
-      write(*,*) "n,m,ng",n,m,ng
-      write(*,*) (itemp(i),i=1,nen)
+c$$$      write(*,*) "subroutine genel"
+c$$$      write(*,*) "n,m,ng",n,m,ng
+c$$$      write(*,*) (itemp(i),i=1,nen)
 c
       if (n.eq.0) return
       call imove(ien(1,n),itemp,nen)
@@ -5766,7 +5721,6 @@ c
       common a(1)
       common /dictn/ ia(10000000)
 c
-      write(*,*)
       write(*,'(A)') "subroutine pflux"
 c
       mw     = 1
@@ -5949,8 +5903,6 @@ c     3D elements
 c
       if (nsd.eq.3) then
 c
-         write(*,'(A)') " elementos 3D"
-c
          nenlad = 4
 
          if(nenp.eq.8.or.nenp.eq.27.or.
@@ -5996,43 +5948,41 @@ c
          nrowsh3 = 4
       end if
 c
-c     *** DEBUG ***
+c     show some information (one time only)
 c
-      write(*,'(A,I8)') " ned     ", ned
-      write(*,'(A,I8)') " nodsp   ", nodsp     
-      write(*,'(A,I8)') " nnods   ", nnods
-      write(*,'(A,I8)') " nside   ", nside
-      write(*,'(A,I8)') " ntype   ", ntype
-      write(*,'(A,I8)') " numel   ", numel
-      write(*,'(A,I8)') " numat   ", numat
-      write(*,'(A,I8)') " nen     ", nen
-      write(*,'(A,I8)') " nencon  ", nencon
-      write(*,'(A,I8)') " nenp    ", nenp
-      write(*,'(A,I8)') " npars   ", npars
-      write(*,'(A,I8)') " nint    ", nint
-      write(*,'(A,I8)') " nints   ", nints
-      write(*,'(A,I8)') " nintb   ", nintb
-      write(*,'(A,I8)') " nface   ", nface
-      write(*,'(A,I8)') " nee     ", nee
-      write(*,'(A,I8)') " neep    ", neep      
-      write(*,'(A,I8)') " nrowsh  ", nrowsh
-      write(*,'(A,I8)') " nrowsh3 ", nrowsh3
-      write(*,'(A,I8)') " nsd     ",nsd
-      write(*,'(A,I8)') " nedge   ",nedge
-      write(*,'(A,I8)') " numnp   ",numnp
-      write(*,'(A,I8)') " numel   ",numel
-      write(*,'(A,I8)') " nmultp  ",nmultp
-      write(*,'(A,I8)')
-
-c
-c     *** DEBUG ***
-c
-      if (itask.eq.1) then
-c
+      if(itask.eq.1) then
+         write(*,'(A,I8)') " ned     ", ned
+         write(*,'(A,I8)') " nodsp   ", nodsp     
+         write(*,'(A,I8)') " nnods   ", nnods
+         write(*,'(A,I8)') " nside   ", nside
+         write(*,'(A,I8)') " ntype   ", ntype
+         write(*,'(A,I8)') " numel   ", numel
+         write(*,'(A,I8)') " numat   ", numat
+         write(*,'(A,I8)') " nen     ", nen
+         write(*,'(A,I8)') " nencon  ", nencon
+         write(*,'(A,I8)') " nenp    ", nenp
+         write(*,'(A,I8)') " npars   ", npars
+         write(*,'(A,I8)') " nint    ", nint
+         write(*,'(A,I8)') " nints   ", nints
+         write(*,'(A,I8)') " nintb   ", nintb
+         write(*,'(A,I8)') " nface   ", nface
+         write(*,'(A,I8)') " nee     ", nee
+         write(*,'(A,I8)') " neep    ", neep      
+         write(*,'(A,I8)') " nrowsh  ", nrowsh
+         write(*,'(A,I8)') " nrowsh3 ", nrowsh3
+         write(*,'(A,I8)') " nsd     ",nsd
+         write(*,'(A,I8)') " nedge   ",nedge
+         write(*,'(A,I8)') " numnp   ",numnp
+         write(*,'(A,I8)') " numel   ",numel
+         write(*,'(A,I8)') " nmultp  ",nmultp
+      end if
+c      
 c     set memory pointers
 c        note:  the mp array is stored directly after the npar array,
 c               beginning at location mpnpar + 16 of blank common.
-c               the variable "junk" is not used subsequently.
+c               the variable "junk" is not used subsequently
+c      
+      if (itask.eq.1) then
 c
          junk       = mpoint('mp      ',80     ,0     ,0     ,1)
 c
@@ -6042,10 +5992,10 @@ c
          mp(mshg  ) = mpoint('shg     ',nrowsh3,nen   ,nint  ,iprec)
          mp(mc    ) = mpoint('c       ',ndimc  ,numat ,0     ,iprec)
          mp(mgrav ) = mpoint('grav    ',ngrav  ,0     ,0     ,iprec)
-cc
+c
          mp(mien  ) = mpoint('ien     ',nen    ,numel ,0     ,1)
          mp(mmat  ) = mpoint('mat     ',numel  ,0     ,0     ,1)
-cc
+c
          mp(mlm   ) = mpoint('lm      ',ned    ,nodsp ,numel ,1)
          mp(mxl   ) = mpoint('xl      ',nesd   ,nen   ,0     ,iprec)
          mp(mdl   ) = mpoint('dl      ',ned    ,nodsp ,0     ,iprec)
@@ -6154,7 +6104,7 @@ c
 c
 c     escreve malha GMSH
 c
-      write(*,'(A)') "escreve malha.msh"
+c      write(*,'(A)') "escreve malha.msh"
 c      call dumpmsh(a(mp(mien)),a(mpx),a(mp(mxl)),a(mp(mdside)),
 c     &             a(mp(mlado)),numel,nedge,numnp,nen,nenlad,
 c     &             nsd,nesd,npars,nside)
@@ -6199,14 +6149,11 @@ c
      &           neep  ,nints ,nnods ,
      &           nenlad, npars,nside ,
      &           nenp  ,nodsp ,index ,nface, nedge)
-
-      write(*,'(A)') "fim da flux0primal"
-      write(*,*) " "
 c
 c     Esta rotina calcula os erros da projecao local
 c     para a formulacao hibrida primal
 c
-      write(*,'(A)') "subroutine flnormp (depois da flux0)"
+      write(*,'(A)') "subroutine flnormp"
       call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
      &             a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
      &             a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
@@ -6229,7 +6176,6 @@ c
      &             nints ,ilp ,nenp  ,
      &             nside ,nnods ,nenlad,npars ,
      &             nmultp,nodsp )
-      write(*,'(A)') "fim da flnormp"
 c
 c  esta rotina calcula os erros das interpolantes
 c
@@ -6299,7 +6245,6 @@ c
      &           nside ,nenp  ,nedge ,nodsp ,
      &           index ,nface, userctx)
 c
-      write(*,'(A)') "fim da flux2"
       return
 c
   400 continue
@@ -6342,13 +6287,11 @@ c
      &           neep  ,nints ,nnods ,
      &           nenlad,npars ,nside ,
      &           nenp  ,nodsp ,index ,nface)
-
-      write(*,'(A)') "fim da flux3primal"
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
 c  primal (p) no nivel de cada elemento e multiplicador (grad u)
 c
-      write(*,'(A)') "subroutine flnormp (depois da flux3primal)"
+      write(*,'(A)') "subroutine flnormp"
       call flnormp(a(mp(mien )),a(mpx       ),a(mp(mxl   )),
      &            a(mpd      ),a(mp(mdl   )),a(mp(mmat  )),
      &            a(mp(mc   )),a(mp(mipar )),a(mp(mdlf )) ,
@@ -6371,8 +6314,6 @@ c
      &            nints ,ipp,   nenp  ,
      &            nside ,nnods ,nenlad,npars ,
      &            nmultp,nodsp )
-c
-      write(*,'(A)') "fim da flnormp"
 c
       return
       end
@@ -6418,8 +6359,6 @@ c
 c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc / neq
-c
-      write(*,'(A,I5)') " nesd", nesd
 c
       write(ieco,1000) ntype,numel,numat
       write(ieco,2000) nint
@@ -6468,58 +6407,54 @@ c
          write(*,'(A,10I5)') " nrowsh,nenlad",nrowsh,nenlad
          write(*,'(A,10I5)') " nenlad,nnods,npars",nenlad,nnods,npars
 c
-c     treat faces first (2D)
+c     compute faces first (2D)
 c     obs: shlq and shlqpk compute the same functions
 c
          write(*,'(A)') " calculando shl do multiplicador"
-         write(*,'(4I5)') nenlad,nnods,npars,nints
+         write(*,'(A,2I3)') "  nenlad,nnods",nenlad,nnods
+         write(*,'(A,2I3)') "  npars,nints ",npars,nints
 
-         write(*,*)
          write(*,'(A)') " calculando shlb"
          call shlqpk(shlb,wp,nints,nenlad)
 
-         write(*,*)
          write(*,'(A)') " calculando shln"
          call shlqpk(shln,wn,nints,nnods)
 
-         write(*,*)
          write(*,'(A)') " calculando shlpn"
          call shlqpk(shlpn,wpn,nints,npars)
-
-c     *** DEBUG ***
-c     shp do multiplicador (dim 2)
-         write(*,*)
-         write(*,'(A,2I5)') " dados shln", nnods, nints
-         do ii=1,nints
-            write(*,999) (shln(3,in,ii),in=1,nnods)
-         end do
-         write(*,*)
-
-         write(*,'(A,2I5)') " dados shlpn", npars, nints
-         do ii=1,nints
-            write(*,999) (shlpn(3,in,ii),in=1,npars)
-         end do
-         write(*,*)
 c
-c     then 3d stuff
+c     debug - shp do multiplicador
+c     
+c$$$         write(*,*)
+c$$$         write(*,'(A,2I5)') " dados shln", nnods, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shln(3,in,ii),in=1,nnods)
+c$$$         end do
+c$$$         write(*,*)
+c$$$
+c$$$         write(*,'(A,2I5)') " dados shlpn", npars, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shlpn(3,in,ii),in=1,npars)
+c$$$         end do
+c$$$         write(*,*)
+c
+c     compute 3d stuff
 c     calcular: shl, shlc, shlp, shlpsd, shlcsd, shlsde
 c
-         write(*,'(A)') "calculando shl da variavel"
-         write(*,'(A,2I5)') "nint,nen",nint,nen
+         write(*,'(A)') " calculando shl da variavel"
+         write(*,'(A,2I5)') "  nint,nen",nint,nen
 
-         write(*,*)
          write(*,'(A)') " calculando shl"
          call shlhxpk(shl,w,nint,nen)
 
-         write(*,*)
          write(*,'(A)') " calculando shlc"
          call shlhxpk(shlc,wc,nint,nencon)
 
-         write(*,*)
          write(*,'(A)') " calculando shlp"
          call shlhxpk(shlp,wp,nint,nenp)
 c
 c     shp on faces
+c     definicoes auxiliares
 c
          nenlad2=2
          nnods2=2
@@ -6550,71 +6485,67 @@ c
             nints2 = 7
          end if
 c
-         write(*,*)
          write(*,'(A)')  " integral em face/area"
          write(*,'(A,2I5)') " nints2,nen2",nints2,nnods2
 c
-         write(*,*)
          write(*,'(A)') " calculando shlpsd (shlhxpbk)"
          call shlhxpbk(shlpsd,nenp,nside,nnods2,nints2)
 
-         write(*,*)
          write(*,'(A)') " calculando shlcsd (shlhxpbk)"
          call shlhxpbk(shlcsd,nencon,nside,nnods2,nints2)
 
-         write(*,*)
          write(*,'(A)') " calculando shsde (shlhxpbk)"
          call shlhxpbk(shsde,nen,nside,nenlad2,nints2)
-
-c     *** DEBUG ***
-c     shp on volumes
-         write(*,*) "pesos da integracao de gauss - w"
-         write(*,'(10F8.4)') (w(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wc"
-         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wp"
-         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
-
-         write(*,*) "shl", nint, nen
-         do ii=1,nint
-            write(*,999) (shl(4,in,ii),in=1,nen)
-         end do
-
-         write(*,*) "shlc", nint, nencon
-         do ii=1,nint
-            write(*,999) (shlc(4,in,ii),in=1,nencon)
-         end do
-
-         write(*,*) "shlp", nint, nenp
-         do ii=1,nint
-            write(*,999) (shlp(4,in,ii),in=1,nenp)
-         end do
-
-c     *** DEBUG ***
-c     shp on faces
-         write(*,*)
-         write(*,*) "dados shlpsd - on faces"
-
-         write(*,*) "pesos da integracao de gauss - wn"
-         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
-         write(*,*) "pesos da integracao de gauss - wpn"
-         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
-
-         write(*,*) "shlpsd"
-         do ii=1,nints*nside
-            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
-         end do
-         write(*,*) "shlcsd",nencon,nside
-         do ii=1,nints*nside
-            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
-         end do
-         write(*,*) "shsde"
-         do ii=1,nints*nside
-            write(*,999) (shsde(4,in,ii),in=1,nen)
-         end do
 c
- 999     format(' ',30F8.4)
-c     *** DEBUG ***
+c     debug - shp on volumes
+c     
+c$$$         write(*,*) "pesos da integracao de gauss - w"
+c$$$         write(*,'(10F8.4)') (w(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wc"
+c$$$         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wp"
+c$$$         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
+c$$$
+c$$$         write(*,*) "shl", nint, nen
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shl(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlc", nint, nencon
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlc(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlp", nint, nenp
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlp(4,in,ii),in=1,nenp)
+c$$$         end do
+c
+c     debug - shp on faces
+c     
+c$$$         write(*,*)
+c$$$         write(*,*) "dados shlpsd - on faces"
+c$$$
+c$$$         write(*,*) "pesos da integracao de gauss - wn"
+c$$$         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
+c$$$         write(*,*) "pesos da integracao de gauss - wpn"
+c$$$         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
+c$$$
+c$$$         write(*,*) "shlpsd"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
+c$$$         end do
+c$$$         write(*,*) "shlcsd",nencon,nside
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$         write(*,*) "shsde"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shsde(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$c
+c$$$ 999     format(' ',30F8.4)
+c
       end if
 c
       nintb=nside*nints
@@ -6639,24 +6570,18 @@ c     generation of conectivety for element multipliers
 c
       write(*,'(A)') "subroutine genside"
       call genside(idside,nside,nencon)
-      write(*,*) "array idside"
-      do il=1,6
-         write(*,*) il, (idside(il,j),j=1,4)
-      end do
-
+c
+c     generation of lado array
+c
       write(*,'(A)') "subroutine genelad"
       call genelad(lado,nside)
       if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
 c
-c$$$      write(*,*) "DEBUG LADO(,)"
-c$$$      do kk=1,numel
-c$$$         write(*,*) (lado(ll,kk),ll=1,6)
-c$$$      end do
-c
+c     generation of ipar array
+c     
       write(*,'(A)') "subroutine genelpar"
       call genelpar(ipar,ien,lado,idside,
      &     nen,nside,nodsp,numel,npars)
-
 c
       if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)
 c
@@ -6669,8 +6594,22 @@ c
 c     call colht(idiag,lm,ned,nodsp,numel,neq)
       
 c
-c     Neumann BCs not implemented YET
+c     Neumann BCs not implemented
 c
+      
+c
+c     debug
+c      
+c$$$      write(*,*) "debug array idside"
+c$$$      do il=1,6
+c$$$         write(*,*) il, (idside(il,j),j=1,4)
+c$$$      end do
+c$$$c      
+c$$$      write(*,*) "debug array lado(.,.)"
+c$$$      do kk=1,numel
+c$$$         write(*,*) (lado(ll,kk),ll=1,6)
+c$$$      end do
+      
       return
 c
  1000 format(///,
@@ -8098,12 +8037,9 @@ c
      &                 userctx)
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
-c     for ...
+c     for assembling the static condensed matrix (in terms of multp.)
+c     for the problem
 c------------------------------------------------------------------------------
-#include <petsc/finclude/petsc.h>
-#include <petsc/finclude/petscksp.h>
-      use petsc
-      use petscksp
       use UserModule
 c
       implicit real*8 (a-h,o-z)
@@ -8148,8 +8084,6 @@ c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c      
-      write(*,*) "begin subroutine flux2", npars,nee,neep
-c
 c     PETSC stuff
 c      
       b = userctx%b
@@ -8630,8 +8564,9 @@ c     computation of Dirichlet BCs contribution
 c
          call ztest(dl,nee,zerodl)
 c
-         if(.not.zerodl)
-     &        call kdbc(eleffd,elresd,dl,nee)
+         if(.not.zerodl) then
+            call kdbc(eleffd,elresd,dl,nee)
+         end if
 c
 c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
@@ -8674,11 +8609,11 @@ c-------------------------------------------------------------------------------
       dimension elfbb(*),elresd(*)
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
-c   condensacao do sitema
-c   Bb Xb   + Cb Xc   = Fbb
-c   Bc Xb   + Cc Xc   = Fc
-c   com eliminacao das inciggnitas  Xb
-c
+c     condensacao do sitema
+c     Bb Xb   + Cb Xc   = Fbb
+c     Bc Xb   + Cc Xc   = Fc
+c     com eliminacao das incognitas: Xb
+c     
       call invmb(elmbb,neep,neep)
 c
 c    \br(D) = Bc B^{1}
@@ -9218,13 +9153,13 @@ c
       edpy  = 0.d00
       xmlt  = 0.d00
 c     
-      call shapesd(shlsd,nenlad,npars)
+c      call shapesd(shlsd,nenlad,npars)
       if (nen.eq.3) then
-         call shapent(sxlhp,nen,nenp)
-         call shapent(sxlhv,nen,nencon)
+c         call shapent(sxlhp,nen,nenp)
+c         call shapent(sxlhv,nen,nencon)
       else if (nen.eq.4) then
-         call shapen(sxlhp,nen,nenp)
-         call shapen(sxlhv,nen,nencon)
+c         call shapen(sxlhp,nen,nenp)
+c         call shapen(sxlhv,nen,nencon)
       else
          stop
       endif
@@ -10293,8 +10228,7 @@ c
       do n=1,numat
          if (mod(n,50).eq.1) write(ieco,1000) numat
 c
-         read(iin,2000) m,del1,del2,del3,del4,
-     &                  del5,del6,del7,del8,del9
+         read(iin,2000) m,del1,del2,del3,del4,del5,del6,del7,del8,del9
          c(1,m) = del1          ! eps
          c(2,m) = del2          ! b1
          c(3,m) = del3          ! b2
@@ -10304,12 +10238,9 @@ c
          c(7,m) = del7          ! beta
          c(8,m) = del8
          c(9,m) = del9
-c
-         write(*,*) "beta=", c(7,m)
 c         
-         write(ieco,3000) m,del1,del2,del3,del4,
-     &                    del5,del6,del7,del8,del9
-c
+         write(ieco,3000) m,del1,del2,del3,del4,del5,del6,del7,del8,del9
+         write(*,'(A,F6.2)') "beta", c(7,m)
       end do
       return
 c
@@ -11850,7 +11781,7 @@ c
       do 100 l = 1, nintx
          r = raone(l)
 c
-         write(*,'(A,I5,F8.4)') " ponto de gauss (shlone)", l,r
+c$$$         write(*,'(A,I5,F8.4)') " ponto de gauss (shlone)", l,r
 c
          if(nenx.eq.1) then
             shlone(1,1,l) = zero
@@ -11893,7 +11824,7 @@ c
             l = l+1
             r = raone(lx)
             s = raone(ly)
-            write(*,'(A,3I5,2F8.4)') " ponto de gauss", l,lx,ly,r,s
+c$$$            write(*,'(A,3I5,2F8.4)') " ponto de gauss", l,lx,ly,r,s
             do iy=1,neny
                do ix=1,nenx
                   j = inod(ix,iy)
@@ -12656,8 +12587,8 @@ c
 c
                l=l+1
 c
-               write(*,'(A,4I5,3F8.4)') " ponto de gauss",
-     &                              l,lx,ly,lz,ra(l),sa(l),ta(l)
+c$$$               write(*,'(A,4I5,3F8.4)') " ponto de gauss",
+c$$$     &                              l,lx,ly,lz,ra(l),sa(l),ta(l)
 c
                do iz=1,nenz
                   do iy=1,neny
@@ -12721,9 +12652,7 @@ c
      &     r4a/0.861136311594053d00/,w4a/0.347854845137454d00/,
      &     r4b/0.339981043584856d00/,w4b/0.652145154862546d00/
 c
-      write(*,'(A,I5)') " nen  :", nen
-      write(*,'(A,I5)') " nnods:", nnods
-      write(*,'(A,I5)') " nints:", nints
+      write(*,'(A,3I4)') " nen,nnods,nints: ",nen,nnods,nints
 c
 c     nodal data
 c
@@ -13399,14 +13328,14 @@ c
 c
 c     build shape functions/derivatives
 c
-      write(*,*)
-      write(*,*) "building shl on faces"
+c$$$      write(*,*)
+c$$$      write(*,*) "building shl on faces"
 c
 c     loop on integration points
 c
       lb=0
       do ns=1,nside
-         write(*,'(A,I5)') " face",ns
+c$$$         write(*,'(A,I5)') " face",ns
          do ly = 1, ninty
             do lx = 1, nintx
 
@@ -13449,7 +13378,7 @@ c     cima
                   t = one
                end if
 c
-               write(*,'(A,3I5,3F8.4)') " ponto gauss", lx,ly,lb,r,s,t
+c$$$               write(*,'(A,3I5,3F8.4)') " ponto gauss", lx,ly,lb,r,s,t
 c
                shlx(1,1) = zero
                shly(1,1) = zero
@@ -13517,1286 +13446,7 @@ c
       end do
 c
       return
-      end
-      
-c-----------------------------------------------------------------------
-      subroutine shapent(shl,nen,nenc)
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension shl(64,64),cl1(64),cl2(64),cl3(64)
-      data   zero,pt1667,pt25,pt5
-     &     /0.0d0,0.1666666666666667d0,0.25d0,0.5d0/,
-     &     one,two,three,four,five,six
-     &     /1.0d0,2.0d0,3.0d0,4.0d0,5.0d0,6.0d0/
-      data r1/0.33333333333333333333d00/ ,w1/1.d00/,
-     &     r2/0.5d00                   /,w2/0.3333333333333333333d00/
-c
-      pt1s3 = one/three
-      pt2s3 = two/three
-      pt1s4 = one/four
-      pt2s4 = two/four
-      pt3s4 = three/four
-      pt1s5 = one/five
-      pt2s5 = two/five
-      pt3s5 = three/five
-      pt4s5 = four/five
-c
-      pt3s2 = three/two
-      pt9s2 = 9.d0/two
-      pt27s2= 27.d0/two
-      pt2s3 = two/three
-      pt1s6 = one/six
-      pt32s3= 32.d0/three
-      pt8s3 = 8.d0/three
-
-c
-      if (nenc.eq.1) then
-         cl1(1)=r1
-         cl2(1)=r1
-         cl3(1)=one-r1-r1
-      end if
-c
-      if(nenc.eq.3) then
-         cl1(1)=one
-         cl2(1)=zero
-         cl3(1)=zero
-
-         cl1(2)=zero
-         cl2(2)=one
-         cl3(2)=zero
-
-         cl1(3)=zero
-         cl2(3)=zero
-         cl3(3)=one
-      end if
-c
-      if(nenc.eq.6) then
-         cl1(1)=one
-         cl2(1)=zero
-         cl3(1)=zero
-
-         cl1(2)=zero
-         cl2(2)=one
-         cl3(2)=zero
-
-         cl1(3)=zero
-         cl2(3)=zero
-         cl3(3)=one
-
-         cl1(4)=r2
-         cl2(4)=r2
-         cl3(4)=zero
-
-         cl1(5)=zero
-         cl2(5)=r2
-         cl3(5)=r2
-
-         cl1(6)=r2
-         cl2(6)=zero
-         cl3(6)=r2
-
-      end if
-c
-      if(nenc.eq.10) then
-         cl1(1)=one
-         cl2(1)=zero
-         cl3(1)=zero
-
-         cl1(2)=zero
-         cl2(2)=one
-         cl3(2)=zero
-
-         cl1(3)=zero
-         cl2(3)=zero
-         cl3(3)=one
-
-         cl1(4)=pt2s3
-         cl2(4)=pt1s3
-         cl3(4)=zero
-
-         cl1(5)=pt1s3
-         cl2(5)=pt2s3
-         cl3(5)=zero
-
-         cl1(6)=zero
-         cl2(6)=pt2s3
-         cl3(6)=pt1s3
-
-         cl1(7)=zero
-         cl2(7)=pt1s3
-         cl3(7)=pt2s3
-
-         cl1(8)=pt1s3
-         cl2(8)=zero
-         cl3(8)=pt2s3
-
-         cl1(9)=pt2s3
-         cl2(9)=zero
-         cl3(9)=pt1s3
-
-         cl1(10)=r1
-         cl2(10)=r1
-         cl3(10)=r1
-
-      end if
-c
-      if(nenc.eq.15) then
-         cl1(1)=one
-         cl2(1)=zero
-         cl3(1)=zero
-
-         cl1(2)=zero
-         cl2(2)=one
-         cl3(2)=zero
-
-         cl1(3)=zero
-         cl2(3)=zero
-         cl3(3)=one
-
-         cl1(4)=pt3s4
-         cl2(4)=pt1s4
-         cl3(4)=zero
-
-         cl1(5)=pt2s4
-         cl2(5)=pt2s4
-         cl3(5)=zero
-
-         cl1(6)=pt1s4
-         cl2(6)=pt3s4
-         cl3(6)=zero
-
-         cl1(7)=zero
-         cl2(7)=pt3s4
-         cl3(7)=pt1s4
-
-         cl1(8)=zero
-         cl2(8)=pt2s4
-         cl3(8)=pt2s4
-
-         cl1(9)=zero
-         cl2(9)=pt1s4
-         cl3(9)=pt3s4
-
-         cl1(10)=pt1s4
-         cl2(10)=zero
-         cl3(10)=pt3s4
-
-         cl1(11)=pt2s4
-         cl2(11)=zero
-         cl3(11)=pt2s4
-
-         cl1(12)=pt3s4
-         cl2(12)=zero
-         cl3(12)=pt1s4
-
-         cl1(13)=pt2s4
-         cl2(13)=pt1s4
-         cl3(13)=pt1s4
-
-         cl1(14)=pt1s4
-         cl2(14)=pt2s4
-         cl3(14)=pt1s4
-
-         cl1(15)=pt1s4
-         cl2(15)=pt1s4
-         cl3(15)=pt2s4
-      end if
-c
-      if(nenc.eq.21) then
-         cl1(1)=one
-         cl2(1)=zero
-         cl3(1)=zero
-
-         cl1(2)=zero
-         cl2(2)=one
-         cl3(2)=zero
-
-         cl1(3)=zero
-         cl2(3)=zero
-         cl3(3)=one
-
-         cl1(4)=pt4s5
-         cl2(4)=pt1s5
-         cl3(4)=zero
-
-         cl1(5)=pt3s5
-         cl2(5)=pt2s5
-         cl3(5)=zero
-
-         cl1(6)=pt2s5
-         cl2(6)=pt3s5
-         cl3(6)=zero
-
-         cl1(7)=pt1s5
-         cl2(7)=pt4s5
-         cl3(7)=zero
-
-         cl1(8)=zero
-         cl2(8)=pt4s5
-         cl3(8)=pt1s5
-
-         cl1(9)=zero
-         cl2(9)=pt3s5
-         cl3(9)=pt2s5
-
-         cl1(10)=zero
-         cl2(10)=pt2s5
-         cl3(10)=pt3s5
-
-         cl1(11)=zero
-         cl2(11)=pt1s5
-         cl3(11)=pt4s5
-
-         cl1(12)=pt1s5
-         cl2(12)=zero
-         cl3(12)=pt4s5
-
-         cl1(13)=pt2s5
-         cl2(13)=zero
-         cl3(13)=pt3s5
-
-         cl1(14)=pt3s5
-         cl2(14)=zero
-         cl3(14)=pt2s5
-
-         cl1(15)=pt4s5
-         cl2(15)=zero
-         cl3(15)=pt1s5
-
-         cl1(16)=pt3s5
-         cl2(16)=pt1s5
-         cl3(16)=pt1s5
-
-         cl1(17)=pt2s5
-         cl2(17)=pt2s5
-         cl3(17)=pt1s5
-
-         cl1(18)=pt1s5
-         cl2(18)=pt3s5
-         cl3(18)=pt1s5
-
-         cl1(19)=pt1s5
-         cl2(19)=pt2s5
-         cl3(19)=pt2s5
-
-         cl1(20)=pt1s5
-         cl2(20)=pt1s5
-         cl3(20)=pt3s5
-
-         cl1(21)=pt2s5
-         cl2(21)=pt1s5
-         cl3(21)=pt2s5
-      end if
-c
-      do 200 l=1,nenc
-c
-         c1 = cl1(l)
-         c2 = cl2(l)
-         c3 = cl3(l)
-!     acrescentei o if (2012-10-08)
-!     interpolação linear (p=1 e nen=3)(2012-10-08)
-         if(nen.eq.3) then
-            shl(1,l)= c1
-            shl(2,l)= c2
-            shl(3,l)= c3
-         end if
-!     interpolação quadrática (p=2 e nen=6)(2012-11-24)
-         if(nen.eq.6) then
-            shl(1,l)= (two*c1 - one)*c1
-            shl(2,l)= (two*c2 - one)*c2
-            shl(3,l)= (two*c3 - one)*c3
-            shl(4,l)= four * c1 * c2
-            shl(5,l)= four * c2 * c3
-            shl(6,l)= four * c3 * c1
-         end if
-!     interpolação cúbica (p=3 e nen=10)(2012-11-24)
-         if(nen.eq.10) then
-
-            shl(1,l)= pt5*c1*(three*c1 - two)*(three*c1-one)
-
-            shl(2,l)= pt5*c2*(three*c2 - two)*(three*c2-one)
-
-            shl(3,l)= pt5*c3*(three*c3 - two)*(three*c3-one)
-
-            shl(4,l)= pt9s2*c1*c2*(three*c1-one)
-
-            shl(5,l)= pt9s2*c1*c2*(three*c2-one)
-
-            shl(6,l)= pt9s2*c2*c3*(three*c2-one)
-
-            shl(7,l)= pt9s2*c2*c3*(three*c3-one)
-
-            shl(8,l)= pt9s2*c3*c1*(three*c3-one)
-
-            shl(9,l)= pt9s2*c3*c1*(three*c1-one)
-
-            shl(10,l)= 27.d0*c1*c2*c3
-
-         end if
-!     interpolação quártica (p=4 e nen=15)(2012-11-24)
-         if(nen.eq.15) then
-
-            shl(1,l)= pt1s6*(four*c1-three)*(four*c1-two)*
-     &           (four*c1-one)*c1
-
-            shl(2,l)= pt1s6*(four*c2-three)*(four*c2-two)*
-     &           (four*c2-one)*c2
-
-            shl(3,l)= pt1s6*(four*c3-three)*(four*c3-two)*
-     &           (four*c3-one)*c3
-
-            shl(4,l)= pt8s3*c2*(four*c1-two)*(four*c1-one)*c1
-
-            shl(5,l)= four*c2*(four*c2-one)*(four*c1-one)*c1
-
-            shl(6,l)= pt8s3*c1*(four*c2-two)*(four*c2-one)*c2
-
-            shl(7,l)= pt8s3*c3*(four*c2-two)*(four*c2-one)*c2
-
-            shl(8,l)= four*(four*c2-one)*c2*(four*c3-one)*c3
-
-            shl(9,l)= pt8s3*c2*(four*c3-two)*(four*c3-one)*c3
-
-            shl(10,l)= pt8s3*c1*(four*c3-two)*(four*c3-one)*c3
-
-            shl(11,l)= 4.d0*(four*c3-one)*c3*(four*c1-one)*c1
-
-            shl(12,l)= pt8s3*c3*(four*c1-two)*(four*c1-one)*c1
-
-            shl(13,l)= 32.d0*c1*c2*c3*(four*c1-one)
-
-            shl(14,l)= 32.d0*c1*c2*c3*(four*c2-one)
-
-            shl(15,l)= 32.d0*c1*c2*c3*(four*c3-one)
-
-         end if
-!     interpolação quíntica (p=5 e nen=21)(2012-11-24)
-         if(nen.eq.21) then
-
-            shl(1,l)= (one/24.d0)*(five*c1-four)*(five*c1-three)
-     &           *(five*c1-two)*(five*c1-one)*c1
-
-            shl(2,l)= (one/24.d0)*(five*c2-four)*(five*c2-three)
-     &           *(five*c2-two)*(five*c2-one)*c2
-
-            shl(3,l)= (one/24.d0)*(five*c3-four)*(five*c3-three)
-     &           *(five*c3-two)*(five*c3-one)*c3
-
-            shl(4,l)= (25.d0/24.d0)*(five*c1-three)
-     &           *(five*c1-two)*(five*c1-one)*c1*c2
-
-            shl(5,l)= (25.d0/12.d0)*(five*c1-two)
-     &           *(five*c1-one)*c1*(five*c2-one)*c2
-
-            shl(6,l)= (25.d0/12.d0)*(five*c1-one)
-     &           *c1*(five*c2-two)*(five*c2-one)*c2
-
-            shl(7,l)= (25.d0/24.d0)*c1*
-     &           (five*c2-three)*(five*c2-two)*(five*c2-one)*c2
-
-            shl(8,l)= (25.d0/24.d0)*c3*
-     &           (five*c2-three)*(five*c2-two)*(five*c2-one)*c2
-
-            shl(9,l)= ((25.d0/12.d0)*(five*c3-one))
-     &           *c3*(five*c2-two)*(five*c2-one)*c2
-
-            shl(10,l)= ((25.d0/12.d0)*(five*c3-two))*(five*c3-one)
-     &           *c3*(five*c2-one)*c2
-
-            shl(11,l)= ((25.d0/24.d0)*(five*c3-three))
-     &           *(five*c3-two)*(five*c3-one)*c3*c2
-
-            shl(12,l)= ((25.d0/24.d0)*(five*c3-three))
-     &           *(five*c3-two)*(five*c3-one)*c3*c1
-
-            shl(13,l)= ((25.d0/12.d0)*(five*c3-two))
-     &           *(five*c3-one)*c3*(five*c1-one)*c1
-
-            shl(14,l)= ((25.d0/12.d0)*(five*c3-one))
-     &           *c3*(five*c1-two)*(five*c1-one)*c1
-
-            shl(15,l)= (25.d0/24.d0)*c3*(five*c1-three)*(five*c1-two)
-     &           *(five*c1-one)*c1
-
-          shl(16,l)=((125.d0/6.d0)*(five*c1-two))*(five*c1-one)*c1*c2*c3
-
-          shl(17,l)=((125.d0/4.d0)*(five*c1-one))*(five*c2-one)*c1*c2*c3
-
-          shl(18,l)=((125.d0/6.d0)*(five*c2-two))*(five*c2-one)*c1*c2*c3
-
-          shl(19,l)=((125.d0/4.d0)*(five*c2-one))*(five*c3-one)*c1*c2*c3
-
-          shl(20,l)=((125.d0/6.d0)*(five*c3-two))*(five*c3-one)*c1*c2*c3
-
-          shl(21,l)=((125.d0/4.d0)*(five*c1-one))*(five*c3-one)*c1*c2*c3
-
-       end if
-
- 200  continue
-c
-      return
-      end
-
-c-----------------------------------------------------------------------
-      subroutine shapen(shl,nen,nenc)
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension raone(8),xaone(8)
-      dimension shlone(8,8),inod(8,8),inodc(8,8)
-      dimension shl(64,64)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-c
-      if (nen.eq.1) xaone(1) = zero
-      if (nenc.eq.1) raone(1) = zero
-c
-      if (nen.eq.4) then
-         xaone(1) = -one
-         xaone(2) =  one
-         nenx=2
-         neny=2
-      endif
-c
-      if (nenc.eq.4) then
-         raone(1) = -one
-         raone(2) =  one
-         nenrx=2
-         nenry=2
-      endif
-c
-c
-      if(nen.eq.9) then
-         xaone(1) = -one
-         xaone(2) = one
-         xaone(3) = zero
-         nenx = 3
-         neny = 3
-      endif
-c
-      if(nenc.eq.9) then
-         raone(1) = -one
-         raone(2) = one
-         raone(3) = zero
-         nenrx = 3
-         nenry = 3
-      endif
-c
-c
-      if (nen.eq.16) then
-         xaone(1) =-one
-         xaone(2) =one
-         xaone(3) =-0.333333333333333d0
-         xaone(4) = 0.333333333333333d0
-         nenx = 4
-         neny = 4
-      endif
-c
-      if (nenc.eq.16) then
-         raone(1) =-one
-         raone(2) =one
-         raone(3) =-0.333333333333333d0
-         raone(4) = 0.333333333333333d0
-         nenrx = 4
-         nenry = 4
-      endif
-c
-      if(nen.eq.25) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -pt5
-         xaone(4) = zero
-         xaone(5) = pt5
-         nenx = 5
-         neny = 5
-      endif
-c
-      if(nenc.eq.25) then
-         raone(1)= -one
-         raone(2)=  one
-         raone(3)= -pt5
-         raone(4)= zero
-         raone(5)= pt5
-         nenrx=5
-         nenry=5
-      endif
-c
-      if(nen.eq.36) then
-         xaone(1) =-one
-         xaone(2) = one
-         xaone(3) =-0.6d0
-         xaone(4) =-0.2d0
-         xaone(5) = 0.2d0
-         xaone(6) = 0.6d0
-         nenx=6
-         neny=6
-      endif
-c
-      if(nenc.eq.36) then
-         raone(1) =-one
-         raone(2) = one
-         raone(3) =-0.6d0
-         raone(4) =-0.2d0
-         raone(5) = 0.2d0
-         raone(6) = 0.6d0
-         nenrx=6
-         nenry=6
-      endif
-c
-c
-      if(nen.eq.49) then
-         xaone(1) =-one
-         xaone(2) = one
-         xaone(3) =-0.666666666666666d0
-         xaone(4) =-0.333333333333333d0
-         xaone(5) = zero
-         xaone(6) = 0.333333333333333d0
-         xaone(7) = 0.666666666666666d0
-         nenx=7
-         neny=7
-      endif
-c
-      if(nenc.eq.49) then
-         raone(1) =-one
-         raone(2) = one
-         raone(3) =-0.666666666666666d0
-         raone(4) =-0.333333333333333d0
-         raone(5) = zero
-         raone(6) = 0.333333333333333d0
-         raone(7) = 0.666666666666666d0
-         nenrx=7
-         nenry=7
-      endif
-c
-      if(nen.eq.64) then
-         xaone(1) =-one
-         xaone(2) = one
-         xaone(3) =-0.71428571428571d0
-         xaone(4) =-0.42857142857143d0
-         xaone(5) =-0.14285714285714d0
-         xaone(6) = 0.14285714285714d0
-         xaone(7) = 0.42857142857143d0
-         xaone(8) = 0.71428571428571d0
-         nenx=8
-         neny=8
-      endif
-c
-      if(nenc.eq.64) then
-         raone(1) =-one
-         raone(2) = one
-         raone(3) =-0.71428571428571d0
-         raone(4) =-0.42857142857143d0
-         raone(5) =-0.14285714285714d0
-         raone(6) = 0.14285714285714d0
-         raone(7) = 0.42857142857143d0
-         raone(8) = 0.71428571428571d0
-         nenrx=8
-         nenry=8
-      endif
-c
-c     nodal information
-c
-      if(nen.eq.1) inod(1,1) = 1
-c
-      if(nen.eq.4) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(1,2) = 4
-         inod(2,2) = 3
-      end if
-c
-      if(nen.eq.9) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 7
-c
-         inod(1,3) = 8
-         inod(2,3) = 6
-         inod(3,3) = 9
-      end if
-c
-      if(nen.eq.16) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-         inod(4,1) = 6
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 10
-         inod(4,2) = 9
-c
-         inod(1,3) = 12
-         inod(2,3) = 7
-         inod(3,3) = 13
-         inod(4,3) = 14
-c
-         inod(1,4) = 11
-         inod(2,4) = 8
-         inod(3,4) = 16
-         inod(4,4) = 15
-      end if
-c
-      if(nen.eq.25) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-         inod(4,1) = 6
-         inod(5,1) = 7
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 13
-         inod(4,2) = 12
-         inod(5,2) = 11
-c
-         inod(1,3) = 16
-         inod(2,3) = 8
-         inod(3,3) = 17
-         inod(4,3) = 18
-         inod(5,3) = 19
-c
-         inod(1,4) = 15
-         inod(2,4) = 9
-         inod(3,4) = 24
-         inod(4,4) = 25
-         inod(5,4) = 20
-c
-         inod(1,5) = 14
-         inod(2,5) = 10
-         inod(3,5) = 23
-         inod(4,5) = 22
-         inod(5,5) = 21
-      end if
-c
-      if(nen.eq.36) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-         inod(4,1) = 6
-         inod(5,1) = 7
-         inod(6,1) = 8
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 16
-         inod(4,2) = 15
-         inod(5,2) = 14
-         inod(6,2) = 13
-c
-         inod(1,3) = 20
-         inod(2,3) = 9
-         inod(3,3) = 21
-         inod(4,3) = 22
-         inod(5,3) = 23
-         inod(6,3) = 24
-c
-         inod(1,4) = 19
-         inod(2,4) = 10
-         inod(3,4) = 32
-         inod(4,4) = 33
-         inod(5,4) = 34
-         inod(6,4) = 25
-c
-         inod(1,5) = 18
-         inod(2,5) = 11
-         inod(3,5) = 31
-         inod(4,5) = 36
-         inod(5,5) = 35
-         inod(6,5) = 26
-c
-         inod(1,6) = 17
-         inod(2,6) = 12
-         inod(3,6) = 30
-         inod(4,6) = 29
-         inod(5,6) = 28
-         inod(6,6) = 27
-      end if
-c
-      if(nen.eq.49) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-         inod(4,1) = 6
-         inod(5,1) = 7
-         inod(6,1) = 8
-         inod(7,1) = 9
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 19
-         inod(4,2) = 18
-         inod(5,2) = 17
-         inod(6,2) = 16
-         inod(7,2) = 15
-c
-         inod(1,3) = 24
-         inod(2,3) = 10
-         inod(3,3) = 25
-         inod(4,3) = 26
-         inod(5,3) = 27
-         inod(6,3) = 28
-         inod(7,3) = 29
-c
-         inod(1,4) = 23
-         inod(2,4) = 11
-         inod(3,4) = 40
-         inod(4,4) = 41
-         inod(5,4) = 42
-         inod(6,4) = 43
-         inod(7,4) = 30
-c
-         inod(1,5) = 22
-         inod(2,5) = 12
-         inod(3,5) = 39
-         inod(4,5) = 48
-         inod(5,5) = 49
-         inod(6,5) = 44
-         inod(7,5) = 31
-c
-         inod(1,6) = 21
-         inod(2,6) = 13
-         inod(3,6) = 38
-         inod(4,6) = 47
-         inod(5,6) = 46
-         inod(6,6) = 45
-         inod(7,6) = 32
-c
-         inod(1,7) = 20
-         inod(2,7) = 14
-         inod(3,7) = 37
-         inod(4,7) = 36
-         inod(5,7) = 35
-         inod(6,7) = 34
-         inod(7,7) = 33
-      end if
-c
-      if(nen.eq.64) then
-         inod(1,1) = 1
-         inod(2,1) = 2
-         inod(3,1) = 5
-         inod(4,1) = 6
-         inod(5,1) = 7
-         inod(6,1) = 8
-         inod(7,1) = 9
-         inod(8,1) = 10
-c
-         inod(1,2) = 4
-         inod(2,2) = 3
-         inod(3,2) = 22
-         inod(4,2) = 21
-         inod(5,2) = 20
-         inod(6,2) = 19
-         inod(7,2) = 18
-         inod(8,2) = 17
-c
-         inod(1,3) = 28
-         inod(2,3) = 11
-         inod(3,3) = 29
-         inod(4,3) = 30
-         inod(5,3) = 31
-         inod(6,3) = 32
-         inod(7,3) = 33
-         inod(8,3) = 34
-c
-         inod(1,4) = 27
-         inod(2,4) = 12
-         inod(3,4) = 48
-         inod(4,4) = 49
-         inod(5,4) = 50
-         inod(6,4) = 51
-         inod(7,4) = 52
-         inod(8,4) = 35
-c
-         inod(1,5) = 26
-         inod(2,5) = 13
-         inod(3,5) = 47
-         inod(4,5) = 60
-         inod(5,5) = 61
-         inod(6,5) = 62
-         inod(7,5) = 53
-         inod(8,5) = 36
-c
-         inod(1,6) = 25
-         inod(2,6) = 14
-         inod(3,6) = 46
-         inod(4,6) = 59
-         inod(5,6) = 64
-         inod(6,6) = 63
-         inod(7,6) = 54
-         inod(8,6) = 37
-c
-         inod(1,7) = 24
-         inod(2,7) = 15
-         inod(3,7) = 45
-         inod(4,7) = 58
-         inod(5,7) = 57
-         inod(6,7) = 56
-         inod(7,7) = 55
-         inod(8,7) = 38
-c
-         inod(1,8) = 23
-         inod(2,8) = 16
-         inod(3,8) = 44
-         inod(4,8) = 43
-         inod(5,8) = 42
-         inod(6,8) = 41
-         inod(7,8) = 40
-         inod(8,8) = 39
-      end if
-c
-c
-c
-      if(nenc.eq.1) inodc(1,1) = 1
-c
-      if(nenc.eq.4) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-      end if
-c
-      if(nenc.eq.9) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 7
-c
-         inodc(1,3) = 8
-         inodc(2,3) = 6
-         inodc(3,3) = 9
-      end if
-c
-      if(nenc.eq.16) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-         inodc(4,1) = 6
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 10
-         inodc(4,2) = 9
-c
-         inodc(1,3) = 12
-         inodc(2,3) = 7
-         inodc(3,3) = 13
-         inodc(4,3) = 14
-c
-         inodc(1,4) = 11
-         inodc(2,4) = 8
-         inodc(3,4) = 16
-         inodc(4,4) = 15
-      end if
-c
-      if(nenc.eq.25) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-         inodc(4,1) = 6
-         inodc(5,1) = 7
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 13
-         inodc(4,2) = 12
-         inodc(5,2) = 11
-c
-         inodc(1,3) = 16
-         inodc(2,3) = 8
-         inodc(3,3) = 17
-         inodc(4,3) = 18
-         inodc(5,3) = 19
-c
-         inodc(1,4) = 15
-         inodc(2,4) = 9
-         inodc(3,4) = 24
-         inodc(4,4) = 25
-         inodc(5,4) = 20
-c
-         inodc(1,5) = 14
-         inodc(2,5) = 10
-         inodc(3,5) = 23
-         inodc(4,5) = 22
-         inodc(5,5) = 21
-      end if
-c
-      if(nenc.eq.36) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-         inodc(4,1) = 6
-         inodc(5,1) = 7
-         inodc(6,1) = 8
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 16
-         inodc(4,2) = 15
-         inodc(5,2) = 14
-         inodc(6,2) = 13
-c
-         inodc(1,3) = 20
-         inodc(2,3) = 9
-         inodc(3,3) = 21
-         inodc(4,3) = 22
-         inodc(5,3) = 23
-         inodc(6,3) = 24
-c
-         inodc(1,4) = 19
-         inodc(2,4) = 10
-         inodc(3,4) = 32
-         inodc(4,4) = 33
-         inodc(5,4) = 34
-         inodc(6,4) = 25
-c
-         inodc(1,5) = 18
-         inodc(2,5) = 11
-         inodc(3,5) = 31
-         inodc(4,5) = 36
-         inodc(5,5) = 35
-         inodc(6,5) = 26
-c
-         inodc(1,6) = 17
-         inodc(2,6) = 12
-         inodc(3,6) = 30
-         inodc(4,6) = 29
-         inodc(5,6) = 28
-         inodc(6,6) = 27
-      end if
-c
-      if(nenc.eq.49) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-         inodc(4,1) = 6
-         inodc(5,1) = 7
-         inodc(6,1) = 8
-         inodc(7,1) = 9
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 19
-         inodc(4,2) = 18
-         inodc(5,2) = 17
-         inodc(6,2) = 16
-         inodc(7,2) = 15
-c
-         inodc(1,3) = 24
-         inodc(2,3) = 10
-         inodc(3,3) = 25
-         inodc(4,3) = 26
-         inodc(5,3) = 27
-         inodc(6,3) = 28
-         inodc(7,3) = 29
-c
-         inodc(1,4) = 23
-         inodc(2,4) = 11
-         inodc(3,4) = 40
-         inodc(4,4) = 41
-         inodc(5,4) = 42
-         inodc(6,4) = 43
-         inodc(7,4) = 30
-c
-         inodc(1,5) = 22
-         inodc(2,5) = 12
-         inodc(3,5) = 39
-         inodc(4,5) = 48
-         inodc(5,5) = 49
-         inodc(6,5) = 44
-         inodc(7,5) = 31
-c
-         inodc(1,6) = 21
-         inodc(2,6) = 13
-         inodc(3,6) = 38
-         inodc(4,6) = 47
-         inodc(5,6) = 46
-         inodc(6,6) = 45
-         inodc(7,6) = 32
-c
-         inodc(1,7) = 20
-         inodc(2,7) = 14
-         inodc(3,7) = 37
-         inodc(4,7) = 36
-         inodc(5,7) = 35
-         inodc(6,7) = 34
-         inodc(7,7) = 33
-      end if
-c
-      if(nenc.eq.64) then
-         inodc(1,1) = 1
-         inodc(2,1) = 2
-         inodc(3,1) = 5
-         inodc(4,1) = 6
-         inodc(5,1) = 7
-         inodc(6,1) = 8
-         inodc(7,1) = 9
-         inodc(8,1) = 10
-c
-         inodc(1,2) = 4
-         inodc(2,2) = 3
-         inodc(3,2) = 22
-         inodc(4,2) = 21
-         inodc(5,2) = 20
-         inodc(6,2) = 19
-         inodc(7,2) = 18
-         inodc(8,2) = 17
-c
-         inodc(1,3) = 28
-         inodc(2,3) = 11
-         inodc(3,3) = 29
-         inodc(4,3) = 30
-         inodc(5,3) = 31
-         inodc(6,3) = 32
-         inodc(7,3) = 33
-         inodc(8,3) = 34
-c
-         inodc(1,4) = 27
-         inodc(2,4) = 12
-         inodc(3,4) = 48
-         inodc(4,4) = 49
-         inodc(5,4) = 50
-         inodc(6,4) = 51
-         inodc(7,4) = 52
-         inodc(8,4) = 35
-c
-         inodc(1,5) = 26
-         inodc(2,5) = 13
-         inodc(3,5) = 47
-         inodc(4,5) = 60
-         inodc(5,5) = 61
-         inodc(6,5) = 62
-         inodc(7,5) = 53
-         inodc(8,5) = 36
-c
-         inodc(1,6) = 25
-         inodc(2,6) = 14
-         inodc(3,6) = 46
-         inodc(4,6) = 59
-         inodc(5,6) = 64
-         inodc(6,6) = 63
-         inodc(7,6) = 54
-         inodc(8,6) = 37
-c
-         inodc(1,7) = 24
-         inodc(2,7) = 15
-         inodc(3,7) = 45
-         inodc(4,7) = 58
-         inodc(5,7) = 57
-         inodc(6,7) = 56
-         inodc(7,7) = 55
-         inodc(8,7) = 38
-c
-         inodc(1,8) = 23
-         inodc(2,8) = 16
-         inodc(3,8) = 44
-         inodc(4,8) = 43
-         inodc(5,8) = 42
-         inodc(6,8) = 41
-         inodc(7,8) = 40
-         inodc(8,8) = 39
-      end if
-c
-      do 100 l = 1, nenrx
-         r = raone(l)
-c
-         if(nenx.eq.1) then
-            shlone(1,l) = zero
-            go to 100
-         endif
-c
-         do i = 1, nenx
-            aa = one
-            bb = one
-            aax = zero
-            do j =1, nenx
-               daj = one
-               if (i .ne. j)then
-                  aa = aa * ( r - xaone(j))
-                  bb = bb * ( xaone(i) - xaone(j))
-               endif
-            end do
-            shlone(i,l) = aa/bb
-         end do
-c
- 100  continue
-c
-      do ly=1,nenrx
-         do lx=1,nenry
-            l = inodc(lx,ly)
-            do iy=1,neny
-               do ix=1,nenx
-                  j = inod(ix,iy)
-                  shl(j,l) = shlone(ix,lx)*shlone(iy,ly)
-               end do
-            end do
-         end do
-      end do
-c
-      return
-      end
-
-
-c-----------------------------------------------------------------------
-      subroutine shapesd(shl,nen,nenc)
-c-----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
-c
-      dimension raone(8),xaone(8)
-      dimension shl(8,8)
-      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-c
-      if (nen.eq.1) xaone(1) = zero
-      if (nenc.eq.1) raone(1) = zero
-c
-      if (nen.eq.2) then
-         xaone(1) = -one
-         xaone(2) =  one
-      endif
-c
-      if (nenc.eq.2) then
-         raone(1) = -one
-         raone(2) =  one
-      endif
-c
-      if(nen.eq.3) then
-         xaone(1)= -one
-         xaone(2)= one
-         xaone(3)= zero
-      endif
-c
-      if(nenc.eq.3) then
-         raone(1)= -one
-         raone(2)= one
-         raone(3)= zero
-      endif
-c
-      if (nen.eq.4) then
-         xaone(1) = -one
-         xaone(2) = one
-         xaone(3) = -0.333333333333333d0
-         xaone(4) =  0.333333333333333d0
-      endif
-c
-      if (nenc.eq.4) then
-         raone(1) = -one
-         raone(2) = one
-         raone(3) = -0.333333333333333d0
-         raone(4) =  0.333333333333333d0
-      endif
-c
-      if(nen.eq.5) then
-         xaone(1)= -one
-         xaone(2)=  one
-         xaone(3)= -pt5
-         xaone(4)= zero
-         xaone(5)= pt5
-      endif
-c
-      if(nenc.eq.5) then
-         raone(1)= -one
-         raone(2)=  one
-         raone(3)= -pt5
-         raone(4)= zero
-         raone(5)= pt5
-      endif
-c
-c
-      if(nen.eq.6) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.6d0
-         xaone(4) = -0.2d0
-         xaone(5) =  0.2d0
-         xaone(6) =  0.6d0
-      endif
-c
-      if(nenc.eq.6) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -0.6d0
-         raone(4) = -0.2d0
-         raone(5) =  0.2d0
-         raone(6) =  0.6d0
-      endif
-c
-      if(nen.eq.7) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.666666666666666d0
-         xaone(4) = -0.333333333333333d0
-         xaone(5) = zero
-         xaone(6) =  0.333333333333333d0
-         xaone(7) =  0.666666666666666d0
-      endif
-c
-      if(nenc.eq.7) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -0.666666666666666d0
-         raone(4) = -0.333333333333333d0
-         raone(5) = zero
-         raone(6) =  0.333333333333333d0
-         raone(7) =  0.666666666666666d0
-      endif
-c
-      if(nen.eq.8) then
-         xaone(1) = -one
-         xaone(2) =  one
-         xaone(3) = -0.71428571428571d0
-         xaone(4) = -0.42857142857143d0
-         xaone(5) = -0.14285714285714d0
-         xaone(6) =  0.14285714285714d0
-         xaone(7) =  0.42857142857143d0
-         xaone(8) =  0.71428571428571d0
-      endif
-c
-      if(nenc.eq.8) then
-         raone(1) = -one
-         raone(2) =  one
-         raone(3) = -0.71428571428571d0
-         raone(4) = -0.42857142857143d0
-         raone(5) = -0.14285714285714d0
-         raone(6) =  0.14285714285714d0
-         raone(7) =  0.42857142857143d0
-         raone(8) =  0.71428571428571d0
-      endif
-c
-c     loop on nodes to compute shape functions
-c
-      do 100 l = 1, nenc
-         r = raone(l)
-c
-         if(nen.eq.1) then
-            shl(1,l) = zero
-            go to 100
-         endif
-c
-         do i = 1, nen
-            aa = one
-            bb = one
-            aax = zero
-            do j =1, nen
-               daj = one
-               if (i .ne. j)then
-                  aa = aa * ( r - xaone(j))
-                  bb = bb * ( xaone(i) - xaone(j))
-               endif
-            end do
-            shl(i,l) = aa/bb
-         end do
-c
- 100  continue
-c
-      return
-      end
+      end     
 
 c **********************************************************************
 c     Utils
