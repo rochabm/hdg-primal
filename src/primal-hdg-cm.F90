@@ -7007,7 +7007,9 @@ c
                   ibn2 = iarglob(2,j)               
                   if(ian1.eq.ibn1.and.ian2.eq.ibn2) then
                      indarw(j) = -kar
-                     iarnum(indedge,indface) = kar
+                     jndedge = mod((j-1),4) + 1
+                     jndface = int((j-1)/4) + 1
+                     iarnum(jndedge,jndface) = kar
                   end if
                end if
             end do
@@ -7026,13 +7028,13 @@ c
 c$$$c
 c$$$c     OLD: Nao precisa desses loops mais....
 c$$$c    
-c
+c$$$c
 c$$$      do i=1,nedge
 c$$$         do j=1,4
 c$$$            iarnum(j,i) = 0
 c$$$         end do
 c$$$      end do
-c      
+c$$$c      
 c$$$      do i=1,4*nedge
 c$$$         ian1 = iarglob(1,i)
 c$$$         ian2 = iarglob(2,i)
@@ -7052,19 +7054,6 @@ c$$$                  end if
 c$$$               end do
 c$$$            end do
 c$$$         end do         
-c$$$      end do
-c
-c      write(*,*)
-c      write(*,*) "ARESTAS, e NODES"
-c      do i=1,nar
-c         write(*,*) "aresta",i,"nodes",iarglob(1,i),iarglob(2,i)
-c      end do
-
-c$$$      write(*,*)
-c$$$      write(*,*) "ARESTAS, NUMERACAO DAS 4 ARESTAS DE UMA FACE"
-c$$$      do i=1,nedge
-c$$$         write(*,*) "face",i,"num",iarnum(1,i),iarnum(2,i),
-c$$$     &                             iarnum(3,i),iarnum(4,i)
 c$$$      end do
 
 c ----------------------------------------------------------------------           
@@ -7178,20 +7167,17 @@ c     agora numera os dofs das arestas da face
 c
                   do k=1,4
 c     
-c     TODO: conferir aqui para Q3, etc
-c     problema com orientacao dos DOFs das arestas
-c     numerar dofs da aresta: do menor NODE para o maior que FORMAM
-c     aquela aresta
+c     a orientacao dos NODES das ARESTAS influencia
+c     esquema para numerar dofs da aresta: do menor node para
+c     o maior node que FORMAM aquela aresta
 c                     
                      ind1 = iarnum(k,neledg)
                      iarn1 = ielemar(1,k,neledg)
                      iarn2 = ielemar(2,k,neledg)
-c                     write(*,*) "num aresta",ind1,"nodes",iarn1,iarn2
                      ! se aresta nao esta numerada, cria DOFs
                      if(imarkar(ind1).eq.0) then
-                        ! numera do menor NODE pro maior
+                        ! numera do menor NODE pro maior (normal)
                         if(iarn1.lt.iarn2) then
-c                           write(*,*) "numera normal"
                            keq = keq + 1
                            kof = 5 + (k-1)*ndedge
                            iedge(kof,neledg) = keq
@@ -7205,7 +7191,6 @@ c                              write(*,*) kof,keq
                            end do
                         else 
                            ! numera (invertido)
-c                           write(*,*) "numera invertido"
                            keq = keq + 1
                            kofs = 5 + (k-1)*ndedge
                            kofe = kofs + (ndedge-1)
@@ -7221,7 +7206,7 @@ c                              write(*,*) kof,keq
                         end if
                      ! se aresta ja esta numerada, recupera DOFs   
                      else
-                        ! recupera do menor NODE pro maior
+                        ! recupera do menor NODE pro maior (normal)
                         if(iarn1.lt.iarn2) then
 c                           write(*,*) "recupera normal"
                            kof = 5 + (k-1)*ndedge
@@ -7233,8 +7218,7 @@ c                           write(*,*) imarkar(ind1)
 c                              write(*,*) imarkar(ind1) + (ie-1)
                            end do
                         else
-                          ! recupera (invertido)   
-c                           write(*,*) "recupera invertido"
+                          ! recupera (invertido) 
                            kofs = 5 + (k-1)*ndedge
                            kofe = kofs + (ndedge-1)
                            iedge(kofe,neledg) = imarkar(ind1)
@@ -7248,7 +7232,6 @@ c                              write(*,*) kof,imarkar(ind1)+ie
 c                        
                      end if ! fim da aresta ja/nao marcada
                   end do
-c                  stop
                   
 c$$$                  ind1 = iarnum(2,neledg)
 c$$$                  if(imarkar(ind1).eq.0) then
@@ -7285,14 +7268,14 @@ c
                      iedge(kof+idf,neledg) = keq
                   end do
                   
-               end if  ! npars>4               
+               end if  ! npars > 4
             end if     ! face nao marcada
 c
          end do
       end do
 c      
       nmultpc = keq
-      write(*,*) "nmultpc:", nmultpc
+      write(*,'(A,I10)') " nmultpc:", nmultpc
 c      
 c ------------------------------------------------------------------------------
 c     OLD CODE FOR NUMBERING DOFs, NODES, EDGES/FACES
@@ -7441,41 +7424,12 @@ c$$$      end do
 
 c
 c     DEBUG 
-c
-      
-c$$$c
-c$$$c     total number of continuous multipliers
-c$$$c
-c      
-c      nmultpc = keq
-c      
-c$$$c      
-c$$$c     confere numeracao
-c$$$c
-      
-c$$$      do ii=1, numnp
-c$$$         write(*,*) "indno", ii, indno(ii)
-c$$$      end do
-c$$$
-c$$$      do ii=1,nedge
-c$$$         write(*,*) "indedg",ii,indedg(ii)
-c$$$      end do
+c       
+c$$$      write(*,*) "FACE / DOFS"
+c$$$      do i=1,nedge
+c$$$         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
+c$$$      end do      
 
-c$$$      do nel=1,numel     
-c$$$         write(*,*) "nel,ns,nd,iedge(npars,nd)"
-c$$$         do ns=1,nside
-c$$$            nd = lado(ns,nel)
-c$$$            write(*,*) nel,ns,nd,(iedge(i,nd),i=1,npars)
-c$$$         end do
-c$$$      end do
-     
-c      write(*,*) "FACE / DOFS"
-c      do i=1,nedge
-c         write(*,*) " face",i,"dofs",(iedge(j,i),j=1,npars)
-c      end do      
-
-c      stop
-      
       return
 c
  1000 format(///,
