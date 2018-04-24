@@ -54,7 +54,8 @@ message(STATUS "Fortran compiler: ${Fortran_COMPILER_NAME}")
 set(PROGRAMS
   exvec
   exksp
-  teste
+  teste_dmplex_box
+  teste_dmplex_cell_list
   primal-hdg-dc
   primal-hdg-cm
   primal-hdg-cm_DMPLEX
