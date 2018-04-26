@@ -83,17 +83,40 @@ add_executable (cellmodel "src/cellmodel.F90" "src/tt2006.F90")
 #
 # Programa to monodomain solver - HDG
 #
-add_executable (primal-monodomain "src/primal-hdg-dc-monodomain.F90" "src/tt2006.F90" "src/ms.F90")
+add_executable (primal-monodomain
+  "src/primal-hdg-dc-monodomain.F90"
+  "src/tt2006.F90"
+  "src/ms.F90")
 target_include_directories (primal-monodomain PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
 target_link_libraries (primal-monodomain LINK_PUBLIC petsc mpifort lapack blas)
 
-
-add_executable (primal-monodomain-cells "src/primal-hdg-dc-monodomain-cells.F90" "src/tt2006.F90" "src/ms.F90")
-target_include_directories (primal-monodomain-cells PUBLIC
+#
+# Monodominio multp. descontinuo
+#
+add_executable (primal-dc-monodomain-cells
+  "src/primal-hdg-dc-monodomain-cells.F90"
+  "src/tt2006.F90"
+  "src/ms.F90")
+target_include_directories (primal-dc-monodomain-cells PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-target_link_libraries (primal-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)
+target_link_libraries (primal-dc-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)
+
+#
+# Monodominio multp. continuo
+#
+add_executable (primal-cm-monodomain-cells
+  "src/primal-hdg-cm-monodomain-cells.F90"
+  "src/tt2006.F90"
+  "src/ms.F90"
+  )
+target_include_directories (primal-cm-monodomain-cells PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    $ENV{PETSC_DIR}/include
+    $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include
+    )
+target_link_libraries (primal-cm-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)

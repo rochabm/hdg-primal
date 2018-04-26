@@ -1,5 +1,5 @@
 c     ******************************************************************
-c     * Formulacao Hibrida Primal - Prob. Poisson/ConveccaoDifusao     *
+c     * formulacao Hibrida Primal - Prob. Poisson/ConveccaoDifusao     *
 c     * Multplicador Continuo = potencial na interface dos elementos   *
 c     * Marco, 2018                                                    *
 c     ******************************************************************
@@ -122,8 +122,9 @@ c
       PetscInt       tot,nnz
       PetscInt       m,n
       PetscErrorCode ierr      
-c     
-      nnz = 450
+c      
+c     nnz = 450
+      nnz = 1000
       tot = n
 c     
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -561,7 +562,6 @@ c
       call elemnt('input_el',a(mpngrp))
       call timing(t2)
       etime(1) = t2 - t1
-
 c
 c     nmultpd => nmultp d (discontinuous)
 c     nmultpc => nmultp c (continuous)
@@ -7487,7 +7487,7 @@ c
       common /colhtc / neq
 c
 c     boundary conditions for the continuous multiplier
-c      
+c
       write(*,'(A)') "subroutine setbcedgec"      
       call setbcedgec(ideg,idc,iedge,indno,indedg,iedgto,
      &     npars,nedge,ndof,nmultpc,neq,iprtin)
@@ -7502,7 +7502,8 @@ c
 c     generation of lm array
 c
       write(*,'(A)') "subroutine formlm"
-      call formlm(idc,ipar,lm,ndof,ndof,nodsp,numel)
+      call formlm(idc,ipar,lm,ndof,ndof,nodsp,numel)     
+      
 c
 c     debug
 c          
@@ -8935,6 +8936,10 @@ c
       Mat A
       Vec b
 c
+      real*8 xtfl,xtfl1,xtfl2
+      real*8 xtinv,xtinv1,xtinv2
+      real*8 xtint,xtint1,xtint2
+c
       logical diag,quad,hexa,zerodl
 c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
@@ -8983,6 +8988,12 @@ c
       gf2 = grav(2)
       gf3 = grav(3)
 
+      xtfl  = 0.0d0
+      xtinv = 0.0d0
+      xtint = 0.0d0
+
+      call cpu_time(xtfl1)
+      
 c     ------------------------------------------------------------------
 c     element loop
 c     ------------------------------------------------------------------      
@@ -9219,8 +9230,6 @@ c
 c
 c     localize the coordinates of the side nodes
 c
-c$$$            write(*,*) "idlsd,nenlad:", (idlsd(nn),nn=1,nenlad)
-
             do nn=1,nenlad
                nl=idlsd(nn)
                xls(1,nn)=xl(1,nl)
@@ -9476,9 +9485,16 @@ c     c      end if
 c
 c     condensacao estatica
 c
+         call cpu_time(xtinv1)
+         
          call condtdg(elmbb,elmcb,elmbc,elmdb,elfbb,eleffd,elresd,
      &        neep,nee)
 
+         call cpu_time(xtinv2)
+         xtinv = xtinv + (xtinv2-xtinv1)
+c
+c     show info
+c         
          if(nel.eq.1) then
             write(ielmat,*) 'matriz do elemento',nel,nee,eps
             do i=1,nee
@@ -9494,8 +9510,9 @@ c     computation of Dirichlet BCs contribution
 c
          call ztest(dl,nee,zerodl)
 c
-         if(.not.zerodl)
-     &        call kdbc(eleffd,elresd,dl,nee)
+         if(.not.zerodl) then
+            call kdbc(eleffd,elresd,dl,nee)
+         end if
 c
 c     assemble element stifness matrix and force array into global
 c     left-hand-side matrix and right-hand side vector
@@ -9506,6 +9523,9 @@ c
          call addrhs(elresd,lm(1,1,nel),nee,userctx)         
 c
  500  continue
+
+      call cpu_time(xtfl2)
+      xtfl = xtfl + (xtfl2-xtfl1)
 c
 c     fim do loop em elementos na flux2
 c
@@ -9520,11 +9540,15 @@ c$$$      call PetscViewerBinaryOpen(PETSC_COMM_WORLD,'A.dat',
 c$$$     &     FILE_MODE_WRITE,viewer,ierr)
 c$$$      call MatView(A,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)
-c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.dat",viewer,ierr)
+c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORL,D"A.dat",viewer,ierr)
 c$$$      call PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_DENSE,ierr)
 c$$$      call MatView(A,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
-c      
+c
+      write(*,"(A)") "tempos na flux2"
+      write(*,"(A,F12.6)") "all",xtfl
+      write(*,"(A,F12.6)") "inv",xtinv
+      
       return
       end
 
@@ -11184,7 +11208,7 @@ c
          c(9,m) = del9
 c         
          write(ieco,3000) m,del1,del2,del3,del4,del5,del6,del7,del8,del9
-         write(*,'(A,F6.2)') " beta: ", c(7,m)
+         write(*,'(A,F10.4)') " beta: ", c(7,m)
 c     
       end do
       return
