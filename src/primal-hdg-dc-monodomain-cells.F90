@@ -1763,9 +1763,9 @@ c
  100  continue
       read(iin,1000) n,m,(itemp(i),i=1,nen),ng
 c
-      write(*,*) "subroutine genel"
-      write(*,*) "n,m,ng",n,m,ng
-      write(*,*) (itemp(i),i=1,nen)
+c$$$      write(*,*) "subroutine genel"
+c$$$      write(*,*) "n,m,ng",n,m,ng
+c$$$      write(*,*) (itemp(i),i=1,nen)
 c
       if (n.eq.0) return
       call imove(ien(1,n),itemp,nen)
@@ -5748,8 +5748,6 @@ c     3D elements
 c
       if (nsd.eq.3) then
 c
-         write(*,'(A)') " elementos 3D"
-c
          nenlad = 4
 
          if(nenp.eq.8.or.nenp.eq.27.or.
@@ -5797,31 +5795,32 @@ c
 c
 c     *** DEBUG ***
 c
-      write(*,'(A,I8)') " ned     ", ned
-      write(*,'(A,I8)') " nodsp   ", nodsp     
-      write(*,'(A,I8)') " nnods   ", nnods
-      write(*,'(A,I8)') " nside   ", nside
-      write(*,'(A,I8)') " ntype   ", ntype
-      write(*,'(A,I8)') " numel   ", numel
-      write(*,'(A,I8)') " numat   ", numat
-      write(*,'(A,I8)') " nen     ", nen
-      write(*,'(A,I8)') " nencon  ", nencon
-      write(*,'(A,I8)') " nenp    ", nenp
-      write(*,'(A,I8)') " npars   ", npars
-      write(*,'(A,I8)') " nint    ", nint
-      write(*,'(A,I8)') " nints   ", nints
-      write(*,'(A,I8)') " nintb   ", nintb
-      write(*,'(A,I8)') " nface   ", nface
-      write(*,'(A,I8)') " nee     ", nee
-      write(*,'(A,I8)') " neep    ", neep      
-      write(*,'(A,I8)') " nrowsh  ", nrowsh
-      write(*,'(A,I8)') " nrowsh3 ", nrowsh3
-      write(*,'(A,I8)') " nsd     ", nsd
-      write(*,'(A,I8)') " nedge   ", nedge
-      write(*,'(A,I8)') " numnp   ", numnp
-      write(*,'(A,I8)') " numel   ", numel
-      write(*,'(A,I8)') " nmultp  ", nmultp
-      write(*,'(A,I8)')
+      if(itask.eq.1) then
+         write(*,'(A,I8)') " ned     ", ned
+         write(*,'(A,I8)') " nodsp   ", nodsp     
+         write(*,'(A,I8)') " nnods   ", nnods
+         write(*,'(A,I8)') " nside   ", nside
+         write(*,'(A,I8)') " ntype   ", ntype
+         write(*,'(A,I8)') " numel   ", numel
+         write(*,'(A,I8)') " numat   ", numat
+         write(*,'(A,I8)') " nen     ", nen
+         write(*,'(A,I8)') " nencon  ", nencon
+         write(*,'(A,I8)') " nenp    ", nenp
+         write(*,'(A,I8)') " npars   ", npars
+         write(*,'(A,I8)') " nint    ", nint
+         write(*,'(A,I8)') " nints   ", nints
+         write(*,'(A,I8)') " nintb   ", nintb
+         write(*,'(A,I8)') " nface   ", nface
+         write(*,'(A,I8)') " nee     ", nee
+         write(*,'(A,I8)') " neep    ", neep      
+         write(*,'(A,I8)') " nrowsh  ", nrowsh
+         write(*,'(A,I8)') " nrowsh3 ", nrowsh3
+         write(*,'(A,I8)') " nsd     ", nsd
+         write(*,'(A,I8)') " nedge   ", nedge
+         write(*,'(A,I8)') " numnp   ", numnp
+         write(*,'(A,I8)') " numel   ", numel
+         write(*,'(A,I8)') " nmultp  ", nmultp
+      end if
 c
 c     *** DEBUG ***
 c
@@ -5963,7 +5962,6 @@ c
      &           nnods        ,nenlad        ,npars,
      &           nenp         ,nside         ,nodsp)
 c
-      write(*,'(A)') "fim da flux1"
       return
 c
   200 continue
@@ -6023,7 +6021,6 @@ c
      &           a(mp(maelm)), a(mp(mdbel)),a(mp(mfelm)),
      &           a(mp(makelm)),a(mp(xnrml)) )
 c
-      write(*,'(A)') "fim da flux2"
       return
 c
   400 continue
@@ -6073,7 +6070,8 @@ c
      &                 nface ,nmultp, a(mp(mlm)),
      &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
      &                 a(mp(makelm)),a(mp(xnrml)), userctx)
-      write(*,'(A)') "fim da flux3primal"
+c     
+      
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
 c  primal (p) no nivel de cada elemento e multiplicador (grad u)
@@ -8774,10 +8772,6 @@ c
 c
 c     copy solution from brhs to d
 c
-      do i=1,nmultp
-         write(*,*) "id",id(1,i)
-      end do
-      stop
       call btod(id,d,xbrhs,ndof,nmultp)
 c
       call cpu_time(xpde2)

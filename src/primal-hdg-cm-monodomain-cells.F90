@@ -5928,12 +5928,15 @@ c
 c     matriz M - dt K
 c     
       makelm  = 75
+      mbkelm  = 76
+      mbkelm2 = 80
+      mbtemp  = 81
 c
 c     new for continuous multp.
 c
-      mindno  = 76
-      mindedg = 77
-      miedgto = 78           
+      mindno  = 77
+      mindedg = 78
+      miedgto = 79           
 c
 c     parametros
 c
@@ -6229,7 +6232,12 @@ ccc      nsv = 2
          mp(mxvm)   = mpoint('xvm   ',numnp,0       ,0     ,iprec)
          mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
          mp(xnrml)  = mpoint('xnrml ',3    ,6       ,numel ,iprec)
-         mp(makelm) = mpoint('akelm ',neep  ,neep  ,numel ,iprec)
+c
+c     para armazenar matrizes para a flux3
+c         
+         mp(makelm)  = mpoint('akelm ', neep  ,neep  ,numel ,iprec)
+         mp(mbkelm)  = mpoint('bkelm ', neep  ,nee   ,numel ,iprec)
+         mp(mbkelm2) = mpoint('bkelm2 ', neep ,nee   ,numel ,iprec)
 c
 c     new for continuous multp.
 c              
@@ -6359,8 +6367,9 @@ c
      &           nside ,nenp  ,nedge ,nodsp ,
      &           index ,nface, userctx      ,
 c      
-     &           a(mp(maelm)), a(mp(mdbel)),a(mp(mfelm)),
-     &           a(mp(makelm)),a(mp(xnrml)) )
+     &           a(mp(maelm)), a(mp(mdbel)), a(mp(mfelm)),
+     &           a(mp(makelm)),a(mp(mbkelm)),  !a(mp(mbkelm2)),
+     &           a(mp(xnrml)))
 c
       return
 c
@@ -6370,7 +6379,55 @@ c     esta rotina calcula as aproximacoes locai para a variavel
 c     primal p no nivel de cada elemento usando as aproximacoes do multiplicador
 c
       write(*,'(A)') "subroutine flux3primal"
-      call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
+      
+c$$$      call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
+c$$$     &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
+c$$$     &                 a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
+c$$$     &                 a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
+c$$$     &                 a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
+c$$$     &                 a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
+c$$$     &                 a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
+c$$$     &                 a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
+c$$$     &                 a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
+c$$$     &                 a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
+c$$$     &                 a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
+c$$$     &                 a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+c$$$     &                 a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
+c$$$c
+c$$$     &                 a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
+c$$$     &                 a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
+c$$$     &                 a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
+c$$$     &                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
+c$$$     &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
+c$$$     &                 a(mp(melmdb)),a(mped      ),
+c$$$c
+c$$$     &                 a(mp(mshsde)),a(mpiedge),
+c$$$c
+c$$$     &                 a(mp(mshlpsd)),a(mp(mshlcsd)),
+c$$$     &                 a(mp(mshgpsd)),a(mp(mshgcsd)),
+c$$$
+c$$$     &                 a(mp(maelm)),a(mp(mdbel)),
+c$$$     &                 a(mp(mfelm)),a(mp(mfdelm)),
+c$$$     &                 a(mp(mxvla)),a(mp(mxvlb)),
+c$$$c           
+c$$$     &                 numel ,neesq ,nen   ,
+c$$$     &                 nsd   ,nesd  ,nint  ,
+c$$$     &                 neg   ,nrowsh,ned   ,
+c$$$     &                 nee   ,numnp ,ndof  ,
+c$$$     &                 ncon  ,nencon,necon ,
+c$$$     &                 neep  ,nints ,nnods ,
+c$$$     &                 nenlad,npars ,nside ,
+c$$$     &                 nenp  ,nodsp ,index ,
+c$$$     &                 nface ,nmultpc, a(mp(mlm)),
+c$$$     &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),      
+c$$$     &                 a(mp(makelm)),a(mp(xnrml)),
+c$$$     &                 userctx)      
+
+c
+c     versao otimizada da flux3
+c      
+
+      call flux3primalOpt(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
      &                 a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
      &                 a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
@@ -6410,7 +6467,9 @@ c
      &                 nenp  ,nodsp ,index ,
      &                 nface ,nmultpc, a(mp(mlm)),
      &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
-     &                 a(mp(makelm)),a(mp(xnrml)), userctx)
+     &                 a(mp(makelm)),a(mp(mbkelm)), !a(mp(mbkelm2)),
+     &                 a(mp(xnrml)),userctx)     
+      
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
 c  primal (p) no nivel de cada elemento e multiplicador (grad u)
@@ -7984,7 +8043,7 @@ c
      &                 nside ,nenp  ,nedge ,nodsp ,index, nface,
      &                 userctx,
      &                 aelm, dbel, felm,
-     &                 akelm, xnrml)
+     &                 akelm, bkelm, xnrml)
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
@@ -8034,10 +8093,11 @@ c     new for parabolic
 c
       dimension aelm(neep,neep,*),dbel(nee,neep,*),felm(neep,*)
 c
-c     new for parabolic 2
+c     new for parabolic - matrizes para armazenar e usar na fluxo3
 c      
-      dimension akelm(neep,neep,*)
-      dimension elmkbb(neep,neep)
+      dimension akelm(neep,neep,*),  elmak(neep,neep) ! matriz local de a(.,.)
+      dimension bkelm(neep,nee,*),   elmbk(neep,nee)  ! matriz local de b(.,.)
+c      
       dimension xnrml(3,6,*)
 c      
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
@@ -8086,7 +8146,8 @@ c
          call clear(elfc,nee)
 
 c     new
-         call clear(elmkbb,neep*neep)
+         call clear(elmak,neep*neep)
+         call clear(elmbk,neep*nee)
 c
 c     localize coordinates and Dirichlet BCs
 c
@@ -8105,15 +8166,15 @@ c
          else if(nsd.eq.3) then
             quad = .false.
             hexa = .true.
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
+c            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
             nintb=nside*nints
 c
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
+c            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
+c     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
          end if
 c
@@ -8226,8 +8287,14 @@ c
      &                             + dtm1*(sigmal*dix*djx
      &                                   + sigmat*diy*djy
      &                                   + sigman*diz*djz)
-
-                  elmkbb(nbi1,nbj1) = elmkbb(nbi1,nbj1) + din*djn
+c
+c     armazena matriz pra calcular RHS na fluxo3
+c                  
+                  elmak(nbi1,nbj1) = elmak(nbi1,nbj1)
+     &                             + din*djn
+     &                             - dtm0*(sigmal*dix*djx +
+     &                                     sigmat*diy*djy +
+     &                                     sigman*diz*djz)
                end do
             end do
          end do
@@ -8371,10 +8438,21 @@ c
                   djy = shgpsd(2,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djz = shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djn = shgpsd(4,j,lb)*detpn(ls)*wn(ls)*dtm1
+c
+c     truque para versao que sera armazenada
+c                  
+                  ddjx = shgpsd(1,j,lb)*detpn(ls)*wn(ls)
+                  ddjy = shgpsd(2,j,lb)*detpn(ls)*wn(ls)
+                  ddjz = shgpsd(3,j,lb)*detpn(ls)*wn(ls)
+                  ddjn = shgpsd(4,j,lb)*detpn(ls)*wn(ls)
 c                  
                   gjn = sigmal*djx*xn1
      &                + sigmat*djy*xn2
      &                + sigman*djz*xn3
+                  
+                  gdjn = sigmal*ddjx*xn1
+     &                 + sigmat*ddjy*xn2
+     &                 + sigman*ddjz*xn3
 c
                   do i=1,nenp
                      nbi = ned*(i-1)
@@ -8392,20 +8470,22 @@ c     -(grad p.n, q) - (grad q.n, p)
 c                     
                      elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
      &                                + teta*gin*djn - din*gjn
-
+c
+c     armazenar a parte no contorno \partial_K de a(.,.)
+c
+                     elmak(nbj1,nbi1) = elmak(nbj1,nbi1)
+     &                                - dtm0*(teta*gin*ddjn-din*gdjn)
+     &                                - dtm0*betah*din*ddjn
                   end do
                end do
 c
 c     monta matrizez Cb e Bc
 c
                do j=1,npars
-c
-c$$$c     multp. descont
-c$$$  ncj1 = (ns-1)*npars + j
-c
-c     new multp cont
-                  ncj1 = idlsd(j)
 c                  
+c     new multp cont
+c     
+                  ncj1 = idlsd(j)                  
                   djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)*dtm1
 c
 c     no source term
@@ -8425,6 +8505,12 @@ c
 c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - teta*gin*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) + gin*djn
+c
+c     armazenar para usar na fluxo3                     
+c
+                     elmbk(nbi1,ncj1) = elmbk(nbi1,ncj1)
+     &                                + teta*gin*djn
+     &                                + betah*din*djn
                   end do
                end do
 c
@@ -8459,6 +8545,10 @@ c
 c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - betah*din*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) - betah*din*djn
+c
+c     armazenar para usar na fluxo3  - bkelm2                 
+c
+                     ! TODO:
                   end do
 c
                   do i=1,npars
@@ -8538,17 +8628,30 @@ c
          end do
 
 c
-c     armazena a matriz pro Euler implicito
+c     armazena as matrizes pro Euler implicito/CN etc....na fluxo3
 c         
          do i=1,neep
             do j=1,neep
-               akelm(i,j,nel) = elmkbb(i,j)
-            end do          
-c            if(nel.eq.1) then
-c               write(*,*) (akelm(i,j,nel),j=1,neep)
-c            end if            
-         end do         
-c
+               akelm(i,j,nel)  = elmak(i,j)
+            end do
+            do j=1,nee
+               bkelm(i,j,nel)  = elmbk(i,j)
+            end do
+         end do
+
+c$$$         if(nel.eq.1) then            
+c$$$            do ne=1,numel
+c$$$               write(*,*) "FLUX2 BKELM e ELMBK ELEMENTO",ne
+c$$$               do i=1,neep
+c$$$                  write(*,"(10F12.4)") (bkelm(i,j,ne),j=1,nee)
+c$$$               end do
+c$$$               do i=1,neep
+c$$$                  write(*,"(10F12.4)") (elmbk(i,j),j=1,nee)
+c$$$               end do
+c$$$            end do            
+c$$$         end if
+
+c     
 c     debug
 c         
          if(nel.eq.1) then
@@ -8654,6 +8757,1086 @@ c
       end      
 
 c-------------------------------------------------------------------------------
+      subroutine flux3primalOpt(ien   ,x     ,xl    ,
+     &                       d     ,dl    ,mat   ,
+     &                       det   ,shl   ,shg   ,
+     &                       w     ,c     ,idc   ,
+     &                       grav  ,ipar  ,lado  ,
+     &                       detc  ,shlc  ,shgc  ,
+     &                       eleffd,elresd,shln  ,
+     &                       shgn  ,wn    ,detn  ,
+     &                       detb  ,shlb  ,shgb  ,
+     &                       detpn ,shlpn ,shgpn ,
+     &                       idside,xls   ,idlsd ,
+     &                       dsfl  ,ddis  ,ddisa,
+     &                       detp  ,shlp  ,shgp  ,
+     &                       elma  ,elmb  ,elmc  ,
+     &                       elmd  ,elmh  ,elmbb ,
+     &                       elmcb ,elmhb ,elfa  ,
+     &                       elfb  ,elfc  ,elfd  ,
+     &                       elfab ,elfbb ,elfcb ,
+     &                       elmdb ,ideg  , 
+c
+     &                       shsde ,iedge,
+c     
+     &                       shlpsd,shlcsd,
+     &                       shgpsd,shgcsd,
+c      
+     &                       aelm,dbel,
+     &                       felm,fdelm,
+     &                       xvla,xvlb,
+c     
+     &                       numel ,neesq ,nen   ,
+     &                       nsd   ,nesd  ,nint  ,
+     &                       neg   ,nrowsh,ned   ,
+     &                       nee   ,numnp ,ndof  ,
+     &                       ncon  ,nencon,necon ,
+     &                       neep  ,nints ,nnods ,
+     &                       nenlad,npars ,nside ,
+     &                       nenp  ,nodsp ,index ,
+     &                       nface ,nmultp,lm    ,
+     &                       xbrhs ,xvm   ,xsv   ,
+     &                       akelm, bkelm ,xnrml, userctx)
+c-------------------------------------------------------------------------------
+c     program to calculate stifness matrix and force array for the
+c        plane elasticity element and
+c        assemble into the global left-hand-side matrix
+c        and right-hand side vector
+c-------------------------------------------------------------------------------
+      use UserModule
+      implicit real*8 (a-h,o-z)
+c      
+      type(User) userctx
+      PetscViewer viewer
+      PetscErrorCode ierr
+      Mat A
+      Vec b
+      Vec xsol      
+c
+      integer bflag
+      real*8 xtode, xtpde, xtpos, xtrhs, xtaux, xtauz
+c
+      dimension iedge(npars,*)
+c
+      dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
+      dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
+      dimension elmdb(nee,*)
+      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
+      dimension elfbb(*),elfcb(*)
+c
+      dimension eleffd(nee,*),elresd(*)
+      dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*)
+      dimension mat(*),c(10,*),grav(*),ipar(nodsp,*),lado(nside,*)
+      dimension w(*),wn(*)
+      dimension det(*),detc(*),detb(*),detpn(*),detp(*)
+      dimension idside(nside,*),xls(nesd,*),idlsd(*)
+      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+c      
+      dimension lm(ned,nodsp,*)
+c      
+      dimension dls(64)
+c
+      dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
+      dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
+c
+      dimension shl (nrowsh+1,nen,*),   shg (nrowsh+1,nen,*)
+      dimension shlp(nrowsh+1,nenp,*),  shgp(nrowsh+1,nenp,*)
+      dimension shlc(nrowsh+1,nencon,*),shgc(nrowsh+1,nencon,*)
+c
+      dimension shsde (nrowsh+1,nen,*)
+      dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
+      dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
+c
+      dimension vab(3),vad(3),vc(3),xn(3),coo(3),xxn(3)
+c
+c     new parabolic
+c     
+      dimension sol(200), ddisa(ned,nenp,*),faa(200),fab(200)
+      dimension aelm(neep,neep,*),dbel(nee,neep,*)
+      dimension fdelm(neep,*),felm(neep,*)
+      dimension xvla(nints,*),xvlb(nints,*)
+      dimension xbrhs(*), idc(ndof,*)
+      dimension ideg(ndof,*)
+c
+c     new monodomain
+c
+      dimension xvm(*), xsv(19,*), xdsv(19), xxsv(19)
+      dimension xstim(numnp), xmean(numnp), icont(numnp)
+      dimension xnrml(3,6,*)
+c      
+      dimension akelm(neep,neep,*)
+      dimension bkelm(neep,nee,*)
+c
+      common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+      common /colhtc/ neq
+      common /times/ dtime,tempo,gf1,gf10
+c               
+c ------------------------------------------------------------------------------
+c     initialization
+c ------------------------------------------------------------------------------
+c     
+c     PETSc stuff
+c
+      xsol = userctx%x
+      b    = userctx%b
+      A    = userctx%A
+c      
+      call UserCreateKSPSolver(userctx)
+c
+c     consistent matrix
+c      
+      pi = 4.d00*datan(1.d00)
+      gf1 = grav(1)
+      gf2 = grav(2)
+      gf3 = grav(3)
+c
+c     solution in one point
+c     last node for monodomain/benchmark
+c
+      npsol = (numnp+1)/2.0d0
+      do i=1,nen
+        sol(i) = 0.d00
+      end do
+      isol=1
+c
+c     zero arrays
+c
+      do nel=1,numel
+         do i=1,nenp
+            ddis(1,i,nel) = 0.d00
+            ddisa(1,i,nel) = 0.d00
+         end do
+      end do
+      
+c ------------------------------------------------------------------------------
+c     DEBUG      
+c ------------------------------------------------------------------------------                  
+c
+c     NOVA implementacao so funcionar para Q1
+c     PRECISO estender para Qk...ai o ien nao serve
+c         
+c$$$      do nel=1,numel
+c$$$         
+c$$$         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+c$$$         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
+c$$$
+c$$$         write(*,*) "elemento", nel
+c$$$
+c$$$         do ki=1,nenp
+c$$$            iiee = ien(ki,nel)
+c$$$            write(*,*) "conec", ki, iiee
+c$$$         end do
+c$$$         
+c$$$         do kj=1,24
+c$$$            index = ipar(kj,nel)
+c$$$            write(*,*) "par", kj, index
+c$$$         end do
+c$$$
+c$$$      end do
+c$$$
+c$$$  STOP
+c
+c     check normals
+c     
+c$$$      do nel=1,numel
+c$$$         write(*,*) "elemento",nel
+c$$$         do is=1,6
+c$$$            write(*,*) "face",is,xnrml(1,is,nel),xnrml(2,is,nel),
+c$$$     &                 xnrml(3,is,nel)
+c$$$         end do
+c$$$      end do      
+c      
+c ------------------------------------------------------------------------------
+c     initial condition
+c ------------------------------------------------------------------------------      
+
+      write(*,*) "initial condition for monodomain"
+      xtode = 0.0d0
+      xtpde = 0.0d0
+      xtpos = 0.0d0
+      xtrhs = 0.0d0
+      xtaux = 0.0d0
+      xtauz = 0.0d0
+c
+c     number of state variables of the cell model
+c      
+      nsv = 19
+c     
+      do i=1,numnp
+         call tt2006_init(nsv, xsv(1,i))
+         xvm(i) = xsv(1,i)
+      end do
+c
+c     initial condition
+c      
+      do nel=1,numel
+c
+c     calculo de h - caracteristico para cada elemento
+c
+         h2 = 0
+         do l=1,2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+     &              + (xl(3,l)-xl(3,l+2))**2
+         end do
+         h = dsqrt(h2)/2.d00
+         h2 = h*h
+c     
+c     set up material properties
+c
+         m = mat(nel)
+         delta1 = c(1,m)
+         delta2 = c(2,m)
+         betah  = delta1*h**delta2
+         gama   = c(3,m)
+         gf10   = c(4,m)
+         teta   = c(5,m)
+         dtime  = c(6,m)
+c
+         xsurfvol = 1400.0d0
+         xcm = 1.0d0
+         dtime = dtime/(xsurfvol*xcm)
+c         
+         alf    = c(7,m)
+         dtm0   = (1.d00-alf)*dtime
+         dtm1   = alf*dtime
+         gamas  = gama
+         tempof = c(8,m)         
+c
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+c
+         do i=1,nenp
+c
+c     save initial condition
+c
+            jj = ien(i,nel)
+            xval = xvm(jj)
+            ddis(1,i,nel) = xval
+c
+c     save data at npsol point
+c            
+            if(ien(i,nel).eq.npsol) then
+               sol(isol) = xvm(jj)
+            end if
+         end do
+      end do
+c
+c     begin
+c      
+      it    = 0
+      tempo = 0.d00      
+c
+c     write initial condition
+c     
+      write(30,555) it,tempo,(sol(i),i=1,4)
+      call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+c
+      write(*,*) "beta",delta1
+      write(*,*) "teta",teta
+      write(*,*) "gama",gama,gamas
+      write(*,*) "alfa",alf
+      write(*,*) "gf10",gf10
+      write(*,*) "dtime",dtime
+      write(*,*) "dtm0",dtm0
+      write(*,*) "dtm1",dtm1
+      write(*,*) "npsol",npsol
+      write(*,*) "numnp",numnp
+      write(*,*) "ndof",ndof
+      write(*,*) "nmultp",nmultp
+      write(*,*) "tempof",tempof
+c
+      write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+c
+c     initial condition for multiplier
+c     assumes xvm(1) is equal for all multipliers
+c
+      call clear(d,ndof*nmultp)
+c      
+      xval = xvm(1)
+      do ii=1,nmultp
+         d(1,ii) = xval
+      end do
+c      
+c ------------------------------------------------------------------------------
+c     time integration loop
+c ------------------------------------------------------------------------------
+c      
+c     HARDCODED!!!!
+c      
+      it = 0
+      dt = c(6,1)
+      tempo = 0.d0
+      nstep = int(tempof/dt)
+
+      saver = 1.0d0
+      nsave = int(saver/dt)
+      
+      do 5555 it=1,nstep
+c
+         tempo = it*dt
+c
+         if(mod(it,nsave).eq.0) then
+            write(*,"(A,I5,F12.6,A)",advance="no") "Tempo",it,tempo," "
+         end if
+
+c ------------------------------------------------------------------------------
+c     solve ODEs
+c ------------------------------------------------------------------------------
+         call cpu_time(xode1)
+
+         do i=1,numnp
+            xstim(i) = 0.d00
+         end do
+         
+         do nel=1,numel
+c            
+            call local(ien(1,nel),x,xl,nen,nsd,nesd)
+c            
+            do i=1,nenp
+               xx = xl(1,i)
+               yy = xl(2,i)
+               zz = xl(3,i)
+               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
+                  if(xx.ge.0.0.and.xx.le.0.15.and.
+     &               yy.ge.0.0.and.yy.le.0.15.and.
+     &               zz.ge.0.0.and.zz.le.0.15)
+     &            then
+                     jj = ien(i,nel)
+                     xstim(jj) = -35.714d0
+                  end if
+               end if
+
+            end do ! nenp
+         end do    ! numel
+c     
+c     NEW loop 
+c         
+         do i=1,numnp         
+c     
+c     compute RHS of the ODES
+c
+            xval = xstim(i)
+            call tt2006_equation(nsv, dt, xsv(1,i), xdsv, xval)
+c
+c     advance ODEs with method (Euler,RL)
+c
+            do j=1,nsv
+               if(j.ge.2.and.j.le.13) then
+                  xsv(j,i) = xdsv(j)
+               else
+                  xsv(j,i) = xsv(j,i) + dt * xdsv(j)
+               end if
+            end do
+c
+         end do      
+c
+c     save Vm to ddis array
+c     TODO: improve this to WORK for Qk
+c     
+         do nel=1,numel             
+            do i=1,nenp
+               jj = ien(i,nel)                              
+               xval = xsv(1,jj)
+               ddis(1,i,nel) = xval
+            end do            
+         end do
+c
+c     timings
+c         
+         call cpu_time(xode2)
+         xtode = xtode + (xode2-xode1)
+         
+c ------------------------------------------------------------------------------
+
+         call cpu_time(xrhs1)
+c     
+c     guarda valor anterior
+c        p^(n+1) -> ddis
+c        p^n     -> ddisa
+c     
+         do nel=1,numel
+            do i=1,nenp
+               ddisa(1,i,nel) = ddis(1,i,nel)
+            end do
+         end do
+c
+c     clear PETSc Vec b and fortran brhs
+c
+         call clear(xbrhs,neq)        
+         call VecSet(b,0.d00,ierr)
+         CHKERRQ(ierr)
+         
+c ---  element loop ------------------------------------------------------------
+         do 500 nel=1,numel
+c ------------------------------------------------------------------------------            
+c     
+c     clear stiffness matrix and force array
+c
+         call clear(elfbb,neep)
+c
+c     localize coordinates and Dirichlet b.c.
+c
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
+c$$$c
+c$$$c     centroide
+c$$$c
+c$$$c$$$         call centroid(xl,nsd,nen,coo)         
+c$$$c
+c$$$c     material prop
+c$$$c
+c$$$         m = mat(nel)
+c$$$
+c$$$         call cpu_time(xaux1)
+c$$$c
+c$$$c     check dimension - only works for 3D
+c$$$c
+c$$$         call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
+c$$$         call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
+c$$$c
+c$$$         nintb=nside*nints
+c$$$c
+c$$$         call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
+c$$$     &        nside,nintb,nints,nel,neg,nenp,shsde,nen)
+c$$$         call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
+c$$$     &        nside,nintb,nints,nel,neg,nencon,shsde,nen)
+c$$$
+c$$$         call cpu_time(xaux2)
+c$$$         xtaux = xtaux + (xaux2-xaux1)         
+c$$$c
+c$$$c     form stiffness matrix
+c$$$c     calculo de h - caracteristico para cada elemento
+c$$$c
+c$$$         
+c$$$         h2 = 0
+c$$$         do l=1,2
+c$$$            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+c$$$     &              + (xl(3,l)-xl(3,l+2))**2
+c$$$         end do
+c$$$         h = dsqrt(h2)/2.d00
+c$$$         h2 = h*h
+c$$$c
+c$$$c     set up material properties
+c$$$c     
+c$$$         delta1 = c(1,m)
+c$$$         delta2 = c(2,m)
+c$$$         betah  = delta1*h**delta2
+c$$$         gama   = c(3,m)
+c$$$         gf10   = c(4,m)
+c$$$         teta   = c(5,m)
+c$$$         dtime  = c(6,m)
+c$$$c
+c$$$         xsurfvol = 1400.0d0
+c$$$         xcm = 1.0d0
+c$$$         dtime = dtime/(xsurfvol*xcm)
+c$$$c         
+c$$$         alf    = c(7,m)
+c$$$         dtm0   = (1.d00-alf)*dtime
+c$$$         dtm1   = alf*dtime
+c$$$         gamas  = gama
+c$$$c
+c$$$c     conductivity
+c$$$c
+c$$$         sigmal = 1.334d0
+c$$$         sigmat = 0.176d0
+c$$$         sigman = 0.176d0         
+c$$$c     
+c$$$c     recupera o vetor de carga: (f,v)
+c$$$c
+c$$$         do i=1,neep
+c$$$            elfbb(i) = felm(i,nel)
+c$$$         end do
+c$$$c     
+c$$$c     recupera o valor de p^{n}
+c$$$c     
+c$$$         do j=1,nenp
+c$$$            faa(j) = ddisa(1,j,nel)
+c$$$         end do       
+c$$$c     
+c$$$c     loop on integration points
+c$$$c
+c$$$         call cpu_time(xauz1)
+c$$$         
+c$$$         do l=1,nint
+c$$$            c1=detc(l)*w(l)
+c$$$c
+c$$$            pna  = 0.d00
+c$$$            pnax = 0.d00
+c$$$            pnay = 0.d00
+c$$$            pnaz = 0.d00
+c$$$            do j=1,nenp
+c$$$               pna  = pna  + shgp(4,j,l)*faa(j)
+c$$$               pnax = pnax + shgp(1,j,l)*faa(j)
+c$$$               pnay = pnay + shgp(2,j,l)*faa(j)
+c$$$               pnaz = pnaz + shgp(3,j,l)*faa(j)               
+c$$$            end do
+c$$$c
+c$$$c     loop to compute volume integrals
+c$$$c            
+c$$$            do j=1,nenp
+c$$$               djx = shgp(1,j,l)*c1
+c$$$               djy = shgp(2,j,l)*c1
+c$$$               djz = shgp(3,j,l)*c1
+c$$$               djn = shgp(4,j,l)*c1
+c$$$c
+c$$$c     source terms
+c$$$c
+c$$$               nbj  = ned*(j-1)
+c$$$               nbj1 = nbj+1
+c$$$c
+c$$$c     (p^{n+1},q) + dt*a(p^{n+1},q) +  b(\lmbda^{n+1},q) = (p^n , q ) + dt*(f,q)               
+c$$$c
+c$$$c$$$               elfbb(nbj1) = elfbb(nbj1) + djn*pna
+c$$$c$$$     &              - dtm0*(sigmal*pnax*djx +
+c$$$c$$$     &                      sigmat*pnay*djy +
+c$$$c$$$     &                      sigman*pnaz*djz)
+c$$$c$$$     &              - dtm0*(gama*pna*djn)
+c$$$            end do
+c$$$         end do
+c$$$
+c$$$         call cpu_time(xauz2)
+c$$$         xtauz = xtauz + (xauz2-xauz1)        
+c$$$         
+c$$$c ------------------------------------------------------------------------------
+c$$$c     boundary terms
+c$$$c ------------------------------------------------------------------------------
+c$$$
+c$$$         do 4000 ns=1,nside
+c$$$c     
+c$$$c     localiza os parametros do lado ns
+c$$$c
+c$$$            do nn=1,npars
+c$$$               idlsd(nn) = idside(ns,nn)
+c$$$            end do   
+c$$$            
+c$$$            do nn=1,npars
+c$$$               nld = idlsd(nn)
+c$$$               dls(nn) = dl(1,nld)
+c$$$c               
+c$$$c     descontinuo old
+c$$$c     
+c$$$c               nld = (ns-1)*npars + nn
+c$$$c               dls(nn) = dl(1,nld)
+c$$$            end do
+c$$$
+c$$$c            if(it.eq.1) then
+c$$$c               write(*,*) (dls(i),i=1,npars)
+c$$$c            end if
+c$$$            
+c$$$c     
+c$$$c     localiza os no's do lado ns
+c$$$c     
+c$$$            ns1 = idside(ns,1)
+c$$$            ns2 = idside(ns,2)
+c$$$            ns3 = idside(ns,3)
+c$$$            ns4 = idside(ns,4)
+c$$$c
+c$$$            nl1 = ien(ns1,nel)
+c$$$            nl2 = ien(ns2,nel)
+c$$$            nl3 = ien(ns3,nel)
+c$$$            nl4 = ien(ns4,nel)              
+c$$$c     
+c$$$c     ajeita a normal com o sinal
+c$$$c     normal da face
+c$$$c     
+c$$$            xn1 = xnrml(1,ns,nel)
+c$$$            xn2 = xnrml(2,ns,nel)
+c$$$            xn3 = xnrml(3,ns,nel)
+c$$$c     
+c$$$c     localize the coordinates of the side nodes
+c$$$c     
+c$$$            do nn=1,nenlad
+c$$$               nl = idlsd(nn)
+c$$$               xls(1,nn) = xl(1,nl)
+c$$$               xls(2,nn) = xl(2,nl)
+c$$$               xls(3,nn) = xl(3,nl)
+c$$$            end do
+c$$$c     
+c$$$c     global shape functions
+c$$$c     
+c$$$            call twoshgp(xls,detpn,shlb,shlpn,shgpn,
+c$$$     &           nenlad,npars,nints,nesd,ns,nel,neg,xxn)
+c$$$c            
+c$$$c     Dirichlet boundary conditions
+c$$$c
+c$$$            ndgs = lado(ns,nel)
+c$$$c
+c$$$c$$$            if(ideg(1,ndgs).eq.1) then
+c$$$c$$$               stop
+c$$$c$$$               call drchbc3(shgpn,shlb,detpn,wn,
+c$$$c$$$     &                      gf1,gf2,gf3,xls,dls,
+c$$$c$$$     &                      gama,pi,nints,nenlad,npars)
+c$$$c$$$c
+c$$$c$$$               ngs = npars*(ndgs-1)
+c$$$c$$$               nls = npars*(ns-1)
+c$$$c$$$               do i=1,npars
+c$$$c$$$                  index = ipar(nls+i,nel)
+c$$$c$$$                  d(1,index) = dls(i)                  
+c$$$c$$$                  dl(1,nls + i) = dls(i)
+c$$$c$$$               end do
+c$$$c$$$            end if
+c$$$c     
+c$$$c     compute boundary integral
+c$$$c     
+c$$$            do ls=1,nints
+c$$$               lb = (ns-1)*nints+ls
+c$$$c     
+c$$$c     geometria
+c$$$c     
+c$$$               x1 = 0.d00
+c$$$               x2 = 0.d00
+c$$$               x3 = 0.d00
+c$$$               do i=1,nenlad
+c$$$                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
+c$$$                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
+c$$$                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+c$$$               end do
+c$$$c          
+c$$$c     jump terms
+c$$$c     
+c$$$               pna  = 0.d00
+c$$$               pnax = 0.d00
+c$$$               pnay = 0.d00
+c$$$               pnaz = 0.d00
+c$$$               do i=1,nenp
+c$$$                  nbi = ned*(i-1)
+c$$$                  nbi1= nbi+1
+c$$$                  din=shgpsd(4,i,lb)
+c$$$                  dix=shgpsd(1,i,lb)
+c$$$                  diy=shgpsd(2,i,lb)
+c$$$                  diz=shgpsd(3,i,lb)
+c$$$c     
+c$$$                  gin = sigmal*dix*xn1
+c$$$     &                + sigmat*diy*xn2
+c$$$     &                + sigman*diz*xn3                  
+c$$$c     
+c$$$                  pna = pna  + shgpsd(4,i,lb)*faa(i)
+c$$$                  pnax= pnax + shgpsd(1,i,lb)*faa(i)
+c$$$                  pnay= pnay + shgpsd(2,i,lb)*faa(i)
+c$$$                  pnaz= pnaz + shgpsd(3,i,lb)*faa(i)
+c$$$               end do
+c$$$c     
+c$$$               gna = sigmal*pnax*xn1
+c$$$     &             + sigmat*pnay*xn2
+c$$$     &             + sigman*pnaz*xn3              
+c$$$c     
+c$$$c     valores dos parametros do multiplicador
+c$$$c     
+c$$$               xla = 0.d00
+c$$$               do i=1,npars
+c$$$                  xla = xla + dls(i)*shgpn(3,i,ls)
+c$$$               end do
+c$$$c     
+c$$$               do j=1,nenp
+c$$$                  nbj = ned*(j-1)
+c$$$                  nbj1=nbj+1
+c$$$                  djn=shgpsd(4,j,lb)*detpn(ls)*wn(ls)
+c$$$                  djx=shgpsd(1,j,lb)*detpn(ls)*wn(ls)
+c$$$                  djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)
+c$$$                  djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)
+c$$$c                  
+c$$$                  gjn = sigmal*djx*xn1
+c$$$     &                + sigmat*djy*xn2
+c$$$     &                + sigman*djz*xn3
+c$$$c     
+c$$$c     termo de a(.,.)
+c$$$c
+c$$$ccccc                  elfbb(nbj1) = elfbb(nbj1) -dtm0*(teta*gna*djn-pna*gjn)
+c$$$c     
+c$$$c     termos de b(.,.)
+c$$$c     
+c$$$                  elfbb(nbj1) = elfbb(nbj1) + dtm0*teta*xla*gjn
+c$$$cccc                  elfbb(nbj1) = elfbb(nbj1) - dtm0*betah*(pna-xla)*djn
+c$$$                  elfbb(nbj1) = elfbb(nbj1) - dtm0*betah*(-xla)*djn
+c$$$c     
+c$$$               end do                    
+c$$$            end do                      
+c$$$c
+c$$$ 4000    continue
+
+
+c     ------------------------------------------------------------------
+c     NEW nova implementacao produto matriz-vetor NEW
+c     ------------------------------------------------------------------
+         
+         call cpu_time(xaux1)
+c         
+c     recupera o vetor de carga: (f,v)
+c
+         do i=1,neep
+            elfbb(i) = felm(i,nel)
+         end do
+c     
+c     recupera o valor de p^{n}
+c     
+         do j=1,nenp
+            faa(j) = ddisa(1,j,nel)
+         end do
+c         
+c
+c     mat-vec prod p/ recuperar a()
+c     
+         do i=1,neep
+            xsoma = 0.0d0
+            do j=1,neep
+               xsoma = xsoma + akelm(i,j,nel)*faa(j)
+            end do
+            elfbb(i) = elfbb(i) + xsoma
+         end do
+c
+c     mat-vec prod p/ recuperar b()
+c         
+         do i=1,neep
+            xsoma = 0.0d0
+            do j=1,nee
+               xsoma = xsoma + (dtm0/dtm1)*bkelm(i,j,nel)*dl(1,j)
+            end do
+            elfbb(i) = elfbb(i) + xsoma
+         end do         
+c         
+         call cpu_time(xaux2)
+         xtaux = xtaux + (xaux2-xaux1)
+                  
+c     ------------------------------------------------------------------           
+c     
+c     recupera a matriz DB
+c     
+         do i=1,nee
+            do j=1,neep
+               elmdb(i,j) = dbel(i,j,nel)
+            end do
+         end do
+c     
+         do i=1,neep
+            fdelm(i,nel) = elfbb(i)
+         end do      
+c     
+c     elresd = - Bc B^{1}Fb
+c     
+         do i=1,nee
+            elresd(i) = 0.d00
+            do k=1,neep
+               elresd(i) = elresd(i) - elmdb(i,k)*elfbb(k)
+            end do
+         end do      
+c     
+c     compute new RHS
+c            
+         call addrhs(elresd,lm(1,1,nel),nee,userctx)        
+c
+ 500  continue
+c      
+      call cpu_time(xrhs2)
+      xtrhs = xtrhs + (xrhs2-xrhs1)      
+      
+c     end of element loop ------------------------------------------------------
+c
+c     solve system    
+c
+      call cpu_time(xpde1)
+c
+      bflag = mod(it,nsave)
+      call UserDoLinearSolver(userctx,xbrhs,bflag)
+c
+c     copy solution from brhs to d
+c      
+      call btod(idc,d,xbrhs,ndof,nmultp)
+c
+      call cpu_time(xpde2)
+      xtpde = xtpde + (xpde2-xpde1)
+      
+c ------------------------------------------------------------------------------
+c    calculo de p^{n+1}
+c ------------------------------------------------------------------------------
+
+      call cpu_time(xpos1)
+      
+      do i=1,numnp
+         xmean(i) = 0.d0
+         icont(i) = 0
+      end do
+c$$$c     
+c$$$c     calculo de h - caracteristico para cada elemento
+c$$$c
+c$$$      h2 = 0
+c$$$      do l=1,2
+c$$$         h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+c$$$     &           + (xl(3,l)-xl(3,l+2))**2
+c$$$      end do
+c$$$      h = dsqrt(h2)/2.d00
+c$$$      h2 = h*h      
+      
+c ------------------------------------------------------------------------------      
+      do 599 nel=1,numel
+c ------------------------------------------------------------------------------
+c     
+c     recupera o vetor de carga: (f,v)
+c     
+         do i=1,neep
+            elfbb(i) = fdelm(i,nel)
+         end do
+c     
+c     localize coordinates and Dirichlet b.c.
+c     
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)         
+         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
+c$$$c     
+c$$$c     centroide
+c$$$c     
+c$$$c$$$         call centroid(xl,nsd,nen,coo)
+c$$$c     
+c$$$c     material prop
+c$$$c     
+c$$$         m = mat(nel)
+c$$$c     
+c$$$c     check dimension - only works for 3D
+c$$$c          
+c$$$         call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
+c$$$         call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
+c$$$c     
+c$$$         nintb=nside*nints
+c$$$c     
+c$$$         call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
+c$$$     &        nside,nintb,nints,nel,neg,nenp,shsde,nen)
+c$$$         
+c$$$         call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
+c$$$     &        nside,nintb,nints,nel,neg,nencon,shsde,nen)
+c$$$         
+c$$$c     
+c$$$c     form stiffness matrix
+c$$$c     
+c$$$c     set up material properties
+c$$$c     
+c$$$         delta1 = c(1,m)
+c$$$         delta2 = c(2,m)
+c$$$         betah  = delta1*h**delta2
+c$$$         gama   = c(3,m)
+c$$$         gf10   = c(4,m)
+c$$$         teta   = c(5,m)
+c$$$         dtime  = c(6,m)
+c$$$c
+c$$$         xsurfvol = 1400.0d0
+c$$$         xcm = 1.0d0
+c$$$         dtime = dtime/(xsurfvol*xcm)
+c$$$c         
+c$$$         alf    = c(7,m)
+c$$$         dtm0   = (1.d00-alf)*dtime
+c$$$         dtm1   = alf*dtime
+c$$$         gamas  = gama
+c$$$c
+c$$$c     conductivity
+c$$$c
+c$$$         sigmal = 1.334d0
+c$$$         sigmat = 0.176d0
+c$$$         sigman = 0.176d0
+c$$$c     
+c$$$c     boundary terms - symmetrization
+c$$$c     
+c$$$         do 4004 ns=1,nside
+c$$$c     
+c$$$c     localiza os parametros do lado ns
+c$$$c
+c$$$            do nn=1,npars
+c$$$               idlsd(nn) = idside(ns,nn)
+c$$$            end do
+c$$$c            
+c$$$            do nn=1,npars
+c$$$               nld = idlsd(nn)
+c$$$               dls(nn) = dl(1,nld)
+c$$$c               
+c$$$c$$$               nld = (ns-1)*npars + nn
+c$$$c$$$               dls(nn) = dl(1,nld)
+c$$$            end do
+c$$$c     
+c$$$c     localiza os no's do lado ns
+c$$$c            
+c$$$            ns1 = idside(ns,1)
+c$$$            ns2 = idside(ns,2)
+c$$$            ns3 = idside(ns,3)
+c$$$            ns4 = idside(ns,4)
+c$$$
+c$$$            nl1 = ien(ns1,nel)
+c$$$            nl2 = ien(ns2,nel)
+c$$$            nl3 = ien(ns3,nel)
+c$$$            nl4 = ien(ns4,nel)
+c$$$c     
+c$$$c     ajeita a normal com o sinal
+c$$$c     
+c$$$            xn1 = xnrml(1,ns,nel)
+c$$$            xn2 = xnrml(2,ns,nel)
+c$$$            xn3 = xnrml(3,ns,nel)            
+c$$$c     
+c$$$c     localize the coordinates of the side nodes
+c$$$c     
+c$$$            do nn=1,nenlad
+c$$$               nl = idlsd(nn)
+c$$$               xls(1,nn) = xl(1,nl)
+c$$$               xls(2,nn) = xl(2,nl)
+c$$$               xls(3,nn) = xl(3,nl)
+c$$$            end do        
+c$$$c     
+c$$$c     global shape functions
+c$$$c     
+c$$$               call twoshgp(xls,detpn,shlb,shlpn,shgpn,
+c$$$     &              nenlad,npars,nints,nesd,ns,nel,neg,xxn)
+c$$$c     
+c$$$c     compute boundary integral
+c$$$c     
+c$$$            do ls=1,nints
+c$$$               lb=(ns-1)*nints+ls
+c$$$c     
+c$$$c     valores dos parametros do multiplicador
+c$$$c     
+c$$$               dhs = 0.d00
+c$$$               do i=1,npars
+c$$$                  dhs = dhs + dls(i)*shlpn(3,i,ls)
+c$$$               end do
+c$$$c
+c$$$               nla = lado(ns,nel)
+c$$$               xvla(ls,nla) = dhs
+c$$$c     
+c$$$c     geometria
+c$$$c
+c$$$               x1 = 0.d00
+c$$$               x2 = 0.d00
+c$$$               x3 = 0.d00
+c$$$               do i=1,nenlad
+c$$$                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
+c$$$                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
+c$$$                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+c$$$               end do
+c$$$c
+c$$$c     vetor
+c$$$c     
+c$$$               do j=1,nenp
+c$$$                  nbj = ned*(j-1)
+c$$$                  nbj1=nbj+1
+c$$$                  djn=shgpsd(4,j,lb)*detpn(ls)*wn(ls)*dtm1
+c$$$                  djx=shgpsd(1,j,lb)*detpn(ls)*wn(ls)*dtm1
+c$$$                  djy=shgpsd(2,j,lb)*detpn(ls)*wn(ls)*dtm1
+c$$$                  djz=shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
+c$$$c                  
+c$$$                  gjn = sigmal*djx*xn1
+c$$$     &                + sigmat*djy*xn2
+c$$$     &                + sigman*djz*xn3                  
+c$$$c     
+c$$$                  elfbb(nbj1) = elfbb(nbj1) + teta*dhs*gjn
+c$$$     &                                      + betah*dhs*djn
+c$$$               end do
+c$$$            end do
+c$$$c
+c$$$c               
+c$$$ 4004    continue
+
+c     --------------------------------------------------------------------------
+c     NEW nova implementacao mat-vec
+c     --------------------------------------------------------------------------        
+c     
+c     recupera o vetor de carga: (f,v)
+c     
+         do i=1,neep
+            elfbb(i) = fdelm(i,nel)
+         end do
+c
+c     mat-vec p/ b()
+c         
+         do i=1,neep
+            xsoma = 0.0d0
+            do j=1,nee
+               xsoma = xsoma + bkelm(i,j,nel)*dl(1,j)
+            end do
+            elfbb(i) = elfbb(i) + xsoma
+         end do
+         
+c ------------------------------------------------------------------------------
+c     Local TLDG-solution (potencial)
+c ------------------------------------------------------------------------------
+c        
+c     recupera a inversa da matriz do elemento
+c        
+         do i=1,neep
+            fab(i) = elfbb(i)
+            do j=1,neep
+               elmbb(i,j) = aelm(i,j,nel)
+            end do
+         end do
+c     
+c     calcula o vetor elfbb
+c     
+         do i=1,neep
+            elfbb(i) = 0.d00
+            do j=1,neep
+               elfbb(i) = elfbb(i) + elmbb(i,j)*fab(j)
+            end do
+         end do 
+c     
+c     valores nodais descontinuos AQUI
+c     valores para analise no ponto npsol
+c     monodominio: copia ddis anterior para xsv
+c     NEW NEW NEW- tira a media e atribui DEPOIS
+c         
+         do j=1,nenp
+            jj = ien(j,nel)
+            xmean(jj) = xmean(jj) + elfbb(j)
+            icont(jj) = icont(jj) + 1
+c
+            ddis(1,j,nel) = elfbb(j)
+         end do
+        
+         do j=1,nen
+            if(ien(j,nel).eq.npsol) then
+               sol(j) = elfbb(j)
+            end if
+         end do         
+c
+c ------------------------------------------------------------------------------
+ 599  continue
+c --- end of element loop ------------------------------------------------------        
+
+c
+c     atribui a media
+c                    
+      do nel=1,numel
+         do j=1,nenp
+            jj = ien(j,nel)
+            xsv(1,jj) = xmean(jj) / icont(jj)
+         end do
+      end do
+c      
+      call cpu_time(xpos2)
+      xtpos = xtpos + (xpos2-xpos1)
+c     
+c     escreve dados
+c
+      write(25,*) it,tempo
+      write(30,555) it,tempo,(sol(i),i=1,4)
+c      
+      if(mod(it,nsave).eq.0) then
+         call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
+ 555     format(i10,6e15.5)         
+      end if
+      
+c ------------------------------------------------------------------------------
+ 5555 continue
+c --- end of time loop ---------------------------------------------------------
+c
+      itest2 = itest2 + 1
+c     
+c     print timings
+c
+      write(*,"(A,F10.4)") "time in ODEs:",xtode
+      write(*,"(A,F10.4)") "time in PDE :",xtpde
+      write(*,"(A,F10.4)") "time in rhs :",xtrhs
+      write(*,"(A,F10.4)") "time in pos :",xtpos
+c      
+      write(*,"(A,F10.4)") "time in aux :",xtaux
+      write(*,"(A,F10.4)") "time in auz :",xtauz
+c      
+      return
+      end
+
+
+c-------------------------------------------------------------------------------
       subroutine flux3primal(ien   ,x     ,xl    ,
      &                       d     ,dl    ,mat   ,
      &                       det   ,shl   ,shg   ,
@@ -8711,7 +9894,7 @@ c
       Vec xsol      
 c
       integer bflag
-      real*8 xtode, xtpde, xtpos, xtrhs
+      real*8 xtode, xtpde, xtpos, xtrhs, xtaux, xtauz
 c
       dimension iedge(npars,*)
 c
@@ -8847,10 +10030,12 @@ c     initial condition
 c ------------------------------------------------------------------------------      
 
       write(*,*) "initial condition for monodomain"
-      xtode = 0.d0
-      xtpde = 0.d0
-      xtpos = 0.d0
-      xtrhs = 0.d0
+      xtode = 0.0d0
+      xtpde = 0.0d0
+      xtpos = 0.0d0
+      xtrhs = 0.0d0
+      xtaux = 0.0d0
+      xtauz = 0.0d0
 c
 c     number of state variables of the cell model
 c      
@@ -8858,7 +10043,6 @@ c
 c     
       do i=1,numnp
          call tt2006_init(nsv, xsv(1,i))
-c$$$     call ms_init(nsv, xsv(1,i))
          xvm(i) = xsv(1,i)
       end do
 c
@@ -8991,30 +10175,21 @@ c
             call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c            
             do i=1,nenp
-
                xx = xl(1,i)
                yy = xl(2,i)
                zz = xl(3,i)
-
-c               xstim = 0.0d0
-               
-               if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
-                  
+               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then                  
                   if(xx.ge.0.0.and.xx.le.0.15.and.
      &               yy.ge.0.0.and.yy.le.0.15.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-ccc                  xstim = 1.2d0
-
                      jj = ien(i,nel)
                      xstim(jj) = -35.714d0
-c                     xstim(jj) = 0.0d0
-c                    write(*,*) "stim em", jj, i, nel, xstim(jj)
                   end if
                end if
 
             end do ! nenp
-         end do    ! numel               
+         end do    ! numel
 c     
 c     NEW loop 
 c         
@@ -9028,22 +10203,11 @@ c
 c     advance ODEs with method (Euler,RL)
 c
             do j=1,nsv
-c
-c     Euler method
-c     
-c$$$          xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
-
-c
-c     Rush-Larsen Method
-c                  
                if(j.ge.2.and.j.le.13) then
                   xsv(j,i) = xdsv(j)
                else
                   xsv(j,i) = xsv(j,i) + dt * xdsv(j)
                end if
-
-c$$$               xsv(j,i) = xsv(j,i)
-               
             end do
 c
          end do      
@@ -9056,11 +10220,7 @@ c
                jj = ien(i,nel)                              
                xval = xsv(1,jj)
                ddis(1,i,nel) = xval
-c
-c     OLD
-c               ddis(1,i,j) = xsv(1,i,j)                             
-            end do
-
+            end do            
          end do
 c
 c     timings
@@ -9087,7 +10247,7 @@ c
          call clear(xbrhs,neq)        
          call VecSet(b,0.d00,ierr)
          CHKERRQ(ierr)
-
+         
 c ---  element loop ------------------------------------------------------------
          do 500 nel=1,numel
 c ------------------------------------------------------------------------------            
@@ -9103,11 +10263,14 @@ c
 c
 c     centroide
 c
-         call centroid(xl,nsd,nen,coo)
+c$$$  call centroid(xl,nsd,nen,coo)
+         
 c
 c     material prop
 c
          m = mat(nel)
+c
+         call cpu_time(xaux1)
 c
 c     check dimension - only works for 3D
 c
@@ -9120,10 +10283,13 @@ c
      &        nside,nintb,nints,nel,neg,nenp,shsde,nen)
          call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
      &        nside,nintb,nints,nel,neg,nencon,shsde,nen)
+
+         call cpu_time(xaux2)
+         xtaux = xtaux + (xaux2-xaux1)         
 c
 c     form stiffness matrix
 c     calculo de h - caracteristico para cada elemento
-c
+c         
          h2 = 0
          do l=1,2
             h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
@@ -9159,18 +10325,20 @@ c
 c     
 c     recupera o vetor de carga: (f,v)
 c
-      do i=1,neep
-        elfbb(i) = felm(i,nel)
-      end do
-c
-c    recupera o valor de p^{n}
-c
-      do j=1,nenp
-	  faa(j) = ddisa(1,j,nel)
-      end do       
-c
+         do i=1,neep
+            elfbb(i) = felm(i,nel)
+         end do
+c     
+c     recupera o valor de p^{n}
+c     
+         do j=1,nenp
+            faa(j) = ddisa(1,j,nel)
+         end do       
+c     
 c     loop on integration points
 c
+         call cpu_time(xauz1)
+         
          do l=1,nint
             c1=detc(l)*w(l)
 c
@@ -9207,7 +10375,11 @@ c
      &              - dtm0*(gama*pna*djn)
             end do
          end do
-      
+
+
+         call cpu_time(xauz2)
+         xtauz = xtauz + (xauz2-xauz1)
+         
 c ------------------------------------------------------------------------------
 c     boundary terms
 c ------------------------------------------------------------------------------
@@ -9249,15 +10421,15 @@ c
 c     
 c     confere nos globais depois que trocou (ou nao)
 c     
-            ns1=idlsd(1)
-            ns2=idlsd(2)
-            ns3=idlsd(3)
-            ns4=idlsd(4)
+c$$$            ns1=idlsd(1)
+c$$$            ns2=idlsd(2)
+c$$$            ns3=idlsd(3)
+c$$$            ns4=idlsd(4)
 c     
-            nl1=ien(ns1,nel)
-            nl2=ien(ns2,nel)
-            nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)
+c$$$            nl1=ien(ns1,nel)
+c$$$            nl2=ien(ns2,nel)
+c$$$            nl3=ien(ns3,nel)
+c$$$            nl4=ien(ns4,nel)
 c     
 c     ajeita a normal com o sinal
 c     normal da face
@@ -9457,7 +10629,6 @@ c ------------------------------------------------------------------------------
          xmean(i) = 0.d0
          icont(i) = 0
       end do
-
 c     
 c     calculo de h - caracteristico para cada elemento
 c
@@ -9486,11 +10657,11 @@ c
 c     
 c     centroide
 c     
-         call centroid(xl,nsd,nen,coo)
+c$$$         call centroid(xl,nsd,nen,coo)
 c     
 c     material prop
 c     
-c         m = mat(nel)
+         m = mat(nel)
 c     
 c     check dimension - only works for 3D
 c          
@@ -9563,15 +10734,15 @@ c
 c     
 c     confere nos globais depois que trocou (ou nao)
 c     
-            ns1=idlsd(1)
-            ns2=idlsd(2)
-            ns3=idlsd(3)
-            ns4=idlsd(4)
-c     
-            nl1=ien(ns1,nel)
-            nl2=ien(ns2,nel)
-            nl3=ien(ns3,nel)
-            nl4=ien(ns4,nel)
+c$$$            ns1=idlsd(1)
+c$$$            ns2=idlsd(2)
+c$$$            ns3=idlsd(3)
+c$$$            ns4=idlsd(4)
+c$$$c     
+c$$$            nl1=ien(ns1,nel)
+c$$$            nl2=ien(ns2,nel)
+c$$$            nl3=ien(ns3,nel)
+c$$$            nl4=ien(ns4,nel)
 c     
 c     ajeita a normal com o sinal
 c     
@@ -9732,8 +10903,11 @@ c
       write(*,"(A,F10.4)") "time in rhs :",xtrhs
       write(*,"(A,F10.4)") "time in pos :",xtpos
 c      
+      write(*,"(A,F10.4)") "time in aux :",xtaux
+      write(*,"(A,F10.4)") "time in auz :",xtauz
+c      
       return
-      end
+      end      
 
 c ------------------------------------------------------------------------------
       subroutine savevtk(iter,ddis,ned,nenp,numel,x,numnp,ien)
