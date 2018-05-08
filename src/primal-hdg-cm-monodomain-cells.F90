@@ -331,9 +331,7 @@ c     set runtime options (override all previous definitions)
       call KSPSetFromOptions(ksp,ierr)
 c
 c     solve
-c
-
-      
+c     
       call KSPSolve(ksp,b,x,ierr)
       CHKERRQ(ierr)
 c
@@ -6426,7 +6424,6 @@ c$$$     &                 userctx)
 c
 c     versao otimizada da flux3
 c      
-
       call flux3primalOpt(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
      &                 a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
@@ -6467,7 +6464,7 @@ c
      &                 nenp  ,nodsp ,index ,
      &                 nface ,nmultpc, a(mp(mlm)),
      &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
-     &                 a(mp(makelm)),a(mp(mbkelm)), !a(mp(mbkelm2)),
+     &                 a(mp(makelm)),a(mp(mbkelm)),
      &                 a(mp(xnrml)),userctx)     
       
 c

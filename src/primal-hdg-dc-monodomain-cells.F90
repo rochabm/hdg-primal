@@ -5543,7 +5543,6 @@ c
       common a(1)
       common /dictn/ ia(10000000)
 c
-      write(*,*)
       write(*,'(A)') "subroutine pflux"
 c
       mw     = 1
@@ -6202,32 +6201,29 @@ c
          write(*,'(A)') " calculando shl do multiplicador"
          write(*,'(4I5)') nenlad,nnods,npars,nints
 
-         write(*,*)
          write(*,'(A)') " calculando shlb"
          call shlqpk(shlb,wp,nints,nenlad)
 
-         write(*,*)
          write(*,'(A)') " calculando shln"
          call shlqpk(shln,wn,nints,nnods)
 
-         write(*,*)
          write(*,'(A)') " calculando shlpn"
          call shlqpk(shlpn,wpn,nints,npars)
-
-c     *** DEBUG ***
-c     shp do multiplicador (dim 2)
-         write(*,*)
-         write(*,'(A,2I5)') " dados shln", nnods, nints
-         do ii=1,nints
-            write(*,999) (shln(3,in,ii),in=1,nnods)
-         end do
-         write(*,*)
-
-         write(*,'(A,2I5)') " dados shlpn", npars, nints
-         do ii=1,nints
-            write(*,999) (shlpn(3,in,ii),in=1,npars)
-         end do
-         write(*,*)
+c
+c     DEBUG - shp do multiplicador (dim 2)
+c         
+c$$$         write(*,*)
+c$$$         write(*,'(A,2I5)') " dados shln", nnods, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shln(3,in,ii),in=1,nnods)
+c$$$         end do
+c$$$         write(*,*)
+c$$$
+c$$$         write(*,'(A,2I5)') " dados shlpn", npars, nints
+c$$$         do ii=1,nints
+c$$$            write(*,999) (shlpn(3,in,ii),in=1,npars)
+c$$$         end do
+c$$$         write(*,*)
 c
 c     then 3d stuff
 c     calcular: shl, shlc, shlp, shlpsd, shlcsd, shlsde
@@ -6235,15 +6231,12 @@ c
          write(*,'(A)') "calculando shl da variavel"
          write(*,'(A,2I5)') "nint,nen",nint,nen
 
-         write(*,*)
          write(*,'(A)') " calculando shl"
          call shlhxpk(shl,w,nint,nen)
 
-         write(*,*)
          write(*,'(A)') " calculando shlc"
          call shlhxpk(shlc,wc,nint,nencon)
 
-         write(*,*)
          write(*,'(A)') " calculando shlp"
          call shlhxpk(shlp,wp,nint,nenp)
 c
@@ -6278,71 +6271,67 @@ c
             nints2 = 7
          end if
 c
-         write(*,*)
          write(*,'(A)')  " integral em face/area"
          write(*,'(A,2I5)') " nints2,nen2",nints2,nnods2
 c
-         write(*,*)
          write(*,'(A)') " calculando shlpsd (shlhxpbk)"
          call shlhxpbk(shlpsd,nenp,nside,nnods2,nints2)
 
-         write(*,*)
          write(*,'(A)') " calculando shlcsd (shlhxpbk)"
          call shlhxpbk(shlcsd,nencon,nside,nnods2,nints2)
 
-         write(*,*)
          write(*,'(A)') " calculando shsde (shlhxpbk)"
          call shlhxpbk(shsde,nen,nside,nenlad2,nints2)
-
-c     *** DEBUG ***
-c     shp on volumes
-         write(*,*) "pesos da integracao de gauss - w"
-         write(*,'(10F8.4)') (w(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wc"
-         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
-         write(*,*) "pesos da integracao de gauss - wp"
-         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
-
-         write(*,*) "shl", nint, nen
-         do ii=1,nint
-            write(*,999) (shl(4,in,ii),in=1,nen)
-         end do
-
-         write(*,*) "shlc", nint, nencon
-         do ii=1,nint
-            write(*,999) (shlc(4,in,ii),in=1,nencon)
-         end do
-
-         write(*,*) "shlp", nint, nenp
-         do ii=1,nint
-            write(*,999) (shlp(4,in,ii),in=1,nenp)
-         end do
-
-c     *** DEBUG ***
-c     shp on faces
-         write(*,*)
-         write(*,*) "dados shlpsd - on faces"
-
-         write(*,*) "pesos da integracao de gauss - wn"
-         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
-         write(*,*) "pesos da integracao de gauss - wpn"
-         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
-
-         write(*,*) "shlpsd"
-         do ii=1,nints*nside
-            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
-         end do
-         write(*,*) "shlcsd",nencon,nside
-         do ii=1,nints*nside
-            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
-         end do
-         write(*,*) "shsde"
-         do ii=1,nints*nside
-            write(*,999) (shsde(4,in,ii),in=1,nen)
-         end do
+c         
+c     DEBUG - shp on volumes
+c         
+c$$$         write(*,*) "pesos da integracao de gauss - w"
+c$$$         write(*,'(10F8.4)') (w(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wc"
+c$$$         write(*,'(10F8.4)') (wc(ii),ii=1,nint)
+c$$$         write(*,*) "pesos da integracao de gauss - wp"
+c$$$         write(*,'(10F8.4)') (wp(ii),ii=1,nint)
+c$$$
+c$$$         write(*,*) "shl", nint, nen
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shl(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlc", nint, nencon
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlc(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$
+c$$$         write(*,*) "shlp", nint, nenp
+c$$$         do ii=1,nint
+c$$$            write(*,999) (shlp(4,in,ii),in=1,nenp)
+c$$$         end do
 c
- 999     format(' ',30F8.4)
-c     *** DEBUG ***
+c     DEBUG  - shp on faces
+c         
+c$$$         write(*,*)
+c$$$         write(*,*) "dados shlpsd - on faces"
+c$$$
+c$$$         write(*,*) "pesos da integracao de gauss - wn"
+c$$$         write(*,'(10F8.4)') (wn(ii),ii=1,nints)
+c$$$         write(*,*) "pesos da integracao de gauss - wpn"
+c$$$         write(*,'(10F8.4)') (wpn(ii),ii=1,nints)
+c$$$
+c$$$         write(*,*) "shlpsd"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlpsd(4,in,ii),in=1,nenp)
+c$$$         end do
+c$$$         write(*,*) "shlcsd",nencon,nside
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shlcsd(4,in,ii),in=1,nencon)
+c$$$         end do
+c$$$         write(*,*) "shsde"
+c$$$         do ii=1,nints*nside
+c$$$            write(*,999) (shsde(4,in,ii),in=1,nen)
+c$$$         end do
+c$$$c
+c$$$  999     format(' ',30F8.4)
+c         
       end if
 c
       nintb=nside*nints
@@ -6367,11 +6356,7 @@ c     generation of conectivety for element multipliers
 c
       write(*,'(A)') "subroutine genside"
       call genside(idside,nside,nencon)
-      write(*,*) "array idside"
-      do il=1,6
-         write(*,*) il, (idside(il,j),j=1,4)
-      end do
-
+c
       write(*,'(A)') "subroutine genelad"
       call genelad(lado,nside)
       if (iprtin.eq.0) call prntels(mat,lado,nside,numel)
@@ -8160,7 +8145,6 @@ c
 c     
       do i=1,numnp
          call tt2006_init(nsv, xsv(1,i))
-c$$$     call ms_init(nsv, xsv(1,i))
          xvm(i) = xsv(1,i)
       end do
 c
@@ -8298,25 +8282,18 @@ c
                yy = xl(2,i)
                zz = xl(3,i)
 
-c               xstim = 0.0d0
-               
-               if (tempo.gt.1.0d0.and.tempo.lt.2.0d0) then
+               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
                   
                   if(xx.ge.0.0.and.xx.le.0.15.and.
      &               yy.ge.0.0.and.yy.le.0.15.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-ccc                  xstim = 1.2d0
-ccc                  xstim = -35.714d0
-ccc                  write(*,*) "stim em", jj, i, nel
                      jj = ien(i,nel)
                      xstim(jj) = -35.714d0
                   end if
                end if
-
             end do ! nenp
          end do    ! numel               
-
 c     
 c     NEW loop 
 c         
@@ -8331,11 +8308,6 @@ c
 c     advance ODEs with method (Euler,RL)
 c
             do j=1,nsv
-c
-c     Euler method
-c     
-c$$$          xsv(j,i,nel) = xsv(j,i,nel) + dt * xdsv(j)
-
 c
 c     Rush-Larsen Method
 c                  
@@ -8356,11 +8328,7 @@ c
                jj = ien(i,nel)                              
                xval = xsv(1,jj)
                ddis(1,i,nel) = xval
-c
-c     OLD
-c               ddis(1,i,j) = xsv(1,i,j)                             
             end do
-
          end do
 c
 c     timings
@@ -8399,8 +8367,7 @@ c
 c     localize coordinates and Dirichlet b.c.
 c
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
-         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
-         
+         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)         
 c
 c     centroide
 c
@@ -8740,17 +8707,6 @@ c
             end do
          end do  
 c     
-c     escreve em arquivo para analise
-c     
-c$$$    if(nel.eq.1) then      
-c$$$      write(24,*) it,nel,nee,neep      
-c$$$      do i=1,nee
-c$$$         do k=1,neep
-c$$$            write(24,91)i,k,elresd(i),elmdb(i,k),elfbb(k)
-c$$$         end do
-c$$$      end do
-c$$$ 91   format(2i5,30e15.5) 
-c     
 c     compute new RHS
 c            
          call addrhs(elresd,lm(1,1,nel),nee,userctx)        
@@ -8820,7 +8776,7 @@ c
 c     
 c     material prop
 c     
-c         m = mat(nel)
+         m = mat(nel)
 c     
 c     check dimension - only works for 3D
 c          
@@ -11349,7 +11305,7 @@ c
       do 100 l = 1, nintx
          r = raone(l)
 c
-         write(*,'(A,I5,F8.4)') " ponto de gauss (shlone)", l,r
+c$$$         write(*,'(A,I5,F8.4)') " ponto de gauss (shlone)", l,r
 c
          if(nenx.eq.1) then
             shlone(1,1,l) = zero
@@ -11392,7 +11348,7 @@ c
             l = l+1
             r = raone(lx)
             s = raone(ly)
-            write(*,'(A,3I5,2F8.4)') " ponto de gauss", l,lx,ly,r,s
+c$$$            write(*,'(A,3I5,2F8.4)') " ponto de gauss", l,lx,ly,r,s
             do iy=1,neny
                do ix=1,nenx
                   j = inod(ix,iy)
@@ -12155,8 +12111,8 @@ c
 c
                l=l+1
 c
-               write(*,'(A,4I5,3F8.4)') " ponto de gauss",
-     &                              l,lx,ly,lz,ra(l),sa(l),ta(l)
+c$$$               write(*,'(A,4I5,3F8.4)') " ponto de gauss",
+c$$$     &                              l,lx,ly,lz,ra(l),sa(l),ta(l)
 c
                do iz=1,nenz
                   do iy=1,neny
@@ -12898,14 +12854,14 @@ c
 c
 c     build shape functions/derivatives
 c
-      write(*,*)
-      write(*,*) "building shl on faces"
+c$$$      write(*,*)
+c$$$      write(*,*) "building shl on faces"
 c
 c     loop on integration points
 c
       lb=0
       do ns=1,nside
-         write(*,'(A,I5)') " face",ns
+c$$$         write(*,'(A,I5)') " face",ns
          do ly = 1, ninty
             do lx = 1, nintx
 
@@ -12948,7 +12904,7 @@ c     cima
                   t = one
                end if
 c
-               write(*,'(A,3I5,3F8.4)') " ponto gauss", lx,ly,lb,r,s,t
+c$$$               write(*,'(A,3I5,3F8.4)') " ponto gauss", lx,ly,lb,r,s,t
 c
                shlx(1,1) = zero
                shly(1,1) = zero
