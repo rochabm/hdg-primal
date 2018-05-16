@@ -5932,6 +5932,7 @@ c
      &           nenp         ,nside         ,nodsp)
 c
       write(*,'(A)') "fim da flux1"
+      write(*,*) nmultp
       return
 c
   200 continue

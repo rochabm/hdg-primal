@@ -25,7 +25,7 @@ endif (NOT CMAKE_BUILD_TYPE)
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
   #set (CMAKE_Fortran_FLAGS_RELEASE "-w -Wfatal-errors -ffixed-form -mcmodel=large -fno-f2c -g -O0 -fbacktrace -ffpe-trap=zero,overflow,underflow")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-w -ffixed-form -mcmodel=large -funroll-all-loops -fno-f2c -O3")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-w -Wfatal-errors -ffixed-form -mcmodel=large -funroll-all-loops -fno-f2c -O3")
   #set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
@@ -58,9 +58,10 @@ set(PROGRAMS
   teste_dmplex_cell_list
   primal-hdg-dc
   primal-hdg-cm
-  primal-hdg-cm_DMPLEX
+  #primal-hdg-cm_DMPLEX
   primal-hdg-dc-monomial
   primal-hdg-dc-parabolic
+  primal-hdg-cm-parabolic
 )
 
 #
