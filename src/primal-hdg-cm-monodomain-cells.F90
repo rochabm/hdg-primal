@@ -9401,7 +9401,7 @@ c$$$               x3 = 0.d00
 c$$$               do i=1,nenlad
 c$$$                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
 c$$$                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
-c$$$                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+c$$$                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
 c$$$               end do
 c$$$c          
 c$$$c     jump terms
@@ -9715,7 +9715,7 @@ c$$$               x3 = 0.d00
 c$$$               do i=1,nenlad
 c$$$                  x1 = x1 + xls(1,i)*shlb(3,i,ls)
 c$$$                  x2 = x2 + xls(2,i)*shlb(3,i,ls)
-c$$$                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+c$$$                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
 c$$$               end do
 c$$$c
 c$$$c     vetor
@@ -10314,7 +10314,7 @@ c
          call cpu_time(xauz1)
          
          do l=1,nint
-            c1=detp(l)*w(l) !!!!!!!!!!!!!!!!!!!MALDITO DETC
+            c1=detp(l)*w(l) 
 c
             pna  = 0.d00
             pnax = 0.d00
@@ -10441,7 +10441,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c          
 c     jump terms
@@ -10501,9 +10501,11 @@ c
                   elfbb(nbj1) = elfbb(nbj1) -dtm0*(teta*gna*djn-pna*gjn)
 c     
 c     termos de b(.,.)
-c     
-                  elfbb(nbj1) = elfbb(nbj1) + dtm0*teta*xla*gjn
-                  elfbb(nbj1) = elfbb(nbj1) - dtm0*betah*(pna-xla)*djn
+c
+                  ! MATA ESSES TERMOS PARA CONFERIR O CRANK-NICOLSON (1.tempo,2.hdg)                  
+                  !elfbb(nbj1) = elfbb(nbj1) +dtm0*teta*xla*gjn
+                  !elfbb(nbj1) = elfbb(nbj1) -dtm0*betah*(pna-xla)*djn
+                  elfbb(nbj1) = elfbb(nbj1) -dtm0*betah*pna*djn
 c     
                end do                    
             end do
@@ -10729,7 +10731,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c
 c     vetor
@@ -11454,7 +11456,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c          
 c     jump terms
@@ -11760,7 +11762,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c
 c     vetor
@@ -12617,12 +12619,10 @@ c
          c(4,m) = del4          ! apwind (ativa o termo upwind, ver Oikawa 2014)
          c(5,m) = del5
          c(6,m) = del6
-         c(7,m) = del7          ! beta
+         c(7,m) = del7          ! teta-method
          c(8,m) = del8
          c(9,m) = del9
 c
-         write(*,*) "beta=", c(7,m)
-c         
          write(ieco,3000) m,del1,del2,del3,del4,
      &                    del5,del6,del7,del8,del9
 c

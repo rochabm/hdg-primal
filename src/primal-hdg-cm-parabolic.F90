@@ -343,7 +343,7 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E16.8,' iterations = ',I5)
+ 100  format('  Norm of residual = ',E16.8,' iterations = ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -483,7 +483,6 @@ c     nmultp  -=> nmultpd
 c     nmultpc -=> nmultpc
 c      
       nmultpd = nedge*npar
-      write(*,*) "NMULTPC",nmultpc
 c
       mpd    = mpoint('d       ',ndof  ,nmultpc ,0 ,iprec)
 c
@@ -501,7 +500,7 @@ c
       
 c     allocate memory for id array and clear
 c      
-      mpidc    = mpoint('idc     ',ndof  ,nmultpc ,0 ,1) !antigo mpid 
+      mpidc    = mpoint('idc     ',ndof  ,nmultpc ,0 ,1) !antigo mpid
 c
 c     input side/edge/face data for ipar
 c
@@ -719,21 +718,11 @@ c
       do j=1,nee
          k = lm(j)
          if (k.gt.0) then
-c$$$c           old code
-c$$$            brhs(k) = brhs(k) + elresf(j)            
             val = elresf(j)
             call VecSetValue(b,k-1,val,ADD_VALUES,ierr)
             CHKERRQ(ierr)
          end if
       end do
-
-c     TODO: implement this correctly, only assemble lm(j)>0  
-c$$$      do j=1,nee
-c$$$         indx(j) = lm(j)-1
-c$$$      enddo       
-c$$$      call VecSetValues(b,nee,indx,elresf,ADD_VALUES,ierr)
-c$$$      if (ierr.ne.0) then
-c$$$      endif
 c
       return
       end
@@ -838,12 +827,7 @@ c ------------------------------------------------------------------------------
 c     
       call iclear(ideg,2*ndof*nedge)
       call igen3d(ideg,2*ndof)
-c
-c$$$      do i=1,nedge
-c$$$         write(*,*) "face",i,ideg(1,i),ideg(2,i)
-c$$$         if(ideg(1,i).eq.1) k=k+1
-c$$$      end do
-c     
+c    
       if (iprtin.eq.0) then
          nn=0
          do n=1,nedge
@@ -1974,9 +1958,8 @@ c
  100  continue
       read(iin,1000) n,m,(itemp(i),i=1,nen),ng
 c
-      write(*,*) "subroutine genel"
-      write(*,*) "n,m,ng",n,m,ng
-      write(*,*) (itemp(i),i=1,nen)
+c     write(*,*) "n,m,ng",n,m,ng
+c     write(*,*) (itemp(i),i=1,nen)
 c
       if (n.eq.0) return
       call imove(ien(1,n),itemp,nen)
@@ -6135,7 +6118,10 @@ c
          mp(maelm) = mpoint('aelm   ',neep  ,neep    ,numel ,iprec)         
          mp(mdbel) = mpoint('dbel   ',nee   ,neep    ,numel ,iprec)
          mp(mddisa)= mpoint('ddisa  ',ned   ,nenp    ,numel ,iprec)
-         mp(mxbrhs)= mpoint('xbrhs  ',neq   ,0       ,0     ,iprec)
+c
+c     xbrhs deve ser alocado depois de saber o tamanho de nmultpc
+c         
+c$$$         mp(mxbrhs)= mpoint('xbrhs  ',neq   ,0       ,0     ,iprec)
          mp(mxvla) = mpoint('xvla   ',nints ,nedge   ,0     ,iprec)
          mp(mxvlb) = mpoint('xvlb   ',nints ,nedge   ,0     ,iprec)
 c
@@ -6145,7 +6131,7 @@ c
          mp(mindedg) = mpoint('indedg  ',nedge  ,0     ,0     ,1    )
          mp(miedgto) = mpoint('iedgto  ',nedge  ,0     ,0     ,1    )         
 c
-      endif
+      endif            
 c
 c     task calls
 c
@@ -6180,11 +6166,12 @@ c
      &             nnods        ,nenlad        ,npars,
      &             nenp         ,nside         ,nodsp,
      &             nedge        ,nmultpd       ,nmultpc)
-c     
+c
       return
+
 c
  200  continue
-      write(*,'(A)') "subroutine flux1sd"     
+      write(*,'(A)') "subroutine flux1sd"
       call flux1sd(a(mp(mien  )),a(mp(mmat  )),
      &             a(mp(mlm   )),
      &             a(mpidc     ),a(mped      ),
@@ -6206,7 +6193,7 @@ c
      &             nencon,necon ,nints ,
      &             nnods ,nenlad,npars ,
      &             nenp  ,nside ,nodsp ,
-     &             nedge ,nmultpd,nmultpc)      
+     &             nedge ,nmultpd,nmultpc)
       return
       
  300  continue
@@ -6214,6 +6201,7 @@ c
 c     ('form_stb')
 c
       read(iin,*) index,iwrite
+      write(*,'(A,3I8)') " nmultpc", nmultpc
 c
       return
 c
@@ -6222,7 +6210,7 @@ c
 c     Esta rotina monta a matriz global (multiplicadores
 c     usando condensacao estatica dos graus de liberdade
 c     da variavel primalx
-c
+c      
       write(*,'(A)') "subroutine flux2"
       call flux2(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &           a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6248,6 +6236,8 @@ c
 c
      &           a(mp(mshlpsd)),a(mp(mshlcsd)),
      &           a(mp(mshgpsd)),a(mp(mshgcsd)),
+c
+     &           a(mpiedge)   ,a(mpidc     ),      
 c
      &           numel ,neesq ,nen   ,nsd   ,
      &           nesd  ,nint  ,neg   ,nrowsh,
@@ -6289,7 +6279,7 @@ c
      &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
      &                 a(mp(melmdb)),a(mped      ),
 c
-     &                 a(mp(mshsde)),
+     &                 a(mp(mshsde)),a(mpiedge),a(mpidc),
 c
      &                 a(mp(mshlpsd)),a(mp(mshlcsd)),
      &                 a(mp(mshgpsd)),a(mp(mshgcsd)),
@@ -6306,8 +6296,9 @@ c
      &                 neep  ,nints ,nnods ,
      &                 nenlad,npars ,nside ,
      &                 nenp  ,nodsp ,index ,
-     &                 nface ,nmultp, a(mp(mlm)),
-     &                 a(mp(mxbrhs)),userctx)
+     &                 nface ,nmultpc,
+     &                 a(mp(mlm)),a(mpbrhs),
+     &                 userctx)
 
       write(*,'(A)') "fim da flux3primal"
 c
@@ -6336,7 +6327,7 @@ c
      &            ncon  ,nencon,necon ,index ,
      &            nints ,ipp,   nenp  ,
      &            nside ,nnods ,nenlad,npars ,
-     &            nmultp,nodsp )
+     &            nmultpc,nodsp )
 c
       write(*,'(A)') "fim da flnormp"
 c
@@ -6894,15 +6885,7 @@ c
       end do
 c      
       nmultpc = keq
-      write(*,'(A,I10)') " nmultpc:", nmultpc
-
-c
-      write(*,*) "DEBUG IEDGE"
-      do i=1,nedge
-         write(*,*) "IEDGE", (iedge(j,i),j=1,npars)
-      end do
-c      stop
-      
+      write(*,'(A,I10)') " nmultpc:", nmultpc     
 c      
       return
 c
@@ -6971,13 +6954,13 @@ c
       write(*,'(A)') "subroutine genelpar"
       call genelpar(ipar,ien,lado,idside,iedge,indedg,idlsd,
      &              nen,nside,nodsp,numel,npars)
-      if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)               
+      if (iprtin.eq.0) call prntelp(mat,ipar,nodsp,numel)     
 c
 c     generation of lm array
 c
       write(*,'(A)') "subroutine formlm"
       call formlm(idc,ipar,lm,ndof,ndof,nodsp,numel)     
-c$$$c    
+c     
       return
 c
  1000 format(///,
@@ -8180,6 +8163,8 @@ c
      &                 shlpsd,shlcsd,
      &                 shgpsd,shgcsd,
 c
+     &                 iedge, idc,
+c
      &                 numel ,neesq ,nen   ,nsd   ,
      &                 nesd  ,nint  ,neg   ,nrowsh,
      &                 ned   ,nee   ,numnp ,ndof  ,
@@ -8209,16 +8194,17 @@ c
       dimension elmdb(nee,*),elmbc(nee,*)
       dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
       dimension elfbb(*),elfcb(*)
-c
-      dimension ien(nen,*),x(nsd,*),xl(nesd,*),mat(*)
-      dimension d(ndof,*),dl(ned,*),dls(64)
-      dimension w(*),c(10,*),lm(ned,nodsp,*),
-     &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
-     &     detc(*),eleffd(nee,*),elresd(*)
-      dimension wn(*),idside(nside,*),xls(nesd,*),idlsd(*),
-     &     dsfl(ncon,nencon,*),ddis(ned,nenp,*)
-      dimension det(*),detp(*),detb(*),detpn(*)
-      dimension ideg(2*ndof,*)
+      dimension ien(nen,*),x(nsd,*),xl(nesd,*),xls(nesd,*),mat(*)
+      dimension d(ndof,*),dl(ned,*),dls(64),dlhs(*)
+      dimension w(*),wn(*),c(10,*),lm(ned,nodsp,*)
+c      
+      dimension grav(*),ipar(nodsp,*),lado(nside,*)
+      dimension eleffd(nee,*),elresd(*)
+      dimension idside(nside,*),idlsd(*)
+      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+      dimension det(*),detp(*),detb(*),detpn(*),detc(*)
+c      
+      dimension ideg(2*ndof,*),iedge(npars,*),idc(ndof,*)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
@@ -8238,7 +8224,7 @@ c
       dimension aelm(neep,neep,*),dbel(nee,neep,*),felm(neep,*)
 c      
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
-      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
+      common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite         
 c
 c     PETSC stuff
 c      
@@ -8286,17 +8272,12 @@ c
             write(*,*) "2d not working"
             stop
          else if(nsd.eq.3) then
-            quad = .false.
-            hexa = .true.
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
             nintb=nside*nints
 c
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
          end if
 c
@@ -8308,7 +8289,8 @@ c     calculo de h - caracteristico para cada elemento
 c
          h2=0
          do l=1,2
-            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &              + (xl(2,l)-xl(2,l+2))**2
      &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h=dsqrt(h2)/2.d00
@@ -8360,7 +8342,6 @@ c
 c
 c            pss = 0.d000
             pss = sx*sy*sz
-c           pss = sx*sy*sz
             
 c     ------------------------------------------------------------------
 c     loop to compute volume integrals
@@ -8406,7 +8387,7 @@ c
          do i=1,neep
             felm(i,nel) = elfbb(i)
          end do
-
+         
 c     ------------------------------------------------------------------
 c     boundary terms
 c     ------------------------------------------------------------------         
@@ -8437,7 +8418,8 @@ c
             else
                sign = -1.d00
             end if
-            do nn=1,nenlad
+c            
+            do nn=1,npars
                idlsd(nn) = idside(ns,nn)
             end do
 c
@@ -8492,14 +8474,14 @@ c
                call drchbc3(shgpn,shlb,detpn,wn,gf1,gf2,gf3,xls,dls,
      &              gama,pi,nints,nenlad,npars)
 c
-               ngs = npars*(ndgs-1)
-               nls = npars*(ns-1)
+               igl = 1     
                do i=1,npars
-                  index = ipar(nls+i,nel)
-                  d(1,index) = dls(i)                  
-                  dl(1,nls + i) = dls(i)
+                  ngs = iedge(i,ndgs)
+                  d(igl,ngs) = dls(i)
+                  nls = idlsd(i)
+                  dl(igl,nls) = dls(i)
                end do
-            end if       
+            end if
 c
 c     compute boundary integral
 c
@@ -8528,7 +8510,7 @@ c
                   djy = shgpsd(2,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djz = shgpsd(3,j,lb)*detpn(ls)*wn(ls)*dtm1
                   djn = shgpsd(4,j,lb)*detpn(ls)*wn(ls)*dtm1
-c                  
+c
                   gjn = djx*xn1 + djy*xn2 + djz*xn3
 c
                   do i=1,nenp
@@ -8542,7 +8524,7 @@ c
                      gin = dix*xn1 + diy*xn2 + diz*xn3
 c
 c     -(grad p.n, q) - (grad q.n, p)
-c                     
+c              
                      elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
      &                                + teta*gin*djn - din*gjn
                   end do
@@ -8551,8 +8533,8 @@ c
 c     monta matrizez Cb e Bc
 c
                do j=1,npars
-c
-                  ncj1 = (ns-1)*npars + j
+c$$$              ncj1 = (ns-1)*npars + j
+                  ncj1 = idlsd(j)                  
                   djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)*dtm1
 c
 c     no source term
@@ -8590,7 +8572,8 @@ c
 c     monta matriz Bc e Cb
 c
                do j=1,npars
-                  ncj1 = (ns-1)*npars + j
+c$$$              ncj1 = (ns-1)*npars + j
+                  ncj1 = idlsd(j)  
                   djn = shgpn(3,j,ls)*detpn(ls)*wn(ls)*dtm1
 c
 c     no source term: b(\lambda, q) 
@@ -8603,9 +8586,10 @@ c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - betah*din*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) - betah*din*djn
                   end do
-c
+c                 
                   do i=1,npars
-                     nci1 = (ns-1)*npars + i
+c$$$                 nci1 = (ns-1)*npars + i
+                     nci1 = idlsd(i)
                      din = shgpn(3,i,ls)
 c
                      eleffd(nci1,ncj1) = eleffd(nci1,ncj1)
@@ -8713,10 +8697,6 @@ c     fim do loop em elementos na flux2
 c
       call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
       call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
-
-c      call MatIsSymmetric(A,0.0,flg,ierr)
-c     write(*,*) "matriz simetrica: ", flg
-      
 c
 c     save matrix
 c      
@@ -8730,8 +8710,8 @@ c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.dat",viewer,ierr)
 c$$$      call PetscViewerSetFormat(viewer,PETSC_VIEWER_ASCII_DENSE,ierr)
 c$$$      call MatView(A,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
-c      
-      return
+c
+      return      
       end
 
 c-------------------------------------------------------------------------------
@@ -8804,7 +8784,7 @@ c-------------------------------------------------------------------------------
      &                       elfab ,elfbb ,elfcb ,
      &                       elmdb ,ideg  , 
 c
-     &                       shsde ,
+     &                       shsde ,iedge,idc,
 c
      &                       shlpsd,shlcsd,
      &                       shgpsd,shgcsd,
@@ -8821,7 +8801,7 @@ c
      &                       neep  ,nints ,nnods ,
      &                       nenlad,npars ,nside ,
      &                       nenp  ,nodsp ,index ,
-     &                       nface ,nmultp,lm    ,
+     &                       nface ,nmultpc,lm    ,
      &                       xbrhs, userctx)
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
@@ -8839,25 +8819,22 @@ c
       Vec b
       Vec xsol
 c
-      logical diag,quad
+      logical quad
 c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
       dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
       dimension elfbb(*),elfcb(*)
-c
       dimension eleffd(nee,*),elresd(*)
+c      
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*)
       dimension mat(*),c(10,*),grav(*),ipar(nodsp,*),lado(nside,*)
       dimension w(*),wn(*)
       dimension det(*),detc(*),detb(*),detpn(*),detp(*)
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
       dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
-c      
-      dimension lm(ned,nodsp,*)
-c      
-      dimension dls(64)
+      dimension lm(ned,nodsp,*), dls(64)
 c
       dimension shlb (nrowsh,nenlad,*),shgb (nrowsh,nenlad,*)
       dimension shlpn(nrowsh,npars,*), shgpn(nrowsh,npars,*)
@@ -8879,7 +8856,7 @@ c
       dimension fdelm(neep,*),felm(neep,*)
       dimension xvla(nints,*),xvlb(nints,*)
       dimension xbrhs(*), id(ndof,*)
-      dimension ideg(ndof,*)
+      dimension ideg(ndof,*), iedge(npars,*), idc(ndof,*)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -8888,7 +8865,7 @@ c
 c               
 c ------------------------------------------------------------------------------
 c     initialization
-c ------------------------------------------------------------------------------
+c------------------------------------------------------------------------------
 c
 c     PETSc stuff
 c      
@@ -8900,7 +8877,6 @@ c
 c
 c     consistent matrix
 c      
-      diag = .false.
       pi = 4.d00*datan(1.d00)
       gf1 = grav(1)
       gf2 = grav(2)
@@ -8909,7 +8885,6 @@ c
 c     solution in one point
 c
       npsol = (numnp+1)/2
-      write(*,*) "NPSOL",npsol
       do i=1,nen
         sol(i) = 0.d00
       end do
@@ -8937,7 +8912,8 @@ c     calculo de h - caracteristico para cada elemento
 c
          h2 = 0
          do l=1,2
-            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &              + (xl(2,l)-xl(2,l+2))**2
      &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h = dsqrt(h2)/2.d00
@@ -8958,7 +8934,6 @@ c
          dtm1   = alf*dtime
          gamas  = gama
 c
-         write(*,*) nen, nenp
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c
 c     TODO: check if it is nen or nenp here
@@ -8986,17 +8961,17 @@ c     save data at npsol point
 c            
             if(ien(i,nel).eq.npsol) then
                cat0 = sx*sy*sz
-               sol(isol) = cat0
+               sol(isol) = 0.0d0 !cat0
                isol = isol + 1
             end if
          end do
       end do
 c
-      exat = 1.d00
+      exat = 0.d00
 c
       it    = 0
       tempo = 0.d00
-      write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+      write(*,"(A,I5,F10.4)",advance="no") "Tempo",it,tempo
 c
 c     write initial condition
 c     
@@ -9015,17 +8990,16 @@ c
       write(*,*) "npsol",npsol
       write(*,*) "numnp",numnp
       write(*,*) "ndof",ndof
-      write(*,*) "nmultp",nmultp
+      write(*,*) "nmultp",nmultpc
+      write(*,*) "nodsp", nodsp
 c
 c     initial condition equal to zero for multiplier
 c
-      call clear(d,ndof*nmultp)
+      call clear(d,ndof*nmultpc)
 c      
-      do ii=1,nmultp
+      do ii=1,nmultpc
          d(1,ii) = 0.0d0
       end do
-
-      stop
       
 c ------------------------------------------------------------------------------
 c     time integration loop
@@ -9042,8 +9016,7 @@ c
 c
          tempo = it*dt
 c         
-         write(*,*) ""
-         write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+         write(*,"(A,I5,F10.4)",advance="no") "Tempo",it,tempo
 c     
 c     guarda valor anterior
 c        p^(n+1) -> ddis
@@ -9067,13 +9040,13 @@ c ------------------------------------------------------------------------------
 c     
 c     clear stiffness matrix and force array
 c
-         call clear(elfbb,neep)
+            call clear(elfbb,neep)
 c
 c     localize coordinates and Dirichlet b.c.
 c
-         call local(ien(1,nel),x,xl,nen,nsd,nesd)
-         call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
-c
+            call local(ien(1,nel),x,xl,nen,nsd,nesd)
+            call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
+c     
 c     centroide
 c
          call centroid(xl,nsd,nen,coo)
@@ -9087,30 +9060,20 @@ c
          if(nsd.eq.2) then
             quad = .true.
             if (nen.eq.4.and.ien(3,nel).eq.ien(4,nel)) quad = .false.
-            call shgqs(xl,detc,shlc,shgc,nint,nel,neg,quad,nencon,
-     &           shl,nen)
-            call shgqs(xl,detp,shlp,shgp,nint,nel,neg,quad,nenp,
-     &            shl,nen)
-c           call shgq(xl,det,shl,shg,nint,nel,neg,quad,nen)
+            call shgqs(xl,detp,shlp,shgp,nint,nel,neg,quad,nenp,shl,nen)
 c
             nintb=nside*nints
 c
             call shgtqsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgtqsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
-         else if(nsd.eq.3) then
-c            
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
+         else if(nsd.eq.3) then           
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c
             nintb=nside*nints
 c
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
      &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
 c
          end if
 c
@@ -9119,7 +9082,8 @@ c     calculo de h - caracteristico para cada elemento
 c
          h2 = 0
          do l=1,2
-            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &              + (xl(2,l)-xl(2,l+2))**2
      &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h = dsqrt(h2)/2.d00
@@ -9154,7 +9118,7 @@ c
 c     loop on integration points
 c
          do l=1,nint
-            c1=detc(l)*w(l)
+            c1=detp(l)*w(l)
 c
             pna  = 0.d00
             pnax = 0.d00
@@ -9195,10 +9159,14 @@ c ------------------------------------------------------------------------------
          do 4000 ns=1,nside
 c     
 c     localiza os parametros do lado ns
-c     
-            do nn=1,npars
-               nld = (ns-1)*npars + nn
-               dls(nn) = dl(1,nld)
+c
+c            
+c     caso continuo
+c            
+            do il=1,npars
+               idlsd(il) = idside(ns,il)
+               nld = idlsd(il)
+               dls(il) = dl(1,nld)
             end do
 c     
 c     localiza os no's do lado ns
@@ -9226,7 +9194,8 @@ c
             else
                sign = -1.d00
             end if
-            do nn=1,nenlad
+c            
+            do nn=1,npars
                idlsd(nn) = idside(ns,nn)
             end do            
 c     
@@ -9282,12 +9251,14 @@ c
      &                      gf1,gf2,gf3,xls,dls,
      &                      gama,pi,nints,nenlad,npars)
 c
-               ngs = npars*(ndgs-1)
-               nls = npars*(ns-1)
+c     multiplicador continuo
+c               
+               igl = 1               
                do i=1,npars
-                  index = ipar(nls+i,nel)
-                  d(1,index) = dls(i)                  
-                  dl(1,nls + i) = dls(i)
+                  ngs = iedge(i,ndgs)
+                  d(igl,ngs) = dls(i)     
+                  nls = idlsd(i)
+                  dl(igl,nls) = dls(i)
                end do
             end if
 c     
@@ -9304,7 +9275,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c          
 c     jump terms
@@ -9361,6 +9332,7 @@ c
             end do
 c
  4000    continue
+
 c     
 c     recupera a matriz DB
 c     
@@ -9383,24 +9355,12 @@ c
             end do
          end do  
 c     
-c     escreve em arquivo para analise
-c     
-c$$$    if(nel.eq.1) then      
-c$$$      write(24,*) it,nel,nee,neep      
-c$$$      do i=1,nee
-c$$$         do k=1,neep
-c$$$            write(24,91)i,k,elresd(i),elmdb(i,k),elfbb(k)
-c$$$         end do
-c$$$      end do
-c$$$ 91   format(2i5,30e15.5) 
-c     
 c     compute new RHS
 c            
-         call addrhs(elresd,lm(1,1,nel),nee,userctx)        
+         call addrhs(elresd,lm(1,1,nel),nee,userctx)
 c
  500  continue
 c     end of element loop ------------------------------------------------------
-      
 c
 c     solve system    
 c     
@@ -9408,7 +9368,7 @@ c
 c
 c     copy solution from brhs to d
 c     
-      call btod(id,d,xbrhs,ndof,nmultp)     
+      call btod(idc,d,xbrhs,ndof,nmultpc)
       
 c ------------------------------------------------------------------------------
 c     calculo de p^{n+1}
@@ -9419,7 +9379,7 @@ c     u^{n+1} = A^{-1} (F - B lambda^{n+1})
 c     
 c     dt entra aqui -> dtm1
 c ------------------------------------------------------------------------------
-
+      
 c ------------------------------------------------------------------------------      
       do 599 nel=1,numel
 c ------------------------------------------------------------------------------               
@@ -9449,17 +9409,12 @@ c
             write(*,*) "erro 2d not working"
             stop
          else if(nsd.eq.3) then
-c     
-            call shghx(xl,detc,shlc,shgc,nint,nel,neg,nencon,shl,nen)
             call shghx(xl,detp,shlp,shgp,nint,nel,neg,nenp,shl,nen)
 c     
             nintb=nside*nints
 c     
             call shgthxsd(ien(1,nel),xl,shlpsd,shgpsd,
-     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)
-            call shgthxsd(ien(1,nel),xl,shlcsd,shgcsd,
-     &           nside,nintb,nints,nel,neg,nencon,shsde,nen)
-c     
+     &           nside,nintb,nints,nel,neg,nenp,shsde,nen)     
          end if
 c     
 c     form stiffness matrix
@@ -9467,7 +9422,8 @@ c     calculo de h - caracteristico para cada elemento
 c
          h2 = 0
          do l=1,2
-            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &              + (xl(2,l)-xl(2,l+2))**2
      &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h = dsqrt(h2)/2.d00
@@ -9493,10 +9449,11 @@ c
 c     
 c     localiza os parametros do lado ns
 c     
-            do nn=1,npars
-               nld = (ns-1)*npars + nn
-               dls(nn) = dl(1,nld)
-            end do
+            do il=1,npars
+               idlsd(il) = idside(ns,il)
+               nld = idlsd(il)
+               dls(il) = dl(1,nld)
+            end do                        
 c     
 c     localiza os no's do lado ns
 c     
@@ -9518,12 +9475,14 @@ c
             call cross(vab,vad,xn)
             call nrm3(xn)
             dotcn = dot3(vc,xn)
+c
             if(dotcn.lt.0.d0) then
                sign = 1.d00
             else
                sign = -1.d00            
             end if
-            do nn=1,nenlad
+c            
+            do nn=1,npars
                idlsd(nn) = idside(ns,nn)
             end do            
 c     
@@ -9593,14 +9552,14 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 
 c
 c     DEBUG: forcar o multiplicador EXATO
 c
-c               dhs = dexp(-3.d00*pi2*tempo)*
-c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
+c$$$               dhs = (1.d0/(3.d0*pi*pi))*(1.d0-dexp(-3.d00*pi2*tempo))*
+c$$$     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
 c     
                do j=1,nenp
                   nbj = ned*(j-1)
@@ -9653,7 +9612,7 @@ c
                cat=dexp(-tempo/co)
                fat=(1.d00-cat)
                pi2=pi**2
-               exat = dexp(-3.d00*pi2*tempo)
+               exat = 1.0d0 - dexp(-3.d00*pi2*tempo)
                sol(j) = elfbb(j)
                isol = isol+1
             end if
@@ -10207,17 +10166,6 @@ c
       edpz  = 0.d00
       xmlt  = 0.d00
 c
-c     debug
-c
-c      write(*,*) "MULTIPLICADORES"
-c      do kk=1,nmultp
-c         write(*,'(I5,F10.6)') kk, d(1,kk)
-c         if(mod(kk,4).eq.0) then
-c            write(*,*) ""
-c         end if
-c      end do
-
-c
 c     loop on elements
 c
       do 50 n=1,numel
@@ -10329,10 +10277,18 @@ c
 c
 c     localiza os parametros do lado ns
 c
+            do il=1,npars
+               idlsd(il) = idside(ns,il)
+	    end do
             do nn=1,npars
-               nld = (ns-1)*npars + nn
+               nld = idlsd(nn)
                dls(nn) = dl(1,nld)
             end do
+            
+c$$$            do nn=1,npars
+c$$$               nld = (ns-1)*npars + nn
+c$$$               dls(nn) = dl(1,nld)
+c$$$            end do
 c
 c     localiza os no's do lado ns (local)
 c
@@ -10359,15 +10315,14 @@ c
 c
             if(dotcn.lt.0.d0) then
                sign = 1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             else
                sign = -1.d00
-               do nn=1,nenlad
-                  idlsd(nn) = idside(ns,nn)
-               end do
             end if
+
+            do nn=1,npars
+               idlsd(nn) = idside(ns,nn)
+            end do
+c            
 c
 c     muda a normal (se necessario)
 c

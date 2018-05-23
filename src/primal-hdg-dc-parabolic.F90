@@ -346,7 +346,7 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
       write(6,100) norm, its
- 100  format('Norm of residual = ',E16.8,' iterations = ',I5)
+ 100  format('  Norm of residual = ',E16.8,' iterations = ',I5)
 c
 c     get data from vector, copy to sol and restore vector
 c
@@ -7973,7 +7973,6 @@ c
 c
 c     consistent matrix
 c      
-      diag = .false.
       pi = 4.d00*datan(1.d00)
       gf1 = grav(1)
       gf2 = grav(2)
@@ -8031,7 +8030,6 @@ c
          dtm1   = alf*dtime
          gamas  = gama
 c
-         write(*,*) nen, nenp
          call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c
 c     TODO: check if it is nen or nenp here
@@ -8048,7 +8046,7 @@ c
             sy=dsin(piy)
             sz=dsin(piz)     
             pi2=pi*pi
-            co=1.d00/(pi2*2.d00+gama)
+            co=1.d00/(pi2*3.d00)
 c
 c     save initial condition
 c            
@@ -8059,7 +8057,7 @@ c     save data at npsol point
 c            
             if(ien(i,nel).eq.npsol) then
                cat0 = sx*sy*sz
-               sol(isol) = cat0
+               sol(isol) = 0.0d0 !cat0
                isol = isol + 1
             end if
          end do
@@ -8069,7 +8067,7 @@ c
 c
       it    = 0
       tempo = 0.d00
-      write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+      write(*,"(A,I5,F10.4)", advance="no") "Tempo",it,tempo
 c
 c     write initial condition
 c     
@@ -8113,8 +8111,7 @@ c
 c
          tempo = it*dt
 c         
-         write(*,*) ""
-         write(*,"(A,I5,F10.4)") "Tempo",it,tempo
+         write(*,"(A,I5,F10.4)",advance="no") "Tempo",it,tempo
 c     
 c     guarda valor anterior
 c        p^(n+1) -> ddis
@@ -8375,7 +8372,7 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 c          
 c     jump terms
@@ -8664,14 +8661,14 @@ c
                do i=1,nenlad
                   x1 = x1 + xls(1,i)*shlb(3,i,ls)
                   x2 = x2 + xls(2,i)*shlb(3,i,ls)
-                  x3 = x3 + xls(2,i)*shlb(3,i,ls)
+                  x3 = x3 + xls(3,i)*shlb(3,i,ls)
                end do
 
 c
 c     DEBUG: forcar o multiplicador EXATO
 c
-c               dhs = dexp(-3.d00*pi2*tempo)*
-c     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
+cc               dhs = dexp(-3.d00*pi2*tempo)*
+cc     &               dsin(pi*x1)*dsin(pi*x2)*dsin(pi*x3)
 c     
                do j=1,nenp
                   nbj = ned*(j-1)
