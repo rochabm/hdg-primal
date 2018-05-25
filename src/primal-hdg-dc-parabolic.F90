@@ -8222,7 +8222,7 @@ c
 c     loop on integration points
 c
          do l=1,nint
-            c1=detc(l)*w(l)
+            c1=detp(l)*w(l)
 c
             pna  = 0.d00
             pnax = 0.d00
@@ -8968,7 +8968,7 @@ c
          call shgqs(xl,detp,shlp,shgp,nint,n,neg,.true.,nenp,shl,nen)
 c     
          do 4040 l=1,nint
-            ct=detc(l)*wt(l)
+            ct=detp(l)*wt(l)
             call clear ( u, ncon )
             call clear (dux, ncon )
             call clear (duy, ncon )
@@ -9327,7 +9327,7 @@ c
 c     loop on integration points (volume)
 c
          do l=1,nint
-            ct=detc(l)*wt(l)
+            ct=detp(l)*wt(l)
             call clear ( u, ncon )
             call clear (dux, ncon )
             call clear (duy, ncon )

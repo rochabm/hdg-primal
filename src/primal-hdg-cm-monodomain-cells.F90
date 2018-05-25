@@ -5939,7 +5939,11 @@ c     new for continuous multp.
 c
       mindno  = 77
       mindedg = 78
-      miedgto = 79           
+      miedgto = 79
+c
+c     new for monodomain (high-order)
+c      
+      mienp = 80      
 c
 c     parametros
 c
@@ -6234,7 +6238,8 @@ ccc      nsv = 2
 c         nsv = 19        
 c         mp(mxvm)   = mpoint('xvm   ',numnp,0       ,0     ,iprec)
 c         mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
-         mp(xnrml)  = mpoint('xnrml ',3    ,6       ,numel ,iprec)
+         mp(xnrml)  = mpoint('xnrml   ',3    ,6       ,numel ,iprec)
+         mp(mienp)  = mpoint('ienp    ',nenp ,numel   ,numel ,1)
 c
 c     para armazenar matrizes para a flux3
 c         
@@ -6275,7 +6280,8 @@ c
      &            a(mpiedge)  ,
      &            a(mp(miedgto)),
      &            a(mp(midlsd)),
-c      
+     &            a(mp(mienp)),
+c     
      &            ntype        ,numel         ,numat,
      &            nint         ,nrowsh        ,nesd,
      &            nen          ,ndof          ,ned,
@@ -6554,7 +6560,7 @@ c
 c-----------------------------------------------------------------------
       subroutine flux1el(shl   ,w     ,c     ,
      &                   grav  ,ien   ,mat   ,
-     &                   id    ,lm   ,ipar  ,
+     &                   id    ,lm    ,ipar  ,
      &                   x     ,lado  ,shlc  ,
      &                   wc    ,shlpn ,wpn   ,
      &                   shln  ,wn    ,shlb  ,
@@ -6562,7 +6568,7 @@ c-----------------------------------------------------------------------
      &                   shsde ,shlpsd,shlcsd,
 c
      &                   indno, indedg,iedge,
-     &                   iedgto,idlsd,
+     &                   iedgto,idlsd, ienp,
 c
      &                   ntype ,numel ,numat ,
      &                   nint  ,nrowsh,nesd  ,
@@ -6595,9 +6601,14 @@ c
       dimension shlpsd(nrowsh+1,nenp,*)
       dimension shlcsd(nrowsh+1,nencon,*)
 c
+c     new for odes     
+c
+      dimension ienp(nenp,*)
+c
 c     new for continuous multiplier
 c      
       dimension indno(*),indedg(*),iedge(npars,*),idlsd(*),iedgto(*)
+      dimension iauxnode(8), indfac(16,nedge)
 c
 c     new for treating edges
 c
@@ -6936,9 +6947,11 @@ c
       end do
 c      
       nar = imax
-c
+      
+c ----------------------------------------------------------------------
 c     generation of conectivities for the continuous multiplier
-c     
+c ----------------------------------------------------------------------
+
       do i=1,numnp
          indno(i) = 0
       end do
@@ -7058,12 +7071,10 @@ c
                            kof = 5 + (k-1)*ndedge
                            iedge(kof,neledg) = keq
                            imarkar(ind1) = keq
-c                           write(*,*) kof,keq
                            do ie=2,ndedge
                               keq = keq + 1
                               kof = 5 + (k-1)*ndedge + (ie-1)
                               iedge(kof,neledg) = keq
-c                              write(*,*) kof,keq
                            end do
                         else 
                            ! numera (invertido)
@@ -7072,37 +7083,30 @@ c                              write(*,*) kof,keq
                            kofe = kofs + (ndedge-1)
                            iedge(kofe,neledg) = keq
                            imarkar(ind1) = keq
-c                           write(*,*) kofe,keq
                            do ie=1,ndedge-1
                               keq = keq + 1
                               kof = kofe - ie
                               iedge(kof,neledg) = keq
-c                              write(*,*) kof,keq
                            end do                           
                         end if
                      ! se aresta ja esta numerada, recupera DOFs   
                      else
                         ! recupera do menor NODE pro maior (normal)
                         if(iarn1.lt.iarn2) then
-c                           write(*,*) "recupera normal"
                            kof = 5 + (k-1)*ndedge
                            iedge(kof,neledg) = imarkar(ind1)
-c                           write(*,*) imarkar(ind1)
                            do ie=2,ndedge
                               kof = 5 + (k-1)*ndedge + (ie-1)
                               iedge(kof,neledg) = imarkar(ind1) + (ie-1)
-c                              write(*,*) imarkar(ind1) + (ie-1)
                            end do
                         else
                           ! recupera (invertido) 
                            kofs = 5 + (k-1)*ndedge
                            kofe = kofs + (ndedge-1)
                            iedge(kofe,neledg) = imarkar(ind1)
-c                           write(*,*) kofe,imarkar(ind1)
                            do ie=1,ndedge-1
                               kof = kofe - ie
                               iedge(kof,neledg) = imarkar(ind1) + ie
-c                              write(*,*) kof,imarkar(ind1)+ie
                            end do
                         end if
 c                        
@@ -7125,7 +7129,265 @@ c
 c      
       nmultpc = keq
       write(*,'(A,I10)') " nmultpc:", nmultpc
+      
+c ------------------------------------------------------------------------------
+c     new code for creating ienp
+c ------------------------------------------------------------------------------
+
+      do i=1,numnp
+         indno(i) = 0
+      end do
+c     
+      do i=1,nedge
+         indedg(i) = 0
+      end do
+c     
+      do i=1,4*nedge
+         imarkar(i) = 0
+      end do
 c
+      do j=1,16
+         do i=1,nedge
+            indfac(j,i) = 0
+         end do
+      end do
+c
+      do jj=1,nenp
+         do ii=1,numel
+            ienp(jj,ii) = 0
+         end do
+      end do      
+c     
+      keq = 0                   ! contador de dofs
+      kedg = 0                  ! contador de faces
+c     
+c     loop em elemento
+c     
+      do nel=1,numel
+c       
+         do ns=1,nside
+
+c$$$            write(*,*) "FACEEEEE",ns
+            
+            neledg = lado(ns,nel)
+c     localiza os no's do lado ns
+            ns1 = idside(ns,1)
+            ns2 = idside(ns,2)
+            ns3 = idside(ns,3)
+            ns4 = idside(ns,4)
+c     global
+            nl1 = ien(ns1,nel)
+            nl2 = ien(ns2,nel)
+            nl3 = ien(ns3,nel)
+            nl4 = ien(ns4,nel)            
+c            
+            do nn=1,npars
+               idlsd(nn) = idside(ns,nn)
+            end do
+c
+            i1 = idlsd(1)
+            i2 = idlsd(2)
+            i3 = idlsd(3)
+            i4 = idlsd(4)
+c
+c            write(*,*) nel,ns,i1,i2,i3,i4
+c            
+c$$$            if(indedg(neledg).eq.0) then
+c$$$c     
+c$$$               kedg = kedg + 1
+c$$$               indedg(neledg) = kedg
+c$$$               iedgto(kedg) = neledg
+c
+c     numera os nodes
+c               
+               if(indno(nl1).eq.0) then
+                  keq = keq + 1
+                  indno(nl1) = keq
+                  ienp(i1,nel) = keq
+               else
+                  ienp(i1,nel) = indno(nl1)
+               end if
+c     
+               if(indno(nl2).eq.0) then
+                  keq = keq + 1
+                  indno(nl2) = keq 
+                  ienp(i2,nel) = keq
+               else
+                  ienp(i2,nel) = indno(nl2)
+               end if
+c     
+               if(indno(nl3).eq.0) then
+                  keq = keq + 1
+                  indno(nl3) = keq 
+                  ienp(i3,nel) = keq
+               else                  
+                  ienp(i3,nel) = indno(nl3)
+               end if
+c     
+               if(indno(nl4).eq.0) then
+                  keq = keq + 1
+                  indno(nl4) = keq 
+                  ienp(i4,nel) = keq
+               else
+                  ienp(i4,nel) = indno(nl4)
+               end if
+
+c$$$               write(*,*) "NODES",i1,i2,i3,i4
+c
+c     numera as arestas
+c
+               if(npars.gt.4) then
+               
+               do k=1,4                  
+                  ind1 = iarnum(k,neledg)
+                  iarn1 = ielemar(1,k,neledg)
+                  iarn2 = ielemar(2,k,neledg)
+                  ! se aresta nao esta numerada, cria DOFs
+                  if(imarkar(ind1).eq.0) then                    
+                     ! numera do menor NODE pro maior (normal)
+                     if(iarn1.lt.iarn2) then
+                        keq = keq + 1
+                        kof = 5 + (k-1)*ndedge
+                        ind = idlsd(kof)
+c$$$                        write(*,*) "kof",kof,"ind",ind
+                        ienp(ind,nel) = keq
+                        imarkar(ind1) = keq
+                        do ie=2,ndedge
+                           keq = keq + 1
+                           kof = 5 + (k-1)*ndedge + (ie-1)
+                           ind = idlsd(kof)
+c$$$                           write(*,*) "kof",kof,"ind",ind
+                           ienp(ind,nel) = keq
+                        end do
+                     else 
+                        ! numera (invertido)
+                        keq = keq + 1
+                        kofs = 5 + (k-1)*ndedge
+                        kofe = kofs + (ndedge-1)
+                        ind = idlsd(kofe)
+c$$$                        write(*,*) "kofe",kofe,"ind",ind                        
+                        ienp(ind,nel) = keq
+                        imarkar(ind1) = keq
+                        do ie=1,ndedge-1
+                           keq = keq + 1
+                           kof = kofe - ie
+                           ind = idlsd(kof)
+c$$$                           write(*,*) "kof",kof,"ind",ind
+                           ienp(ind,nel) = keq
+                        end do                           
+                     end if
+                    
+                     ! imarkar-se aresta ja esta numerada, recupera DOFs   
+                     else
+                        ! recupera do menor NODE pro maior (normal)
+                        if(iarn1.lt.iarn2) then
+                           kof = 5 + (k-1)*ndedge
+                           ind = idlsd(kof)
+c$$$                           write(*,*) "kof",kof,"ind",ind
+                           ienp(ind,nel) = imarkar(ind1)
+                           do ie=2,ndedge
+                              kof = 5 + (k-1)*ndedge + (ie-1)
+                              ind = idlsd(kof)
+                              ienp(ind,nel) = imarkar(ind1) + (ie-1)
+                           end do
+                        else
+                          ! recupera (invertido) 
+                           kofs = 5 + (k-1)*ndedge
+                           kofe = kofs + (ndedge-1)
+                           ind = idlsd(kofe)
+c$$$                           write(*,*) "kofe",kofe,"ind",ind                           
+                           ienp(ind,nel) = imarkar(ind1)
+                           do ie=1,ndedge-1
+                              kof = kofe - ie
+                              ind = idlsd(kof)
+                              ienp(ind,nel) = imarkar(ind1) + ie
+                           end do
+                        end if                     
+                                          
+                  end if !imarkar
+
+
+               end do
+
+               ! dofs nas faces
+            if(indedg(neledg).eq.0) then     
+               kedg = kedg + 1
+               indedg(neledg) = kedg
+               iedgto(kedg) = neledg
+c               
+               kof = 4 + 4*ndedge
+               do idf=1,ndface
+                  keq = keq + 1
+                  ind = idlsd(kof+idf)
+                  ienp(ind,nel) = keq
+                  indfac(idf,neledg) = keq
+               end do
+
+            else ! recupera dofs nas faces
+               kof = 4 + 4*ndedge
+               do idf=1,ndface
+                  ind = idlsd(kof+idf)
+                  ienp(ind,nel) = indfac(idf,neledg)
+               end do               
+            end if
+
+               end if ! npars>4
+
+c$$$            else
+c$$$
+c$$$               ! recupera nodes
+c$$$               ienp(i1,nel) = indno(nl1)
+c$$$               ienp(i2,nel) = indno(nl2)
+c$$$               ienp(i3,nel) = indno(nl3)
+c$$$               ienp(i4,nel) = indno(nl4)
+c$$$               
+c$$$               write(*,*) "RECUPEROU DA FACE NS",ns
+c$$$               ! recupera dofs nas faces
+c$$$               kof = 4 + 4*ndedge
+c$$$               do idf=1,ndface
+c$$$                  ind = idlsd(kof+idf)
+c$$$                  write(*,*) ind
+c$$$                  ienp(ind,nel) = indfac(idf,neledg)
+c$$$               end do
+               
+c$$$            end if              ! face-nao-marcada
+
+            !
+            ! ACHO QUE FALTA RECUPERAR COISAS DE QNDO A FACE JA FOI MARCADA
+            !           
+            
+            
+         end do ! fim nside loop
+
+         ! dofs do interior
+         nndint = nenp - nodsp
+         istart = nodsp + 1
+         istop  = istart + (nndint-1)
+         do i=istart, istop
+            keq = keq + 1
+            ienp(i,nel) = keq
+         end do         
+         
+      end do ! fim nel loop
+
+      nienp = keq
+c
+c     DEBUG
+c      
+      do ii=1,numel
+         write(*,"(A,100I6)") "ienp",(ienp(j,ii),j=1,nenp)
+      end do
+
+      write(*,*) "cg size",nienp
+!
+!     TODO
+!     - Variavel global para guardar este tamanho
+!     - Criar xsv e xvm apropriadamente
+!     - integrar EDOs e trocar dados com o HDG
+!      
+      stop
+      
+c ------------------------------------------------------------------------------
       return
 c
  1000 format(///,
@@ -9847,7 +10109,6 @@ c
       return
       end
 
-
 c-------------------------------------------------------------------------------
       subroutine flux3primalNew(ien   ,x     ,xl    ,
      &                       d     ,dl    ,mat   ,
@@ -10116,8 +10377,11 @@ c
       tempo = 0.d0
       nstep = int(tempof/dt)
 
-      saver = 1.0d0
+      saver = 0.01d0
       nsave = int(saver/dt)
+      
+      saverv = 1.0d0
+      nsavev = int(saverv/dt)
       
       do 5555 it=1,nstep
 c
@@ -10502,10 +10766,8 @@ c
 c     
 c     termos de b(.,.)
 c
-                  ! MATA ESSES TERMOS PARA CONFERIR O CRANK-NICOLSON (1.tempo,2.hdg)                  
-                  !elfbb(nbj1) = elfbb(nbj1) +dtm0*teta*xla*gjn
-                  !elfbb(nbj1) = elfbb(nbj1) -dtm0*betah*(pna-xla)*djn
-                  elfbb(nbj1) = elfbb(nbj1) -dtm0*betah*pna*djn
+                  elfbb(nbj1) = elfbb(nbj1) +dtm0*teta*xla*gjn
+                  elfbb(nbj1) = elfbb(nbj1) -dtm0*betah*(pna-xla)*djn
 c     
                end do                    
             end do
@@ -10818,7 +11080,7 @@ c
       write(25,*) it,tempo
       write(30,555) it,tempo,(sol(i),i=1,4)
 c      
-      if(mod(it,nsave).eq.0) then
+      if(mod(it,nsavev).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
  555     format(i10,6e15.5)         
       end if
