@@ -287,6 +287,7 @@ c
 c
       integer bflag
       real*8 sol(*)
+      PetscScalar, pointer :: xx_p(:)
 c     
       Vec              x,b,u
       Mat              A
@@ -341,8 +342,8 @@ c$$$      write(*,*) "PETSC: solucao"
 c$$$      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
 c$$$      write(*,*) "PETSC: RHS"
 c$$$      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
-c$$$      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c$$$      stop
+c      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
+c      stop
       
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
@@ -354,12 +355,21 @@ c$$$      stop
 c
 c     get data from vector, copy to sol and restore vector
 c
-      call VecGetArray(x,xx_v,xx_i,ierr)
+c      call VecGetArray(x,xx_v,xx_i,ierr)
+c      do i=1,n
+c         sol(i) = xx_a(i)
+c         write(*,*) xx_a(i)
+c      end do      
+c      call VecRestoreArray(x,xx_v,xx_i,ierr)
+
+      call VecGetArrayReadF90(x,xx_p,ierr)
       do i=1,n
-         sol(i) = xx_a(i)
-      end do      
-      call VecRestoreArray(x,xx_v,xx_i,ierr)     
-c      
+         sol(i) = xx_p(i)
+      end do
+      call VecRestoreArrayReadF90(x,xx_p,ierr)    
+c
+c      write(*,*) "XXX",(sol(i),i=1,100)
+      
       end        
 
 c----------------------------------------------------------------------
@@ -528,7 +538,7 @@ c
 c     allocate memory for global equation system
 c
       meanbw = nalhs/neq
-      nwords = mtot - mlast + mfirst - 1      
+      nwords = mtot - mlast + mfirst - 1
       mpbrhs = mpoint('brhs    ',neq  ,0,0,iprec)
 c
 c     allocate matrices
@@ -1805,9 +1815,10 @@ c$$$      end do
 c$$$
 c$$$      write(*,*) "DEBUG idc"
 c$$$      do i=1,nmultpc
-c$$$         write(*,*) "idc", i, idc(1,i)
+c$$$         if(idc(1,i).ne.0) then
+c$$$            write(*,*) "idc", i, idc(1,i)
+c$$$         end if
 c$$$      end do
-c$$$            
 c
 c     establish equation numbers
 c
@@ -5804,9 +5815,8 @@ c      common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
 c     &                numeg,nmultp,nedge
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nmultpc,nedge      
-c      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
       common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index
-      common /edos/ mpvm, mpsv, ndofsv, mpxp
+      common /edos/   mpvm,mpsv,ndofsv,mpxp
 c
 c     new parabolic
 c      
@@ -6229,7 +6239,10 @@ c
          mp(maelm) = mpoint('aelm    ',neep  ,neep    ,numel ,iprec)         
          mp(mdbel) = mpoint('dbel    ',nee   ,neep    ,numel ,iprec)
          mp(mddisa)= mpoint('ddisa   ',ned   ,nenp    ,numel ,iprec)
-         mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
+c
+c     xbrhs deve ser alocado depois de saber o tamanho
+c         
+c$$$         mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
          mp(mxvla) = mpoint('xvla    ',nints ,nedge   ,0     ,iprec)
          mp(mxvlb) = mpoint('xvlb    ',nints ,nedge   ,0     ,iprec)
 c
@@ -6244,8 +6257,8 @@ c         mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
 c
 c     para armazenar matrizes para a flux3
 c         
-         mp(makelm)  = mpoint('akelm   ', neep  ,neep  ,numel ,iprec)
-         mp(mbkelm)  = mpoint('bkelm   ', neep  ,nee   ,numel ,iprec)
+         mp(makelm)  = mpoint('akelm   ', neep ,neep  ,numel ,iprec)
+         mp(mbkelm)  = mpoint('bkelm   ', neep ,nee   ,numel ,iprec)
          mp(mbkelm2) = mpoint('bkelm2  ', neep ,nee   ,numel ,iprec)
 c
 c     new for continuous multp.
@@ -6269,7 +6282,7 @@ c
       write(*,'(A)') "subroutine flux1el"
       call flux1el(a(mp(mshl  )),a(mp(mw    )),a(mp(mc    )),
      &            a(mp(mgrav )),a(mp(mien  )),a(mp(mmat  )),
-     &            a(mpidc     ),a(mp(mlm   )),a(mp(mipar )),
+     &            a(mpid      ),a(mp(mlm   )),a(mp(mipar )),
      &            a(mpx       ),a(mp(mlado)) ,a(mp(mshlc )),
      &            a(mp(mwc   )),a(mp(mshlpn)),a(mp(mwpn  )),
      &            a(mp(mshln )),a(mp(mwn   )),a(mp(mshlb )),
@@ -6392,7 +6405,7 @@ c     primal p no nivel de cada elemento usando as aproximacoes do multiplicador
 c
       write(*,'(A)') "subroutine flux3primal"
 
-      call fillsvm(19,ndofsv,a(mpvm),a(mpsv))
+      call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
 
       call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6433,7 +6446,7 @@ c
      &                 nenlad,npars ,nside ,
      &                 nenp  ,nodsp ,index ,
      &                 nface ,nmultpc, ndofsv, a(mp(mlm)),
-     &                 a(mp(mxbrhs)),a(mpvm),a(mpsv), ! novo     
+     &                 a(mpbrhs),a(mpvm),a(mpsv), ! novo     
      &                 a(mp(makelm)),a(mp(xnrml)),
      &                 a(mp(mienp)), a(mpxp), userctx)            
       
@@ -6477,7 +6490,7 @@ c$$$     &                 nenlad,npars ,nside ,
 c$$$     &                 nenp  ,nodsp ,index ,
 c$$$     &                 nface ,nmultpc, a(mp(mlm)),
 c$$$c     &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
-c$$$     &                 a(mp(mxbrhs)),a(mpvm),a(mpsv),      
+c$$$     &                 a(mpbrhs),a(mpvm),a(mpsv),      
 c$$$     &                 a(mp(makelm)),a(mp(xnrml)),
 c$$$     &                 userctx)
 
@@ -7167,11 +7180,7 @@ c
 c     loop em elemento
 c     
       do nel=1,numel
-c       
          do ns=1,nside
-
-c$$$            write(*,*) "FACE",ns
-            
             neledg = lado(ns,nel)
 c     localiza os no's do lado ns
             ns1 = idside(ns,1)
@@ -7192,14 +7201,6 @@ c
             i2 = idlsd(2)
             i3 = idlsd(3)
             i4 = idlsd(4)
-c
-c            write(*,*) nel,ns,i1,i2,i3,i4
-c            
-c$$$            if(indedg(neledg).eq.0) then
-c$$$c     
-c$$$               kedg = kedg + 1
-c$$$               indedg(neledg) = kedg
-c$$$               iedgto(kedg) = neledg
 c
 c     numera os nodes
 c               
@@ -7234,8 +7235,6 @@ c
                else
                   ienp(i4,nel) = indno(nl4)
                end if
-
-c$$$               write(*,*) "NODES",i1,i2,i3,i4
 c
 c     numera as arestas
 c
@@ -7309,56 +7308,31 @@ c$$$                           write(*,*) "kofe",kofe,"ind",ind
                                           
                   end if !imarkar
 
-
                end do
 
                ! dofs nas faces
-            if(indedg(neledg).eq.0) then     
-               kedg = kedg + 1
-               indedg(neledg) = kedg
-               iedgto(kedg) = neledg
-c               
-               kof = 4 + 4*ndedge
-               do idf=1,ndface
-                  keq = keq + 1
-                  ind = idlsd(kof+idf)
-                  ienp(ind,nel) = keq
-                  indfac(idf,neledg) = keq
-               end do
-
-            else ! recupera dofs nas faces
-               kof = 4 + 4*ndedge
-               do idf=1,ndface
-                  ind = idlsd(kof+idf)
-                  ienp(ind,nel) = indfac(idf,neledg)
-               end do               
-            end if
-
-               end if ! npars>4
-
-c$$$            else
-c$$$
-c$$$               ! recupera nodes
-c$$$               ienp(i1,nel) = indno(nl1)
-c$$$               ienp(i2,nel) = indno(nl2)
-c$$$               ienp(i3,nel) = indno(nl3)
-c$$$               ienp(i4,nel) = indno(nl4)
-c$$$               
-c$$$               write(*,*) "RECUPEROU DA FACE NS",ns
-c$$$               ! recupera dofs nas faces
-c$$$               kof = 4 + 4*ndedge
-c$$$               do idf=1,ndface
-c$$$                  ind = idlsd(kof+idf)
-c$$$                  write(*,*) ind
-c$$$                  ienp(ind,nel) = indfac(idf,neledg)
-c$$$               end do
+               if(indedg(neledg).eq.0) then     
+                  kedg = kedg + 1
+                  indedg(neledg) = kedg
+                  iedgto(kedg) = neledg
+c     
+                  kof = 4 + 4*ndedge
+                  do idf=1,ndface
+                     keq = keq + 1
+                     ind = idlsd(kof+idf)
+                     ienp(ind,nel) = keq
+                     indfac(idf,neledg) = keq
+                  end do
+                  
+               else             ! recupera dofs nas faces
+                  kof = 4 + 4*ndedge
+                  do idf=1,ndface
+                     ind = idlsd(kof+idf)
+                     ienp(ind,nel) = indfac(idf,neledg)
+                  end do               
+               end if
                
-c$$$            end if              ! face-nao-marcada
-
-            !
-            ! ACHO QUE FALTA RECUPERAR COISAS DE QNDO A FACE JA FOI MARCADA
-            !           
-            
+            end if              ! npars>4                          
             
          end do ! fim nside loop
 
@@ -10381,16 +10355,16 @@ c
                   xp(1,ind) = xx
                   xp(2,ind) = yy
                   xp(3,ind) = zz
-      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
+c      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
                   !write(*,*) nel, i,j,k,inenp,ind
                end do
             end do
          end do         
       end do ! elem
 
-      do i=1,ndofsv
-         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
-      end do
+c      do i=1,ndofsv
+c         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
+c      end do
       
 c ------------------------------------------------------------------------------
 c     initial condition
@@ -10535,33 +10509,30 @@ c
 c
             ! *****************************************************************
             ! TODO: FIX this...xl nao vai ate NENP
-            ! -  criar um xlp de tamanho xlp 3 x nenp
-            ! - preencher o xlp de forma apropriada com as coordenadas
             ! *****************************************************************
-            do i=1,nen
-               xx = xl(1,i)
-               yy = xl(2,i)
-               zz = xl(3,i)
-               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then                  
+
+            do i=1,nenp
+               !jj = ien(i,nel)               
+               !xx = xl(1,i)
+               !yy = xl(2,i)
+               !zz = xl(3,i)               
+               jj = ienp(i,nel)               
+               xx = xp(1,jj)
+               yy = xp(2,jj)
+               zz = xp(3,jj)               
+               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
                   if(xx.ge.0.0.and.xx.le.0.15.and.
      &               yy.ge.0.0.and.yy.le.0.15.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-                     jj = ienp(i,nel) !jj = ien(i,nel)
+                     !jj = ien(i,nel)
                      xstim(jj) = -35.714d0
-
-                     !if(nenp.gt.8) then
-                     !   do ii=9,nenp
-                     !      jj = ienp(ii,nel)
-                     !      xstim(jj) = -35.714d0
-                     !   end do
-                     !end if
-                     
                   end if
                end if
 
-            end do ! nenp
+            end do              ! nenp
          end do                 ! numel
+
 c     
 c     NEW loop 
 c         
@@ -10963,15 +10934,13 @@ c
 c     solve system    
 c
       call cpu_time(xpde1)
-c
+c      
       bflag = mod(it,nsave)
       call UserDoLinearSolver(userctx,xbrhs,bflag)
 c
 c     copy solution from brhs to d
 c      
       call btod(idc,d,xbrhs,ndof,nmultp)
-
-ccc      write(*,*) "SOLUTION",(xbrhs(ii),ii=1,nmultp)
 c
       call cpu_time(xpde2)
       xtpde = xtpde + (xpde2-xpde1)
@@ -11192,7 +11161,7 @@ c
             xmean(jj) = xmean(jj) + elfbb(j)
             icont(jj) = icont(jj) + 1
 c
-            ddis(1,j,nel) = elfbb(j)
+            ddis(1,j,nel) = elfbb(j)           
          end do
         
 c ------------------------------------------------------------------------------
@@ -11205,9 +11174,6 @@ c
       do nel=1,numel
          do j=1,nenp
             jj = ienp(j,nel)
-c            if(jj.eq.100) then
-c               write(*,*) nel,j,jj,xmean(jj),icont(jj)
-c            end if
             xsv(1,jj) = xmean(jj) / icont(jj)
          end do
       end do
@@ -11364,7 +11330,7 @@ c
 c ------------------------------------------------------------------------------
 c     initialization
 c ------------------------------------------------------------------------------
-c
+c     
 c     PETSc stuff
 c
       xsol = userctx%x
@@ -11984,6 +11950,12 @@ c
 c     copy solution from brhs to d
 c      
       call btod(idc,d,xbrhs,ndof,nmultp)
+
+      do i=1,nmultp
+         write(*,*) "brhs", xbrhs(i)
+      end do
+      stop
+
 c
       call cpu_time(xpde2)
       xtpde = xtpde + (xpde2-xpde1)
@@ -12279,12 +12251,12 @@ c
       end
 
 c-------------------------------------------------------------------------------      
-      subroutine fillsvm(nsv,nmult,vm,sv)
+      subroutine fillsvm(nsv,nmult,vm,sv,brhs)
 c-------------------------------------------------------------------------------            
       use UserModule
       implicit real*8 (a-h,o-z)
 c
-      dimension vm(*),sv(19,*)
+      dimension vm(*),sv(19,*),brhs(*)
 c
       write(*,*) "FILL",nsv,nmult
 c      
@@ -12296,6 +12268,7 @@ c
 c
       do j=1,nmult
          vm(j) = 0.0d0
+         brhs(j) = 1.0d0
       end do
 c
       return
