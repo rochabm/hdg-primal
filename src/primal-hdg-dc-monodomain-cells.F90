@@ -5913,24 +5913,23 @@ c
 c
 c     new for parabolic
 c         
-         mp(mfelm) = mpoint('felm   ',neep  ,numel   ,0     ,iprec)
-         mp(mfdelm)= mpoint('fdelm  ',neep  ,numel   ,0     ,iprec)         
-         mp(maelm) = mpoint('aelm   ',neep  ,neep    ,numel ,iprec)         
-         mp(mdbel) = mpoint('dbel   ',nee   ,neep    ,numel ,iprec)
-         mp(mddisa)= mpoint('ddisa  ',ned   ,nenp    ,numel ,iprec)
-         mp(mxbrhs)= mpoint('xbrhs  ',neq   ,0       ,0     ,iprec)
-         mp(mxvla) = mpoint('xvla   ',nints ,nedge   ,0     ,iprec)
-         mp(mxvlb) = mpoint('xvlb   ',nints ,nedge   ,0     ,iprec)
+         mp(mfelm) = mpoint('felm    ',neep  ,numel   ,0     ,iprec)
+         mp(mfdelm)= mpoint('fdelm   ',neep  ,numel   ,0     ,iprec)         
+         mp(maelm) = mpoint('aelm    ',neep  ,neep    ,numel ,iprec)         
+         mp(mdbel) = mpoint('dbel    ',nee   ,neep    ,numel ,iprec)
+         mp(mddisa)= mpoint('ddisa   ',ned   ,nenp    ,numel ,iprec)
+         mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
+         mp(mxvla) = mpoint('xvla    ',nints ,nedge   ,0     ,iprec)
+         mp(mxvlb) = mpoint('xvlb    ',nints ,nedge   ,0     ,iprec)
 c
 c     new for monodomain
 c
 ccc      nsv = 2
          nsv = 19        
-         mp(mxvm)  = mpoint('xvm   ',numnp,0       ,0     ,iprec)
-         mp(mxsv)  = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
-         mp(xnrml) = mpoint('xnrml ',3    ,6       ,numel ,iprec)
-
-         mp(makelm) = mpoint('akelm ',neep  ,neep  ,numel ,iprec)
+         mp(mxvm)  = mpoint('xvm     ',numnp,0       ,0     ,iprec)
+         mp(mxsv)  = mpoint('xsv     ',nsv  ,numnp   ,0     ,iprec)
+         mp(xnrml) = mpoint('xnrml   ',3    ,6       ,numel ,iprec)
+         mp(makelm) = mpoint('akelm   ',neep  ,neep  ,numel ,iprec)
          
 c
       endif

@@ -390,7 +390,7 @@ c
       common /labels/ labeld(3),label1(16),label2(3)
       common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index      
       common /titlec/ title(20)
-      common /edos/ mpvm, mpsv
+      common /edos/ mpvm, mpsv, ndofsv, mpxp
 c      
       character*4 ia
       common a(1)
@@ -512,9 +512,10 @@ c
 c
 c     allocate EDOs arrays
 c      
-      nsv = 19        
-      mpvm = mpoint('xvm   ',nmultpc,0       ,0     ,iprec)
-      mpsv = mpoint('xsv   ',nsv  ,nmultpc   ,0     ,iprec)
+      nsv = 19
+      mpvm = mpoint('xvm     ',ndofsv,0       ,0     ,iprec)
+      mpsv = mpoint('xsv     ',nsv  ,ndofsv   ,0     ,iprec)
+      mpxp = mpoint('xp      ',nsd  ,ndofsv   ,0     ,iprec)
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
@@ -5805,7 +5806,7 @@ c     &                numeg,nmultp,nedge
      &                numeg,nmultp,nmultpc,nedge      
 c      common /spoint/ mpd,mpx,mpid,mpf,mpbrhs,mpngrp,mped,index
       common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index
-      common /edos/ mpvm, mpsv
+      common /edos/ mpvm, mpsv, ndofsv, mpxp
 c
 c     new parabolic
 c      
@@ -6223,14 +6224,14 @@ c
 c
 c     new for parabolic
 c         
-         mp(mfelm) = mpoint('felm   ',neep  ,numel   ,0     ,iprec)
-         mp(mfdelm)= mpoint('fdelm  ',neep  ,numel   ,0     ,iprec)         
-         mp(maelm) = mpoint('aelm   ',neep  ,neep    ,numel ,iprec)         
-         mp(mdbel) = mpoint('dbel   ',nee   ,neep    ,numel ,iprec)
-         mp(mddisa)= mpoint('ddisa  ',ned   ,nenp    ,numel ,iprec)
-         mp(mxbrhs)= mpoint('xbrhs  ',neq   ,0       ,0     ,iprec)
-         mp(mxvla) = mpoint('xvla   ',nints ,nedge   ,0     ,iprec)
-         mp(mxvlb) = mpoint('xvlb   ',nints ,nedge   ,0     ,iprec)
+         mp(mfelm) = mpoint('felm    ',neep  ,numel   ,0     ,iprec)
+         mp(mfdelm)= mpoint('fdelm   ',neep  ,numel   ,0     ,iprec)         
+         mp(maelm) = mpoint('aelm    ',neep  ,neep    ,numel ,iprec)         
+         mp(mdbel) = mpoint('dbel    ',nee   ,neep    ,numel ,iprec)
+         mp(mddisa)= mpoint('ddisa   ',ned   ,nenp    ,numel ,iprec)
+         mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
+         mp(mxvla) = mpoint('xvla    ',nints ,nedge   ,0     ,iprec)
+         mp(mxvlb) = mpoint('xvlb    ',nints ,nedge   ,0     ,iprec)
 c
 c     new for monodomain
 c
@@ -6243,9 +6244,9 @@ c         mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
 c
 c     para armazenar matrizes para a flux3
 c         
-         mp(makelm)  = mpoint('akelm ', neep  ,neep  ,numel ,iprec)
-         mp(mbkelm)  = mpoint('bkelm ', neep  ,nee   ,numel ,iprec)
-         mp(mbkelm2) = mpoint('bkelm2 ', neep ,nee   ,numel ,iprec)
+         mp(makelm)  = mpoint('akelm   ', neep  ,neep  ,numel ,iprec)
+         mp(mbkelm)  = mpoint('bkelm   ', neep  ,nee   ,numel ,iprec)
+         mp(mbkelm2) = mpoint('bkelm2  ', neep ,nee   ,numel ,iprec)
 c
 c     new for continuous multp.
 c              
@@ -6289,9 +6290,11 @@ c
      &            nencon       ,necon         ,nints,
      &            nnods        ,nenlad        ,npars,
      &            nenp         ,nside         ,nodsp,
-     &            nedge        ,nmultpd       ,nmultpc)
+     &            nedge        ,nmultpd       ,nmultpc,
+     &            ndofsv)
 c     
       write(*,'(A)') "fim da flux1"
+      write(*,*) "NDOFSV",ndofsv
       return
 c
  200  continue
@@ -6389,7 +6392,7 @@ c     primal p no nivel de cada elemento usando as aproximacoes do multiplicador
 c
       write(*,'(A)') "subroutine flux3primal"
 
-      call fillsvm(19,nmultpc,a(mpvm),a(mpsv))
+      call fillsvm(19,ndofsv,a(mpvm),a(mpsv))
 
       call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
      &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6429,10 +6432,10 @@ c
      &                 neep  ,nints ,nnods ,
      &                 nenlad,npars ,nside ,
      &                 nenp  ,nodsp ,index ,
-     &                 nface ,nmultpc, a(mp(mlm)),
+     &                 nface ,nmultpc, ndofsv, a(mp(mlm)),
      &                 a(mp(mxbrhs)),a(mpvm),a(mpsv), ! novo     
      &                 a(mp(makelm)),a(mp(xnrml)),
-     &                 userctx)            
+     &                 a(mp(mienp)), a(mpxp), userctx)            
       
 c$$$      call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
 c$$$     &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6577,7 +6580,7 @@ c
      &                   nencon,necon ,nints ,
      &                   nnods ,nenlad,npars ,
      &                   nenp  ,nside ,nodsp,
-     &                   nedge ,nmultpd,nmultpc)      
+     &                   nedge ,nmultpd,nmultpc,ndofsv)      
 c-----------------------------------------------------------------------
 c     program to read, generate and write data for the
 c     four-node quadrilateral, elastic continuum element
@@ -6947,7 +6950,7 @@ c
       end do
 c      
       nar = imax
-      
+    
 c ----------------------------------------------------------------------
 c     generation of conectivities for the continuous multiplier
 c ----------------------------------------------------------------------
@@ -7129,7 +7132,7 @@ c
 c      
       nmultpc = keq
       write(*,'(A,I10)') " nmultpc:", nmultpc
-      
+
 c ------------------------------------------------------------------------------
 c     new code for creating ienp
 c ------------------------------------------------------------------------------
@@ -7167,7 +7170,7 @@ c
 c       
          do ns=1,nside
 
-c$$$            write(*,*) "FACEEEEE",ns
+c$$$            write(*,*) "FACE",ns
             
             neledg = lado(ns,nel)
 c     localiza os no's do lado ns
@@ -7369,24 +7372,16 @@ c$$$            end if              ! face-nao-marcada
          end do         
          
       end do ! fim nel loop
-
-      nienp = keq
 c
 c     DEBUG
 c      
-      do ii=1,numel
-         write(*,"(A,100I6)") "ienp",(ienp(j,ii),j=1,nenp)
-      end do
-
-      write(*,*) "cg size",nienp
-!
-!     TODO
-!     - Variavel global para guardar este tamanho
-!     - Criar xsv e xvm apropriadamente
-!     - integrar EDOs e trocar dados com o HDG
-!      
-      stop
-      
+c$$$      do ii=1,numel
+c$$$         write(*,"(A,100I6)") "ienp",(ienp(j,ii),j=1,nenp)
+c$$$      end do
+c      
+      ndofsv = keq
+      write(*,"(A,I10)") "ndof sv:",ndofsv
+c
 c ------------------------------------------------------------------------------
       return
 c
@@ -10111,45 +10106,47 @@ c
 
 c-------------------------------------------------------------------------------
       subroutine flux3primalNew(ien   ,x     ,xl    ,
-     &                       d     ,dl    ,mat   ,
-     &                       det   ,shl   ,shg   ,
-     &                       w     ,c     ,idc   ,
-     &                       grav  ,ipar  ,lado  ,
-     &                       detc  ,shlc  ,shgc  ,
-     &                       eleffd,elresd,shln  ,
-     &                       shgn  ,wn    ,detn  ,
-     &                       detb  ,shlb  ,shgb  ,
-     &                       detpn ,shlpn ,shgpn ,
-     &                       idside,xls   ,idlsd ,
-     &                       dsfl  ,ddis  ,ddisa,
-     &                       detp  ,shlp  ,shgp  ,
-     &                       elma  ,elmb  ,elmc  ,
-     &                       elmd  ,elmh  ,elmbb ,
-     &                       elmcb ,elmhb ,elfa  ,
-     &                       elfb  ,elfc  ,elfd  ,
-     &                       elfab ,elfbb ,elfcb ,
-     &                       elmdb ,ideg  , 
+     &                          d     ,dl    ,mat   ,
+     &                          det   ,shl   ,shg   ,
+     &                          w     ,c     ,idc   ,
+     &                          grav  ,ipar  ,lado  ,
+     &                          detc  ,shlc  ,shgc  ,
+     &                          eleffd,elresd,shln  ,
+     &                          shgn  ,wn    ,detn  ,
+     &                          detb  ,shlb  ,shgb  ,
+     &                          detpn ,shlpn ,shgpn ,
+     &                          idside,xls   ,idlsd ,
+     &                          dsfl  ,ddis  ,ddisa,
+     &                          detp  ,shlp  ,shgp  ,
+     &                          elma  ,elmb  ,elmc  ,
+     &                          elmd  ,elmh  ,elmbb ,
+     &                          elmcb ,elmhb ,elfa  ,
+     &                          elfb  ,elfc  ,elfd  ,
+     &                          elfab ,elfbb ,elfcb ,
+     &                          elmdb ,ideg  , 
 c
-     &                       shsde ,iedge,
+     &                          shsde ,iedge,
 c     
-     &                       shlpsd,shlcsd,
-     &                       shgpsd,shgcsd,
+     &                          shlpsd,shlcsd,
+     &                          shgpsd,shgcsd,
 c      
-     &                       aelm,dbel,
-     &                       felm,fdelm,
-     &                       xvla,xvlb,
+     &                          aelm,dbel,
+     &                          felm,fdelm,
+     &                          xvla,xvlb,
 c     
-     &                       numel ,neesq ,nen   ,
-     &                       nsd   ,nesd  ,nint  ,
-     &                       neg   ,nrowsh,ned   ,
-     &                       nee   ,numnp ,ndof  ,
-     &                       ncon  ,nencon,necon ,
-     &                       neep  ,nints ,nnods ,
-     &                       nenlad,npars ,nside ,
-     &                       nenp  ,nodsp ,index ,
-     &                       nface ,nmultp,lm    ,
-     &                       xbrhs ,xvm   ,xsv   ,
-     &                       akelm, xnrml, userctx)
+     &                          numel ,neesq ,nen   ,
+     &                          nsd   ,nesd  ,nint  ,
+     &                          neg   ,nrowsh,ned   ,
+     &                          nee   ,numnp ,ndof  ,
+     &                          ncon  ,nencon,necon ,
+     &                          neep  ,nints ,nnods ,
+     &                          nenlad,npars ,nside ,
+     &                          nenp  ,nodsp ,index ,
+     &                          nface ,nmultp,ndofsv,
+     &                          lm    ,xbrhs ,xvm   ,
+     &                          xsv   ,akelm ,xnrml ,
+     &                          ienp  ,xp    , userctx)
+      
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
 c        plane elasticity element and
@@ -10214,9 +10211,12 @@ c
 c     new monodomain
 c
       dimension xvm(*), xsv(19,*), xdsv(19), xxsv(19)
-      dimension xstim(nmultp), xmean(nmultp), icont(nmultp)
+      dimension xstim(ndofsv), xmean(ndofsv), icont(ndofsv)
       dimension xnrml(3,6,*)
       dimension akelm(neep,neep,*)
+      dimension ienp(nenp,*)    ! nenp x numel
+      dimension inod(8,8,8)
+      dimension xp(nesd,*)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -10226,12 +10226,12 @@ c
 c ------------------------------------------------------------------------------
 c     initialization
 c ------------------------------------------------------------------------------
-c
+c     
 c     PETSc stuff
 c
       xsol = userctx%x
       b    = userctx%b
-      A    = userctx%A
+      A    = userctx%A      
 c      
       call UserCreateKSPSolver(userctx)
 c
@@ -10261,6 +10261,98 @@ c
       end do    
 
 c ------------------------------------------------------------------------------
+c     coordinates xlp
+c ------------------------------------------------------------------------------
+
+      inn = nenp**(1.0d0/3.0d0)
+      write(*,*) inn
+      
+c
+      if(nenp.eq.1) inod(1,1,1) = 1
+c
+c     p=1
+c      
+      if(nenp.eq.8) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+c
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+      end if
+c
+c     p=2
+c      
+      if(nenp.eq.27) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 11
+         inod(1,3,1) = 12
+         inod(2,3,1) = 10
+         inod(3,3,1) = 25
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 13
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 15
+         inod(1,3,2) = 16
+         inod(2,3,2) = 14
+         inod(3,3,2) = 26
+c     
+         inod(1,1,3) = 17
+         inod(2,1,3) = 18
+         inod(3,1,3) = 21
+         inod(1,2,3) = 20
+         inod(2,2,3) = 19
+         inod(3,2,3) = 23
+         inod(1,3,3) = 24
+         inod(2,3,3) = 22
+         inod(3,3,3) = 27
+      end if
+
+
+      do j=1,ndofsv
+         do i=1,nesd
+            xp(i,j) = 0.d0
+         end do
+      end do
+
+      do nel=1,numel
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+         ! corners of the element
+         xx0 = xl(1,inod(1,1,1))
+         xx1 = xl(1,inod(2,1,1))
+         yy0 = xl(2,inod(1,1,1))
+         yy1 = xl(2,inod(1,2,1))
+         zz0 = xl(3,inod(1,1,1))
+         zz1 = xl(3,inod(1,1,2))
+
+         !xx = xl(1,i)
+         !yy = xl(2,i)
+         !zz = xl(3,i)
+
+         ! loop in nenp
+         do k=1,inn
+            do j=1,inn
+               do i=1,inn
+                  inenp = inod(i,j,k)
+                  ind = ienp(inenp,nel)
+                  
+               end do
+            end do
+         end do
+         
+      end do
+      
+c ------------------------------------------------------------------------------
 c     initial condition
 c ------------------------------------------------------------------------------      
 
@@ -10276,7 +10368,7 @@ c     number of state variables of the cell model
 c      
       nsv = 19
 c     
-      do i=1,nmultp
+      do i=1,ndofsv
          call tt2006_init(nsv, xsv(1,i))
          xvm(i) = xsv(1,i)
       end do
@@ -10324,7 +10416,7 @@ c
 c     save initial condition
 c
             !jj = ien(i,nel)
-            jj = ipar(i,nel)
+            jj = ienp(i,nel)
             xval = xvm(jj)
             ddis(1,i,nel) = xval
          end do
@@ -10336,7 +10428,7 @@ c
       tempo = 0.d00      
 c
 c     write initial condition
-c     
+c
       write(30,555) it,tempo,(sol(i),i=1,4)
       call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
@@ -10377,12 +10469,9 @@ c
       tempo = 0.d0
       nstep = int(tempof/dt)
 
-      saver = 0.01d0
+      saver = 1.0d0
       nsave = int(saver/dt)
-      
-      saverv = 1.0d0
-      nsavev = int(saverv/dt)
-      
+
       do 5555 it=1,nstep
 c
          tempo = it*dt
@@ -10396,15 +10485,20 @@ c     solve ODEs
 c ------------------------------------------------------------------------------
          call cpu_time(xode1)
 c         
-         do i=1,nmultp
+         do i=1,ndofsv
             xstim(i) = 0.d00
          end do
          
          do nel=1,numel
 c            
             call local(ien(1,nel),x,xl,nen,nsd,nesd)
-c            
-            do i=1,nenp
+c
+            ! *****************************************************************
+            ! TODO: FIX this...xl nao vai ate NENP
+            ! -  criar um xlp de tamanho xlp 3 x nenp
+            ! - preencher o xlp de forma apropriada com as coordenadas
+            ! *****************************************************************
+            do i=1,nen
                xx = xl(1,i)
                yy = xl(2,i)
                zz = xl(3,i)
@@ -10413,17 +10507,25 @@ c
      &               yy.ge.0.0.and.yy.le.0.15.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-                     jj = ipar(i,nel) !jj = ien(i,nel)
+                     jj = ienp(i,nel) !jj = ien(i,nel)
                      xstim(jj) = -35.714d0
+
+                     !if(nenp.gt.8) then
+                     !   do ii=9,nenp
+                     !      jj = ienp(ii,nel)
+                     !      xstim(jj) = -35.714d0
+                     !   end do
+                     !end if
+                     
                   end if
                end if
 
             end do ! nenp
-         end do    ! numel
+         end do                 ! numel
 c     
 c     NEW loop 
 c         
-         do i=1,nmultp         
+         do i=1,ndofsv
 c     
 c     compute RHS of the ODES
 c
@@ -10442,12 +10544,11 @@ c
 c
          end do      
 c
-c     save Vm to ddis array
-c     TODO: improve this to WORK for Qk         
+c     save Vm to ddis array; Working for Qk?????????????
 c
          do nel=1,numel             
             do i=1,nenp
-               jj = ipar(i,nel)
+               jj = ienp(i,nel)
                xval = xsv(1,jj)
                ddis(1,i,nel) = xval
             end do            
@@ -10482,7 +10583,7 @@ c
 c
 c     clear PETSc Vec b and fortran brhs
 c
-         call clear(xbrhs,neq)        
+         call clear(xbrhs,neq)
          call VecSet(b,0.d00,ierr)
          CHKERRQ(ierr)
          
@@ -10530,7 +10631,8 @@ c     calculo de h - caracteristico para cada elemento
 c         
          h2 = 0
          do l=1,2
-            h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+            h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &              + (xl(2,l)-xl(2,l+2))**2
      &              + (xl(3,l)-xl(3,l+2))**2
          end do
          h = dsqrt(h2)/2.d00
@@ -10840,16 +10942,17 @@ c ------------------------------------------------------------------------------
 
       call cpu_time(xpos1)
       
-      do i=1,nmultp
+      do i=1,ndofsv
          xmean(i) = 0.d0
          icont(i) = 0
       end do
-c     
+c
 c     calculo de h - caracteristico para cada elemento
 c
       h2 = 0
       do l=1,2
-         h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
+         h2 = h2 + (xl(1,l)-xl(1,l+2))**2
+     &           + (xl(2,l)-xl(2,l+2))**2
      &           + (xl(3,l)-xl(3,l+2))**2
       end do
       h = dsqrt(h2)/2.d00
@@ -11045,7 +11148,7 @@ c     monodominio: copia ddis anterior para xsv
 c     NEW NEW NEW- tira a media e atribui DEPOIS
 c         
          do j=1,nenp
-            jj = ipar(j,nel)
+            jj = ienp(j,nel)
             xmean(jj) = xmean(jj) + elfbb(j)
             icont(jj) = icont(jj) + 1
 c
@@ -11061,14 +11164,14 @@ c     atribui a media
 c                    
       do nel=1,numel
          do j=1,nenp
-            jj = ipar(j,nel)
+            jj = ienp(j,nel)
 c            if(jj.eq.100) then
 c               write(*,*) nel,j,jj,xmean(jj),icont(jj)
 c            end if
             xsv(1,jj) = xmean(jj) / icont(jj)
          end do
       end do
-
+c
 ccc      write(*,*) (xsv(1,jj),jj=1,100)
 ccc      write(*,*)
 c      
@@ -11080,7 +11183,7 @@ c
       write(25,*) it,tempo
       write(30,555) it,tempo,(sol(i),i=1,4)
 c      
-      if(mod(it,nsavev).eq.0) then
+      if(mod(it,nsave).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
  555     format(i10,6e15.5)         
       end if
@@ -12160,12 +12263,14 @@ c
 
 c ------------------------------------------------------------------------------
       subroutine savevtk(iter,ddis,ned,nenp,numel,x,numnp,ien)
-c ------------------------------------------------------------------------------      
+c ------------------------------------------------------------------------------
+c     Fixed for nenp=8. for high order only saves the "linear" part
+c ------------------------------------------------------------------------------            
       implicit real*8 (a-h,o-z)
 c
       character*100 filename
 c      
-      dimension ien(nenp,*)
+      dimension ien(8,*)
       dimension x(3,*)
       dimension xnew(3,8*numel)
       dimension ddis(ned,nenp,*)
@@ -12181,7 +12286,7 @@ c
 c     calcula novo vetor x
 c
       do nel=1,numel
-         do i=1,nenp
+         do i=1,8
             id = ien(i,nel)
             xx = x(1,id)
             yy = x(2,id)
@@ -12219,7 +12324,7 @@ c
       write(66,'(A)') "SCALARS solution float 1"
       write(66,'(A)') "LOOKUP_TABLE default"
       do nel=1,numel
-         write(66,"(10E12.4)") (ddis(1,j,nel),j=1,nenp)
+         write(66,"(10E12.4)") (ddis(1,j,nel),j=1,8)
       end do
 c      
       close(66)

@@ -6113,17 +6113,17 @@ c
 c
 c     new for parabolic
 c         
-         mp(mfelm) = mpoint('felm   ',neep  ,numel   ,0     ,iprec)
-         mp(mfdelm)= mpoint('fdelm  ',neep  ,numel   ,0     ,iprec)         
-         mp(maelm) = mpoint('aelm   ',neep  ,neep    ,numel ,iprec)         
-         mp(mdbel) = mpoint('dbel   ',nee   ,neep    ,numel ,iprec)
-         mp(mddisa)= mpoint('ddisa  ',ned   ,nenp    ,numel ,iprec)
+         mp(mfelm) = mpoint('felm    ',neep  ,numel   ,0     ,iprec)
+         mp(mfdelm)= mpoint('fdelm   ',neep  ,numel   ,0     ,iprec)         
+         mp(maelm) = mpoint('aelm     ',neep  ,neep    ,numel ,iprec)         
+         mp(mdbel) = mpoint('dbel    ',nee   ,neep    ,numel ,iprec)
+         mp(mddisa)= mpoint('ddisa   ',ned   ,nenp    ,numel ,iprec)
 c
 c     xbrhs deve ser alocado depois de saber o tamanho de nmultpc
 c         
 c$$$         mp(mxbrhs)= mpoint('xbrhs  ',neq   ,0       ,0     ,iprec)
-         mp(mxvla) = mpoint('xvla   ',nints ,nedge   ,0     ,iprec)
-         mp(mxvlb) = mpoint('xvlb   ',nints ,nedge   ,0     ,iprec)
+         mp(mxvla) = mpoint('xvla    ',nints ,nedge   ,0     ,iprec)
+         mp(mxvlb) = mpoint('xvlb    ',nints ,nedge   ,0     ,iprec)
 c
 c     new for continuous multp.
 c              
