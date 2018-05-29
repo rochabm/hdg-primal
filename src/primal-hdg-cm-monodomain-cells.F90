@@ -515,7 +515,7 @@ c
       nsv = 19
       mpvm = mpoint('xvm     ',ndofsv,0       ,0     ,iprec)
       mpsv = mpoint('xsv     ',nsv  ,ndofsv   ,0     ,iprec)
-      mpxp = mpoint('xp      ',nsd  ,ndofsv   ,0     ,iprec)
+      mpxp = mpoint('xp      ',3    ,ndofsv   ,0     ,iprec)
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
@@ -10216,7 +10216,7 @@ c
       dimension akelm(neep,neep,*)
       dimension ienp(nenp,*)    ! nenp x numel
       dimension inod(8,8,8)
-      dimension xp(nesd,*)
+      dimension xp(3,*)
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
@@ -10319,9 +10319,16 @@ c
       end if
 
 
+!
+!     TODO: algum problema de memoria com o array XP
+!
+      
       do j=1,ndofsv
          do i=1,nesd
             xp(i,j) = 0.d0
+         !xp(1,j) = 1.d0
+         !xp(2,j) = 2.d0
+         !xp(3,j) = 3.d0
          end do
       end do
 
@@ -10330,26 +10337,59 @@ c
          ! corners of the element
          xx0 = xl(1,inod(1,1,1))
          xx1 = xl(1,inod(2,1,1))
+c         
          yy0 = xl(2,inod(1,1,1))
          yy1 = xl(2,inod(1,2,1))
+c         
          zz0 = xl(3,inod(1,1,1))
          zz1 = xl(3,inod(1,1,2))
-
-         !xx = xl(1,i)
-         !yy = xl(2,i)
-         !zz = xl(3,i)
-
+c
+         dx = (xx1-xx0)/(inn-1)
+         dy = (yy1-yy0)/(inn-1)
+         dz = (zz1-zz0)/(inn-1)
+c
          ! loop in nenp
          do k=1,inn
             do j=1,inn
                do i=1,inn
                   inenp = inod(i,j,k)
                   ind = ienp(inenp,nel)
-                  
+                  ! x - linear interp for each coord
+                  if(i.eq.1) then
+                     xx = xx0
+                  else if(i.eq.2) then
+                     xx = xx1
+                  else
+                     xx = xx0 + (dx)*(i-2)
+                  end if
+                  ! y - linear interp
+                  if(j.eq.1) then
+                     yy = yy0
+                  else if(j.eq.2) then
+                     yy = yy1
+                  else
+                     yy = yy0 + (dy)*(j-2)
+                  end if
+                  ! z - linear interp
+                  if(k.eq.1) then
+                     zz = zz0
+                  else if(k.eq.2) then
+                     zz = zz1
+                  else
+                     zz = zz0 + (dz)*(k-2)
+                  end if                  
+                  xp(1,ind) = xx
+                  xp(2,ind) = yy
+                  xp(3,ind) = zz
+      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
+                  !write(*,*) nel, i,j,k,inenp,ind
                end do
             end do
-         end do
-         
+         end do         
+      end do ! elem
+
+      do i=1,ndofsv
+         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
       end do
       
 c ------------------------------------------------------------------------------
