@@ -45,7 +45,6 @@ c
 c
       external UserInitializeLinearSolver
       external UserFinalizeLinearSolver
-      external UserTestPETSc
       external UserDoLinearSolver     
 c
 c     mfirst = address of first available word in blank common
@@ -1821,7 +1820,7 @@ c
          end do     
       end do
 c
-      write(*,'(A,I5)') " neqc:",neqc
+      write(*,'(A,I10)') " neqc:",neqc
 c    
  1000 format(//,10x,' edge/face BCs '//
      &     5x,'   node no.',3x,6(13x,'dof',i1:)//)
@@ -5797,8 +5796,6 @@ c
 c      
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
-c      common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
-c     &                numeg,nmultp,nedge
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
      &                numeg,nmultp,nmultpc,nedge      
       common /spoint/ mpd,mpx,mpidc,mpiedge,mpf,mpbrhs,mpngrp,mped,index
@@ -5888,7 +5885,7 @@ c
       melmbb  = 47
       melmcb  = 48
       melmhb  = 49
-
+c
       melfa   = 50
       melfb   = 51
       melfc   = 52
@@ -5915,32 +5912,31 @@ c
       maelm   = 66
       mdbel   = 67
       mddisa  = 68
-      mxbrhs  = 69
-      mxvla   = 70
-      mxvlb   = 71
+c$$$      mxbrhs  = 69
+      mxvla   = 69
+      mxvlb   = 70
 c
 c     new for monodomain
 c
-      mxvm    = 72
-      mxsv    = 73
-      mxnrml  = 74
+c$$$      mxvm    = 72
+c$$$      mxsv    = 73
+      mxnrml  = 71
 c
 c     matriz M - dt K
 c     
-      makelm  = 75
-      mbkelm  = 76
-      mbkelm2 = 80
-      mbtemp  = 81
+      makelm  = 72
+      mbkelm  = 73
+      mbkelm2 = 74
 c
 c     new for continuous multp.
 c
-      mindno  = 77
-      mindedg = 78
-      miedgto = 79
+      mindno  = 75
+      mindedg = 76
+      miedgto = 77
 c
 c     new for monodomain (high-order)
 c      
-      mienp = 80      
+      mienp = 78  
 c
 c     parametros
 c
@@ -6239,7 +6235,7 @@ c         nsv = 19
 c         mp(mxvm)   = mpoint('xvm   ',numnp,0       ,0     ,iprec)
 c         mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
          mp(xnrml)  = mpoint('xnrml   ',3    ,6       ,numel ,iprec)
-         mp(mienp)  = mpoint('ienp    ',nenp ,numel   ,numel ,1)
+         mp(mienp)  = mpoint('ienp    ',nenp ,numel   ,0     ,1)
 c
 c     para armazenar matrizes para a flux3
 c         
