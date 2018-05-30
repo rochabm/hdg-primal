@@ -286,11 +286,10 @@ c     Solve Ax=b
 c----------------------------------------------------------------------
       use UserModule
       implicit none
-c      
-#define xx_a(ib) xx_v(xx_i + (ib))      
 c
       integer bflag
       real*8 sol(*)
+      PetscScalar, pointer :: xx_p(:)
 c     
       Vec              x,b,u
       Mat              A
@@ -299,11 +298,8 @@ c
       PetscReal        norm,tol
       PetscErrorCode   ierr
       PetscInt         i,n,its
-      type(User) userctx
-      IS               isrow,iscol
-      PetscViewer      viewer      
-      PetscScalar      xx_v(1)
-      PetscOffset      xx_i,yy_i      
+      PetscViewer      viewer
+      type(User)       userctx
 c      
 c     Get PETSC data
 c      
@@ -338,13 +334,7 @@ c     solve
 c     
       call KSPSolve(ksp,b,x,ierr)
       CHKERRQ(ierr)
-c
-c     show information
-c           
-c      write(*,*) "PETSC: solucao"
-c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
-c     stop
-      
+c      
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
 
@@ -355,11 +345,11 @@ c     stop
 c
 c     get data from vector, copy to sol and restore vector
 c
-      call VecGetArray(x,xx_v,xx_i,ierr)
+      call VecGetArrayReadF90(x,xx_p,ierr)
       do i=1,n
-         sol(i) = xx_a(i)
+         sol(i) = xx_p(i)
       end do      
-      call VecRestoreArray(x,xx_v,xx_i,ierr)     
+      call VecRestoreArrayReadF90(x,xx_p,ierr)     
 c      
       end        
 

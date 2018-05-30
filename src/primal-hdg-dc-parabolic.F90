@@ -290,10 +290,9 @@ c     Solve Ax=b
 c----------------------------------------------------------------------
       use UserModule
       implicit none
-c
-#define xx_a(ib) xx_v(xx_i + (ib))      
 c      
       real*8 sol(*)
+      PetscScalar, pointer :: xx_p(:)
 c     
       Vec              x,b,u
       Mat              A
@@ -350,12 +349,12 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
 c
 c     get data from vector, copy to sol and restore vector
 c
-      call VecGetArray(x,xx_v,xx_i,ierr)
+      call VecGetArrayReadF90(x,xx_p,ierr)
       do i=1,n
-         sol(i) = xx_a(i)
-      end do      
-      call VecRestoreArray(x,xx_v,xx_i,ierr)     
-c      
+         sol(i) = xx_p(i)
+      end do
+      call VecRestoreArrayReadF90(x,xx_p,ierr)    
+c     
       end        
 
 c----------------------------------------------------------------------

@@ -217,28 +217,20 @@ c----------------------------------------------------------------------
 c     Solve Ax=b
 c----------------------------------------------------------------------
       use UserModule
-c     
       implicit none
 c      
-#define xx_a(ib) xx_v(xx_i + (ib))      
-c      
       real*8 sol(*)
+      PetscScalar, pointer :: xx_p(:)
 c     
       Vec              x,b,u
       Mat              A
       KSP              ksp
       PC               pc
+      PetscInt         i,n,its
       PetscReal        norm,tol
       PetscErrorCode   ierr
-      PetscInt         i,n,col(3),its,i1,i2,i3
-      PetscBool        flg
-      PetscScalar      none,one,value(3)     
-      type(User) userctx
-      IS               isrow,iscol
       PetscViewer      viewer
-
-      PetscScalar xx_v(1)
-      PetscOffset xx_i,yy_i      
+      type(User)       userctx
 c      
 c     Get PETSC data
 c      
@@ -300,12 +292,12 @@ c      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
 c
 c     get data from vector, copy to sol and restore vector
 c
-      call VecGetArray(x,xx_v,xx_i,ierr)
+      call VecGetArrayReadF90(x,xx_p,ierr)
       do i=1,n
-         sol(i) = xx_a(i)
-      end do      
-      call VecRestoreArray(x,xx_v,xx_i,ierr)     
-c      
+         sol(i) = xx_p(i)
+      end do
+      call VecRestoreArrayReadF90(x,xx_p,ierr) 
+c     
       end      
      
 c----------------------------------------------------------------------
