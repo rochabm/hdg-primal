@@ -5886,57 +5886,49 @@ c
       melmcb  = 48
       melmhb  = 49
 c
-      melfa   = 50
-      melfb   = 51
-      melfc   = 52
-      melfd   = 53
-      melfab  = 54
+      melfab  = 50
+      melfbb  = 51
+      melfcb  = 52
 c
-      melfbb  = 55
-      melfcb  = 56
+      mshsde  = 53
 c
-      mshsde  = 57
+      mshlpsd = 54
+      mshgpsd = 55
+      mshlcsd = 56
+      mshgcsd = 57
 c
-      mshlpsd = 58
-      mshgpsd = 59
-      mshlcsd = 60
-      mshgcsd = 61
-c
-      melmdb  = 62
-      melmbc  = 63
+      melmdb  = 58
+      melmbc  = 59
 c
 c     new for parabolic
 c
-      mfelm   = 64
-      mfdelm  = 65
-      maelm   = 66
-      mdbel   = 67
-      mddisa  = 68
+      mfelm   = 60
+      mfdelm  = 61
+      maelm   = 62
+      mdbel   = 63
+      mddisa  = 64
 c$$$      mxbrhs  = 69
-      mxvla   = 69
-      mxvlb   = 70
+      mxvla   = 65
+      mxvlb   = 66
 c
-c     new for monodomain
+c     new for monodomain (vm e sv alocados em outra parte)
 c
-c$$$      mxvm    = 72
-c$$$      mxsv    = 73
-      mxnrml  = 71
+      mxnrml  = 67
 c
 c     matriz M - dt K
 c     
-      makelm  = 72
-      mbkelm  = 73
-      mbkelm2 = 74
+      makelm  = 68
+      mbkelm  = 69
 c
 c     new for continuous multp.
 c
-      mindno  = 75
-      mindedg = 76
-      miedgto = 77
+      mindno  = 70
+      mindedg = 71
+      miedgto = 72
 c
 c     new for monodomain (high-order)
 c      
-      mienp = 78  
+      mienp = 73
 c
 c     parametros
 c
@@ -6032,13 +6024,6 @@ c
             nnods = 4
             nside = 6
          end if
-         
-c         if(nencon.eq.8.or.nencon.eq.27.or.
-c     &      nencon.eq.64.or.nencon.eq.125.or.
-c     &      nencon.eq.216) then
-c            nnods = 4
-c            nside = 6
-c         end if
 c       
          nintb=nside*nints
 c
@@ -6195,11 +6180,6 @@ c
          mp(melmcb) = mpoint('elmcb   ',neep   ,nee   ,0     ,iprec)
          mp(melmhb) = mpoint('elmhb   ',nee    ,necon ,0     ,iprec)
 c
-         mp(melfa ) = mpoint('elfa    ',necon  ,0     ,0     ,iprec)
-         mp(melfb ) = mpoint('elfb    ',neep   ,0     ,0     ,iprec)
-         mp(melfc ) = mpoint('elfc    ',nee    ,0     ,0     ,iprec)
-         mp(melfd ) = mpoint('elfd    ',necon  ,0     ,0     ,iprec)
-c
          mp(melfab) = mpoint('elfab   ',necon  ,0     ,0     ,iprec)
          mp(melfbb) = mpoint('elfbb   ',neep   ,0     ,0     ,iprec)
          mp(melfcb) = mpoint('elfcb   ',nee    ,0     ,0     ,iprec)
@@ -6241,7 +6221,6 @@ c     para armazenar matrizes para a flux3
 c         
          mp(makelm)  = mpoint('akelm   ', neep ,neep  ,numel ,iprec)
          mp(mbkelm)  = mpoint('bkelm   ', neep ,nee   ,numel ,iprec)
-         mp(mbkelm2) = mpoint('bkelm2  ', neep ,nee   ,numel ,iprec)
 c
 c     new for continuous multp.
 c              
@@ -6289,7 +6268,6 @@ c
      &            ndofsv)
 c     
       write(*,'(A)') "fim da flux1"
-      write(*,*) "NDOFSV",ndofsv
       return
 c
  200  continue
@@ -6354,8 +6332,7 @@ c     &             nsd,nesd,npars,nside)
      &           a(mp(mshlp )),a(mp(mshgp )),a(mpdlhs   ),
      &           a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
      &           a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-     &           a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
-     &           a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
+     &           a(mp(melmcb)),a(mp(melmhb)),
      &           a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
      &           a(mp(melmdb)),a(mp(melmbc)),
 c
@@ -6375,8 +6352,8 @@ c
      &           index ,nface, userctx      ,
 c      
      &           a(mp(maelm)), a(mp(mdbel)), a(mp(mfelm)),
-     &           a(mp(makelm)),a(mp(mbkelm)),  !a(mp(mbkelm2)),
-     &           a(mp(xnrml)))
+     &           a(mp(makelm)),a(mp(mbkelm)), a(mp(xnrml))
+     &     )
 c
       return
 c
@@ -6390,47 +6367,46 @@ c
       call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
 
       call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
-     &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
-     &                 a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
-     &                 a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
-     &                 a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
-     &                 a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
-     &                 a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
-     &                 a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
-     &                 a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-     &                 a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-     &                 a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-     &                 a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
-     &                 a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
+     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
+     &                    a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
+     &                    a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
+     &                    a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
+     &                    a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
+     &                    a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
+     &                    a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
+     &                    a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
+     &                    a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
+     &                    a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
+     &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+     &                    a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
 c
-     &                 a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
-     &                 a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-     &                 a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
-     &                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
-     &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
-     &                 a(mp(melmdb)),a(mped      ),
+     &                    a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
+     &                    a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
+     &                    a(mp(melmcb)),a(mp(melmhb)),
+     &                    a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
+     &                    a(mp(melmdb)),a(mped      ),
 c
-     &                 a(mp(mshsde)),a(mpiedge),
+     &                    a(mp(mshsde)),a(mpiedge),
 c
-     &                 a(mp(mshlpsd)),a(mp(mshlcsd)),
-     &                 a(mp(mshgpsd)),a(mp(mshgcsd)),
+     &                    a(mp(mshlpsd)),a(mp(mshlcsd)),
+     &                    a(mp(mshgpsd)),a(mp(mshgcsd)),
 
-     &                 a(mp(maelm)),a(mp(mdbel)),
-     &                 a(mp(mfelm)),a(mp(mfdelm)),
-     &                 a(mp(mxvla)),a(mp(mxvlb)),
+     &                    a(mp(maelm)),a(mp(mdbel)),
+     &                    a(mp(mfelm)),a(mp(mfdelm)),
+     &                    a(mp(mxvla)),a(mp(mxvlb)),
 c           
-     &                 numel ,neesq ,nen   ,
-     &                 nsd   ,nesd  ,nint  ,
-     &                 neg   ,nrowsh,ned   ,
-     &                 nee   ,numnp ,ndof  ,
-     &                 ncon  ,nencon,necon ,
-     &                 neep  ,nints ,nnods ,
-     &                 nenlad,npars ,nside ,
-     &                 nenp  ,nodsp ,index ,
-     &                 nface ,nmultpc, ndofsv, a(mp(mlm)),
-     &                 a(mpbrhs),a(mpvm),a(mpsv), ! novo     
-     &                 a(mp(makelm)),a(mp(xnrml)),
-     &                 a(mp(mienp)), a(mpxp), userctx)            
+     &                    numel ,neesq ,nen   ,
+     &                    nsd   ,nesd  ,nint  ,
+     &                    neg   ,nrowsh,ned   ,
+     &                    nee   ,numnp ,ndof  ,
+     &                    ncon  ,nencon,necon ,
+     &                    neep  ,nints ,nnods ,
+     &                    nenlad,npars ,nside ,
+     &                    nenp  ,nodsp ,index ,
+     &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
+     &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
+     &                    a(mp(makelm)),a(mp(xnrml)),
+     &                    a(mp(mienp)), a(mpxp), userctx)            
       
 c$$$      call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
 c$$$     &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6448,8 +6424,8 @@ c$$$     &                 a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
 c$$$c
 c$$$     &                 a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
 c$$$     &                 a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-c$$$     &                 a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
-c$$$     &                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
+c$$$     &                 a(mp(melmcb)),a(mp(melmhb)), !a(mp(melfa )),
+c$$$        !&                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
 c$$$     &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
 c$$$     &                 a(mp(melmdb)),a(mped      ),
 c$$$c
@@ -6495,8 +6471,8 @@ c$$$     &                 a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
 c$$$c
 c$$$     &                 a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
 c$$$     &                 a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-c$$$     &                 a(mp(melmcb)),a(mp(melmhb)),a(mp(melfa )),
-c$$$     &                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
+c$$$     &                 a(mp(melmcb)),a(mp(melmhb)), !a(mp(melfa )),
+c$$$        !&                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
 c$$$     &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
 c$$$     &                 a(mp(melmdb)),a(mped      ),
 c$$$c
@@ -8284,8 +8260,7 @@ c------------------------------------------------------------------------------
      &                 shlp  ,shgp  ,dlhs,
      &                 elma  ,elmb  ,elmc  ,
      &                 elmd  ,elmh  ,elmbb ,
-     &                 elmcb ,elmhb ,elfa  ,
-     &                 elfb  ,elfc  ,elfd  ,
+     &                 elmcb ,elmhb ,
      &                 elfab ,elfbb ,elfcb ,
      &                 elmdb ,elmbc ,
 c
@@ -8324,8 +8299,7 @@ c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*),elmbc(nee,*)
-      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
-      dimension elfbb(*),elfcb(*)
+      dimension elfab(*),elfbb(*),elfcb(*)
 c
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),mat(*)
       dimension d(ndof,*),dl(ned,*),dls(64)
@@ -8403,8 +8377,8 @@ c
 c
          call clear(elresd,nee)
          call clear(elfbb,neep)
-         call clear(elfb,neep)
-         call clear(elfc,nee)
+         !call clear(elfb,neep)
+         !call clear(elfc,nee)
 
 c     new
          call clear(elmak,neep*neep)
@@ -8807,7 +8781,7 @@ c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - betah*din*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) - betah*din*djn
 c
-c     armazenar para usar na fluxo3  - bkelm2                 
+c     armazenar para usar na fluxo3
 c
                      ! TODO:
                   end do
@@ -9033,8 +9007,7 @@ c-------------------------------------------------------------------------------
      &                       detp  ,shlp  ,shgp  ,
      &                       elma  ,elmb  ,elmc  ,
      &                       elmd  ,elmh  ,elmbb ,
-     &                       elmcb ,elmhb ,elfa  ,
-     &                       elfb  ,elfc  ,elfd  ,
+     &                       elmcb ,elmhb , 
      &                       elfab ,elfbb ,elfcb ,
      &                       elmdb ,ideg  , 
 c
@@ -9082,8 +9055,7 @@ c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
-      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
-      dimension elfbb(*),elfcb(*)
+      dimension elfab(*),elfbb(*),elfcb(*)
 c
       dimension eleffd(nee,*),elresd(*)
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*)
@@ -10076,8 +10048,7 @@ c-------------------------------------------------------------------------------
      &                          detp  ,shlp  ,shgp  ,
      &                          elma  ,elmb  ,elmc  ,
      &                          elmd  ,elmh  ,elmbb ,
-     &                          elmcb ,elmhb ,elfa  ,
-     &                          elfb  ,elfc  ,elfd  ,
+     &                          elmcb ,elmhb ,
      &                          elfab ,elfbb ,elfcb ,
      &                          elmdb ,ideg  , 
 c
@@ -10127,8 +10098,7 @@ c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
-      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
-      dimension elfbb(*),elfcb(*)
+      dimension elfab(*),elfbb(*),elfcb(*)
 c
       dimension eleffd(nee,*),elresd(*)
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*)
@@ -11211,8 +11181,7 @@ c-------------------------------------------------------------------------------
      &                       detp  ,shlp  ,shgp  ,
      &                       elma  ,elmb  ,elmc  ,
      &                       elmd  ,elmh  ,elmbb ,
-     &                       elmcb ,elmhb ,elfa  ,
-     &                       elfb  ,elfc  ,elfd  ,
+     &                       elmcb ,elmhb ,
      &                       elfab ,elfbb ,elfcb ,
      &                       elmdb ,ideg  , 
 c
@@ -11260,8 +11229,7 @@ c
       dimension elma(necon,*),elmb(necon,*),elmc(necon,*),elmd(neep,*)
       dimension elmh(neep,*),elmbb(neep,*),elmcb(neep,*),elmhb(nee,*)
       dimension elmdb(nee,*)
-      dimension elfa(*),elfb(*),elfc(*),elfd(*),elfab(*)
-      dimension elfbb(*),elfcb(*)
+      dimension elfab(*),elfbb(*),elfcb(*)
 c
       dimension eleffd(nee,*),elresd(*)
       dimension ien(nen,*),x(nsd,*),xl(nesd,*),d(ndof,*),dl(ned,*)
