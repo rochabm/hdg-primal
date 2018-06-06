@@ -1,18 +1,17 @@
-c     ****************************************************************** 
-c     * Formulacao Hibrida Primal - Prob. Monodominio/RD/Cardiaco      *
-c     * Multplicador Continuo = potencial na interface dos elementos   *
-c     * Abril de 2018                                                  *
-c     ******************************************************************
-c      Residuo no interior dos elementos:
-c         (grad u , grad v ) + (grad u,v) - (f,v)
-c
-c      Termos de saltos nas arestas:
+c ----------------------------------------------------------------------
+c     Formulacao Hibrida Primal - Prob. Monodominio/RD/Cardiaco      
+c     Multplicador Continuo = potencial na interface dos elementos   
+c     Abril de 2018
+c     Bernardo M. Rocha
+c ----------------------------------------------------------------------      
+c     Residuo no interior dos elementos: (grad u,grad v)+(grad u,v)-(f,v)
+c     Termos de saltos nas arestas:
 c        beta(u - up, v-vp)
 c        -(grad(u).n , (v-vp))
 c        lambda((u-up) , grad(v).n)
 c
-c     ******************************************************************
-c
+c ----------------------------------------------------------------------      
+
       module UserModule
 #include <petsc/finclude/petscksp.h>
       use petscksp
@@ -27,10 +26,19 @@ c
       end type User
       end module
 
+c ----------------------------------------------------------------------      
+
+      module Globals
+        real*8, allocatable, dimension(:,:,:)  :: aelm,dbel
+c        real*8, allocatable, dimension(:,:,:)  :: akelm,bkelm
+      end module Globals
+
 c ----------------------------------------------------------------------
       
       program main
-      use UserModule      
+      use UserModule
+      use Globals
+      
       common /bpoint/ mfirst,mlast,ilast,mtot,iprec
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       character*4 ia
@@ -218,15 +226,9 @@ c
       PC               pc
       PetscReal        norm,tol
       PetscErrorCode   ierr
-      PetscInt         i,n,col(3),its,i1,i2,i3
-      PetscBool        flg
-      PetscScalar      none,one,value(3)     
-      type(User) userctx
-      IS               isrow,iscol
+      PetscInt         i,n,its
       PetscViewer      viewer
-
-      PetscScalar xx_v(1)
-      PetscOffset xx_i,yy_i      
+      type(User)       userctx
 c      
 c     Get PETSC data
 c      
@@ -238,7 +240,7 @@ c
 c      
 c     Create linear solver context
 c
-      write(*,*) "PETSC: criando solver"
+      write(*,*) "petsc: criando solver"
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
 c     Set operators. Here the matrix that defines the linear system
@@ -250,7 +252,7 @@ c     Set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
-      tol = 1.d-7
+      tol = 1.d-16
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 
@@ -271,7 +273,7 @@ c$$$      call PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.nd",viewer,ierr)
 c$$$      call ISView(isrow,viewer,ierr)
 c$$$      call PetscViewerDestroy(viewer,ierr)     
 c$$$  
-c      
+c
       end   
 
 c----------------------------------------------------------------------
@@ -337,7 +339,6 @@ c$$$      call VecView(x,PETSC_VIEWER_STDOUT_SELF,ierr)
 c$$$      write(*,*) "PETSC: RHS"
 c$$$      call VecView(b,PETSC_VIEWER_STDOUT_SELF,ierr)
 c$$$      call MatView(A,PETSC_VIEWER_STDOUT_SELF,ierr)
-c$$$      stop
       
       call KSPGetIterationNumber(ksp,its,ierr)
       call KSPGetResidualNorm(ksp,norm,ierr)
@@ -364,6 +365,7 @@ c     LPGM - a linear static finite element analysis program for
 c     Petrov Galerkin methods : global driver
 c----------------------------------------------------------------------
       use UserModule
+      use Globals
 c      
       real*8 zero,pt1667,pt25,pt5,one,two,three,four,five,six,tempf
       character*4 title,titlea(20)
@@ -508,9 +510,9 @@ c
 c     allocate EDOs arrays
 c      
       nsv = 19
-      mpvm = mpoint('xvm     ',ndofsv,0       ,0     ,iprec)
-      mpsv = mpoint('xsv     ',nsv  ,ndofsv   ,0     ,iprec)
-      mpxp = mpoint('xp      ',3    ,ndofsv   ,0     ,iprec)
+      mpvm = mpoint('xvm     ',ndofsv,0        ,0     ,iprec)
+      mpsv = mpoint('xsv     ',nsv   ,ndofsv   ,0     ,iprec)
+      mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
@@ -541,15 +543,10 @@ c
       write(*,'(A)') "subroutine driver"
       if (iexec.eq.1) call driver(neq,nalhs,userctx)
 c
-c     print memory-pointer dictionary
-c
-c      call prtdc
+c     print elapsed time summary
 c
       call timing(t1)
       etime(2) = t1 - t2
-c
-c     print elapsed time summary
-c
       call timlog
       go to 100
 c
@@ -589,6 +586,7 @@ c-----------------------------------------------------------------------
 c     solution driver program
 c-----------------------------------------------------------------------
       use UserModule
+      use Globals
 c     
       common /etimec/ etime(6)      
       common /info  / iexec,iprtin,irank,nsd,numnp,ndof,nlvect,
@@ -623,7 +621,7 @@ c
          call ftod(a(mpidc),a(mpd),a(mpf),ndof,nmultpc,nlvect)
       end if
 c
-c     form the l.h.s and r.h.s. at element level
+c     form the LHS and RHS at element level
 c
       call elemnt('form_lrs',a(mpngrp),userctx)
 c     
@@ -637,8 +635,7 @@ c$$$      call vecprint(a(mpbrhs),neq)
 c
  1111 continue
 c
-c     NAO TEM ISSO NO 2D
-c      
+c     NAO TEM ISSO NO 2D     
 c     call btod(a(mpid),a(mpd),a(mpbrhs),ndof,nmultp)
 
 c
@@ -763,13 +760,7 @@ c
 c     
       call iclear(ideg,2*ndof*nedge)
       call iclear(id,ndof*numnp)
-      call igen3d(ideg,2*ndof)
-c      
-c     call igen(ideg,2*ndof)
-c     do i=1,nedge
-c       write(*,*) "face",i,ideg(1,i)
-c     end do
-      
+      call igen3d(ideg,2*ndof)        
 c     
       if (iprtin.eq.0) then
          nn=0
@@ -965,19 +956,11 @@ c-----------------------------------------------------------------------
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /labels/ labeld(3),label1(16),label2(3)
-
+c
       data   zero,pt1667,pt25,pt5
      &      /0.0d0,0.1666666666666667d0,0.25d0,0.5d0/,
      &       one,two,three,four,five,six
      &      /1.0d0,2.0d0,3.0d0,4.0d0,5.0d0,6.0d0/
-c
-!      data labeld/'disp','vel ','acc '/
-c
-!      data label1/'s 11','s 22','s 12','s 33','ps 1','ps 2',
-!     &            'tau ','sang','e 11','e 22','g 12','e 33',
-!     &            'pe 1','pe 2','gam ','eang'/
-c
-!      data label2/'strs','forc','strn'/
 c
       end
 
@@ -998,7 +981,6 @@ c
 c
       return
       end
-
 
 c-----------------------------------------------------------------------
       subroutine btod(id,d,brhs,ndof,numnp)
@@ -5790,6 +5772,8 @@ c     primal mixed Poisson  problem
 c     with continuous temperature and discontinuous flux
 c-----------------------------------------------------------------------
       use UserModule
+      use Globals
+c      
       type(User) userctx
 c      
       dimension npar(*),mp(*)
@@ -5917,18 +5901,18 @@ c
 c
 c     matriz M - dt K
 c     
-      makelm  = 68
-      mbkelm  = 69
+      makelm  = 72
+      mbkelm  = 73
 c
 c     new for continuous multp.
 c
-      mindno  = 70
-      mindedg = 71
-      miedgto = 72
+      mindno  = 68
+      mindedg = 69
+      miedgto = 70
 c
 c     new for monodomain (high-order)
 c      
-      mienp = 73
+      mienp = 71
 c
 c     parametros
 c
@@ -6033,27 +6017,11 @@ c     parameters for post processing
 c
       nodsp = npars*nside      ! para multp. descontinuo
 c
-      nordem = 1
-      npars2 = 1
+c     para multiplicador continuo
 c      
-      if(npars.eq.4) then
-         nordem = 1
-         npars2 = 2
-      else if(npars.eq.9) then
-         nordem = 2
-         npars2 = 3         
-      else if(npars.eq.16) then
-         nordem = 3
-         npars2 = 4
-      else if(npars.eq.25) then
-         nordem = 4
-         npars2 = 5
-      else if(npars.eq.36) then
-         nordem = 5
-         npars2 = 6
-      end if
-c      
-      nodsp  = 2*npars + (nordem-1)*(npars2-1)*4 ! para multp. continuo
+      npars2 = idnint(npars**(1.0d0/2.0d0))
+      nordem = npars2 - 1            
+      nodsp  = 2*npars + (nordem-1)*(npars2-1)*4 
       nodspd = npars*nside
 c
 c     set element parameters
@@ -6164,7 +6132,6 @@ c
          mp(mshlb ) = mpoint('shlb    ',nrowsh ,nenlad,nints ,iprec)
          mp(mshgb ) = mpoint('shgb    ',nrowsh ,nenlad,nints ,iprec)
 c
-         mp(mddis ) = mpoint('ddis    ',ned    ,nenp  ,numel ,iprec )
          mp(mwp   ) = mpoint('wp      ',nint   ,0     ,0     ,iprec)
          mp(mdetp ) = mpoint('detp    ',nint   ,0     ,0     ,iprec)
          mp(mshlp ) = mpoint('shlp    ',nrowsh3,nenp  ,nint  ,iprec)
@@ -6196,31 +6163,35 @@ c
 c
 c     new for parabolic
 c         
-         mp(mfelm) = mpoint('felm    ',neep  ,numel   ,0     ,iprec)
-         mp(mfdelm)= mpoint('fdelm   ',neep  ,numel   ,0     ,iprec)         
-         mp(maelm) = mpoint('aelm    ',neep  ,neep    ,numel ,iprec)         
-         mp(mdbel) = mpoint('dbel    ',nee   ,neep    ,numel ,iprec)
-         mp(mddisa)= mpoint('ddisa   ',ned   ,nenp    ,numel ,iprec)
+         mp(mfelm)  = mpoint('felm    ',neep  ,numel  ,0     ,iprec)
+         mp(mfdelm) = mpoint('fdelm   ',neep  ,numel  ,0     ,iprec)         
+         mp(mddis ) = mpoint('ddis    ',ned   ,nenp   ,numel ,iprec)
+         mp(mddisa) = mpoint('ddisa   ',ned   ,nenp   ,numel ,iprec)
 c
 c     xbrhs deve ser alocado depois de saber o tamanho
 c         
-c$$$         mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
+c$$$     mp(mxbrhs)= mpoint('xbrhs   ',neq   ,0       ,0     ,iprec)
          mp(mxvla) = mpoint('xvla    ',nints ,nedge   ,0     ,iprec)
          mp(mxvlb) = mpoint('xvlb    ',nints ,nedge   ,0     ,iprec)
 c
 c     new for monodomain
 c
-ccc      nsv = 2
-c         nsv = 19        
-c         mp(mxvm)   = mpoint('xvm   ',numnp,0       ,0     ,iprec)
-c         mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
+c$$$     mp(mxvm)   = mpoint('xvm   ',numnp,0       ,0     ,iprec)
+c$$$     mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
          mp(xnrml)  = mpoint('xnrml   ',3    ,6       ,numel ,iprec)
          mp(mienp)  = mpoint('ienp    ',nenp ,numel   ,0     ,1)
 c
-c     para armazenar matrizes para a flux3
+c     para armazenar matrizes locais
 c         
-         mp(makelm)  = mpoint('akelm   ', neep ,neep  ,numel ,iprec)
-         mp(mbkelm)  = mpoint('bkelm   ', neep ,nee   ,numel ,iprec)
+         mp(makelm) = mpoint('akelm   ',neep ,neep  ,numel ,iprec)
+         mp(mbkelm) = mpoint('bkelm   ',neep ,nee   ,numel ,iprec)
+c$$$     mp(maelm)  = mpoint('aelm    ',neep ,neep  ,numel ,iprec)
+c$$$     mp(mdbel)  = mpoint('dbel    ',nee  ,neep  ,numel ,iprec)
+         
+         allocate(aelm(neep,neep,numel))
+         allocate(dbel(nee,neep,numel))         
+c         allocate(akelm(neep,neep,numel))
+c         allocate(bkelm(neep,nee,numel))
 c
 c     new for continuous multp.
 c              
@@ -6267,7 +6238,6 @@ c
      &            nedge        ,nmultpd       ,nmultpc,
      &            ndofsv)
 c     
-      write(*,'(A)') "fim da flux1"
       return
 c
  200  continue
@@ -6328,7 +6298,8 @@ c     &             nsd,nesd,npars,nside)
      &           a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
      &           a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
      &           a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-     &           a(mp(mdsfl )),a(mp(mddis )),a(mp(mdetp )),
+!     &           a(mp(mdsfl )),a(mp(mddis )),a(mp(mdetp )),
+     &           a(mp(mddis )),a(mp(mdetp )),      
      &           a(mp(mshlp )),a(mp(mshgp )),a(mpdlhs   ),
      &           a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
      &           a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
@@ -6351,7 +6322,8 @@ c
      &           nside ,nenp  ,nedge ,nodsp ,
      &           index ,nface, userctx      ,
 c      
-     &           a(mp(maelm)), a(mp(mdbel)), a(mp(mfelm)),
+c     &           a(mp(maelm)), a(mp(dbel)), a(mp(mfelm)),
+     &           aelm, dbel, a(mp(mfelm)),      
      &           a(mp(makelm)),a(mp(mbkelm)), a(mp(xnrml))
      &     )
 c
@@ -6377,7 +6349,8 @@ c
      &                    a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
      &                    a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
      &                    a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-     &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+!     &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+     &                    a(mp(mddis )),a(mp(mddisa)),
      &                    a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
 c
      &                    a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
@@ -6391,7 +6364,8 @@ c
      &                    a(mp(mshlpsd)),a(mp(mshlcsd)),
      &                    a(mp(mshgpsd)),a(mp(mshgcsd)),
 
-     &                    a(mp(maelm)),a(mp(mdbel)),
+c     &                   a(mp(maelm)),a(mp(mdbel)),
+     &                    aelm,dbel,
      &                    a(mp(mfelm)),a(mp(mfdelm)),
      &                    a(mp(mxvla)),a(mp(mxvlb)),
 c           
@@ -6528,6 +6502,15 @@ c$$$     &            nmultp,nodsp )
 c$$$c
 c$$$      write(*,'(A)') "fim da flnormp"
 c
+
+c
+c     libera memoria
+c      
+      deallocate(aelm)
+      deallocate(dbel)
+c      deallocate(akelm)
+c      deallocate(bkelm)
+c      
       return
       end
 
@@ -6676,12 +6659,12 @@ c
 c     then 3d stuff
 c     calcular: shl, shlc, shlp, shlpsd, shlcsd, shlsde
 c
-         write(*,'(A)') "calculando shl da variavel"
-         write(*,'(A,2I5)') "nint,nen",nint,nen
+         write(*,'(A)') " calculando shl da variavel"
+         write(*,'(A,2I5)') "  nint,nen",nint,nen
 
          write(*,'(A)') " calculando shl"
          call shlhxpk(shl,w,nint,nen)
-
+         
          write(*,'(A)') " calculando shlc"
          call shlhxpk(shlc,wc,nint,nencon)
 
@@ -6690,39 +6673,15 @@ c
 c
 c     shp on faces
 c
-         nenlad2=2
-         nnods2=2
-
-         if(nencon.eq.27) then
-            nnods2 = 3
-         else if(nencon.eq.64) then
-            nnods2 = 4
-         else if(nencon.eq.125) then
-            nnods2 = 5         
-         else if(nencon.eq.216) then
-            nnods2 = 6
-         endif
-
-         if(nints.eq.1) then
-            nints2 = 1
-         else if(nints.eq.4) then
-            nints2 = 2
-         else if(nints.eq.9) then
-            nints2 = 3
-         else if(nints.eq.16) then
-            nints2 = 4
-         else if(nints.eq.25) then
-            nints2 = 5
-         else if(nints.eq.36) then
-            nints2 = 6
-         else if(nints.eq.49) then
-            nints2 = 7
+         nenlad2 = 2
+         nints2  = idnint(nints**(1.0d0/2.0d0))
+         nnods2  = 2
+         if(nencon.gt.8) then
+            nnods2 = idnint(nencon**(1.0d0/3.0d0))
          end if
-c
+c         
          write(*,'(A)')  " integral em face/area"
-         write(*,'(A,2I5)') " nen2   ",nnods2
-         write(*,'(A,2I5)') " nints2 ",nints2
-         write(*,'(A,2I5)') " nenlad2",nenlad2         
+         write(*,'(A,3I5)') " nen2,nints2,nenlad2",nnods2,nints2,nenlad2
 c
          write(*,'(A)') " calculando shlpsd (shlhxpbk)"
          call shlhxpbk(shlpsd,nenp,nside,nnods2,nints2)
@@ -6839,23 +6798,17 @@ c     global
                nl1 = ien(ns1,nel)
                nl2 = ien(ns2,nel)
                nl3 = ien(ns3,nel)
-               nl4 = ien(ns4,nel)            
-c     
+               nl4 = ien(ns4,nel)
 c     arestas
-c     
                ielemar(1,1,neledg)  = nl1;  ielemar(2,1,neledg)  = nl2
                ielemar(1,2,neledg)  = nl2;  ielemar(2,2,neledg)  = nl3
                ielemar(1,3,neledg)  = nl3;  ielemar(2,3,neledg)  = nl4
                ielemar(1,4,neledg)  = nl4;  ielemar(2,4,neledg)  = nl1
 c
-               kar = kar + 1
-               iarnum(1,neledg) = kar
-               kar = kar + 1
-               iarnum(2,neledg) = kar
-               kar = kar + 1
-               iarnum(3,neledg) = kar
-               kar = kar + 1
-               iarnum(4,neledg) = kar
+               kar = kar + 1; iarnum(1,neledg) = kar
+               kar = kar + 1; iarnum(2,neledg) = kar
+               kar = kar + 1; iarnum(3,neledg) = kar
+               kar = kar + 1; iarnum(4,neledg) = kar
             end if
 c            
          end do
@@ -6960,9 +6913,7 @@ c
 c     loop em elemento
 c     
       do nel=1,numel
-c     
-c     loop em lado/face
-c     
+c     faces do elemento
          do ns=1,nside
             neledg = lado(ns,nel)
 c     localiza os no's do lado ns
@@ -7290,9 +7241,9 @@ c
                   end do               
                end if
                
-            end if              ! npars>4                          
+            end if   ! npars>4                          
             
-         end do ! fim nside loop
+         end do   ! fim nside loop
 
          ! dofs do interior
          nndint = nenp - nodsp
@@ -7312,7 +7263,7 @@ c$$$         write(*,"(A,100I6)") "ienp",(ienp(j,ii),j=1,nenp)
 c$$$      end do
 c      
       ndofsv = keq
-      write(*,"(A,I10)") "ndof sv:",ndofsv
+      write(*,"(A,I10)") " ndof sv:",ndofsv
 c
 c ------------------------------------------------------------------------------
       return
@@ -8256,7 +8207,7 @@ c------------------------------------------------------------------------------
      &                 detb  ,shlb  ,shgb  ,
      &                 detpn ,shlpn ,shgpn ,
      &                 idside,xls   ,idlsd ,
-     &                 dsfl  ,ddis  ,detp  ,
+     &                 ddis  ,detp  ,
      &                 shlp  ,shgp  ,dlhs,
      &                 elma  ,elmb  ,elmc  ,
      &                 elmd  ,elmh  ,elmbb ,
@@ -8290,7 +8241,6 @@ c
       type(User) userctx
       PetscViewer viewer
       PetscErrorCode ierr
-      PetscBool flg
       Mat A
       Vec b
 c
@@ -8306,8 +8256,11 @@ c
       dimension w(*),c(10,*),lm(ned,nodsp,*),
      &     grav(*),ipar(nodsp,*),lado(nside,*),dlhs(*),
      &     detc(*),eleffd(nee,*),elresd(*)
-      dimension wn(*),idside(nside,*),xls(nesd,*),idlsd(*),
-     &     dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+      dimension wn(*),idside(nside,*),xls(nesd,*),idlsd(*)
+      
+c         &     dsfl(ncon,nencon,*),
+      
+      dimension ddis(ned,nenp,*)
       dimension det(*),detp(*),detb(*),detpn(*)
       dimension ideg(2*ndof,*),iedge(npars,*),idc(ndof,*)
 c
@@ -8339,17 +8292,17 @@ c
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
 c
 c     PETSC stuff
-c      
+c
       b = userctx%b
       A = userctx%A
 c
 c     consistent matrix
-c      
+c
       diag = .false.
       pi = 4.d00*datan(1.d00)
       gf1 = grav(1)
       gf2 = grav(2)
-      gf3 = grav(3)  
+      gf3 = grav(3)
 c
 c     zero normals
 c
@@ -8360,13 +8313,13 @@ c
             xnrml(3,ns,nel) = 0.d00
          end do
       end do
-      
+
 c     ------------------------------------------------------------------
 c     element loop
 c     ------------------------------------------------------------------
       
       do 500 nel=1,numel
-c        write(*,*) "elemento", nel         
+c$$$        write(*,*) "elemento", nel
 c
 c     clear stiffness matrix and force array
 c
@@ -9003,7 +8956,7 @@ c-------------------------------------------------------------------------------
      &                       detb  ,shlb  ,shgb  ,
      &                       detpn ,shlpn ,shgpn ,
      &                       idside,xls   ,idlsd ,
-     &                       dsfl  ,ddis  ,ddisa,
+     &                       ddis  ,ddisa,
      &                       detp  ,shlp  ,shgp  ,
      &                       elma  ,elmb  ,elmc  ,
      &                       elmd  ,elmh  ,elmbb ,
@@ -9063,7 +9016,8 @@ c
       dimension w(*),wn(*)
       dimension det(*),detc(*),detb(*),detpn(*),detp(*)
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+c     dimension dsfl(ncon,nencon,*),
+      dimension ddis(ned,nenp,*)
 c      
       dimension lm(ned,nodsp,*)
 c      
@@ -10044,7 +9998,7 @@ c-------------------------------------------------------------------------------
      &                          detb  ,shlb  ,shgb  ,
      &                          detpn ,shlpn ,shgpn ,
      &                          idside,xls   ,idlsd ,
-     &                          dsfl  ,ddis  ,ddisa,
+     &                          ddis  ,ddisa,
      &                          detp  ,shlp  ,shgp  ,
      &                          elma  ,elmb  ,elmc  ,
      &                          elmd  ,elmh  ,elmbb ,
@@ -10106,7 +10060,8 @@ c
       dimension w(*),wn(*)
       dimension det(*),detc(*),detb(*),detpn(*),detp(*)
       dimension idside(nside,*),xls(nesd,*),idlsd(*)
-      dimension dsfl(ncon,nencon,*),ddis(ned,nenp,*)
+c      dimension dsfl(ncon,nencon,*),
+      dimension ddis(ned,nenp,*)
 c      
       dimension lm(ned,nodsp,*)
 c      
@@ -10140,7 +10095,7 @@ c
       dimension xstim(ndofsv), xmean(ndofsv), icont(ndofsv)
       dimension xnrml(3,6,*)
       dimension akelm(neep,neep,*)
-      dimension ienp(nenp,*)    ! nenp x numel
+      dimension ienp(nenp,*)  ! nenp x numel
       dimension inod(8,8,8)
       dimension xp(3,*)
 c
@@ -10184,15 +10139,14 @@ c
             ddis(1,i,nel) = 0.d00
             ddisa(1,i,nel) = 0.d00
          end do
-      end do    
+      end do
 
 c ------------------------------------------------------------------------------
 c     coordinates xlp
 c ------------------------------------------------------------------------------
 
-      inn = nenp**(1.0d0/3.0d0)
-      write(*,*) inn
-      
+      inn = idnint(nenp**(1.0d0/3.0d0))
+      write(*,*) inn,nenp
 c
       if(nenp.eq.1) inod(1,1,1) = 1
 c
@@ -10244,17 +10198,84 @@ c
          inod(3,3,3) = 27
       end if
 
-
-!
-!     TODO: algum problema de memoria com o array XP
-!
-      
+c      
+c     p=3
+c      
+      if(nenp.eq.64) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 13
+         inod(4,2,1) = 14
+         inod(1,3,1) = 15
+         inod(2,3,1) = 11
+         inod(3,3,1) = 49
+         inod(4,3,1) = 50
+         inod(1,4,1) = 16
+         inod(2,4,1) = 12
+         inod(3,4,1) = 51
+         inod(4,4,1) = 52
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 17
+         inod(4,1,2) = 18
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 21
+         inod(4,2,2) = 22
+         inod(1,3,2) = 23
+         inod(2,3,2) = 19
+         inod(3,3,2) = 53
+         inod(4,3,2) = 54
+         inod(1,4,2) = 24
+         inod(2,4,2) = 20
+         inod(3,4,2) = 55
+         inod(4,4,2) = 56
+c     
+         inod(1,1,3) = 25
+         inod(2,1,3) = 26
+         inod(3,1,3) = 33
+         inod(4,1,3) = 34
+         inod(1,2,3) = 28
+         inod(2,2,3) = 27
+         inod(3,2,3) = 38
+         inod(4,2,3) = 37
+         inod(1,3,3) = 40
+         inod(2,3,3) = 35
+         inod(3,3,3) = 57
+         inod(4,3,3) = 58
+         inod(1,4,3) = 39
+         inod(2,4,3) = 36
+         inod(3,4,3) = 59
+         inod(4,4,3) = 60
+c     
+         inod(1,1,4) = 29
+         inod(2,1,4) = 30
+         inod(3,1,4) = 41
+         inod(4,1,4) = 42
+         inod(1,2,4) = 32
+         inod(2,2,4) = 31
+         inod(3,2,4) = 46
+         inod(4,2,4) = 45
+         inod(1,3,4) = 48
+         inod(2,3,4) = 43
+         inod(3,3,4) = 61
+         inod(4,3,4) = 62
+         inod(1,4,4) = 47
+         inod(2,4,4) = 44
+         inod(3,4,4) = 63
+         inod(4,4,4) = 64
+      end if   
+c     
+c     cria array das coordenadas
+c      
       do j=1,ndofsv
          do i=1,nesd
             xp(i,j) = 0.d0
-         !xp(1,j) = 1.d0
-         !xp(2,j) = 2.d0
-         !xp(3,j) = 3.d0
          end do
       end do
 
@@ -10314,9 +10335,9 @@ c      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
          end do         
       end do ! elem
 
-c      do i=1,ndofsv
-c         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
-c      end do
+c$$$      do i=1,ndofsv
+c$$$         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
+c$$$      end do
       
 c ------------------------------------------------------------------------------
 c     initial condition
@@ -12208,8 +12229,6 @@ c-------------------------------------------------------------------------------
 c
       dimension vm(*),sv(19,*),brhs(*)
 c
-      write(*,*) "FILL",nsv,nmult
-c      
       do j=1,nmult
          do i=1,nsv
             sv(i,j) = 0.0d0
@@ -12218,7 +12237,7 @@ c
 c
       do j=1,nmult
          vm(j) = 0.0d0
-         brhs(j) = 1.0d0
+         brhs(j) = 0.0d0
       end do
 c
       return

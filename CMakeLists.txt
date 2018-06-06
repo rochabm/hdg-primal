@@ -112,6 +112,7 @@ target_link_libraries (primal-dc-monodomain-cells LINK_PUBLIC petsc mpifort lapa
 #
 add_executable (primal-cm-monodomain-cells
   "src/primal-hdg-cm-monodomain-cells.F90"
+  #"src/monodomain_globals.F90"
   "src/tt2006.F90"
   "src/ms.F90"
   )
