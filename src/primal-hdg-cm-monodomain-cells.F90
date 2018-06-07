@@ -30,7 +30,7 @@ c ----------------------------------------------------------------------
 
       module Globals
         real*8, allocatable, dimension(:,:,:)  :: aelm,dbel
-c        real*8, allocatable, dimension(:,:,:)  :: akelm,bkelm
+        real*8, allocatable, dimension(:,:,:)  :: akelm,bkelm
       end module Globals
 
 c ----------------------------------------------------------------------
@@ -137,7 +137,7 @@ c
       KSP      ksp
       PetscInt tot,nnz
 c     
-      nnz = 600
+      nnz = 500
       tot = n
 c     
 c     Create matrix.  When using MatCreate(), the matrix format can
@@ -5901,8 +5901,8 @@ c
 c
 c     matriz M - dt K
 c     
-      makelm  = 72
-      mbkelm  = 73
+c$$$      makelm  = 72
+c$$$      mbkelm  = 73
 c
 c     new for continuous multp.
 c
@@ -6183,15 +6183,15 @@ c$$$     mp(mxsv)   = mpoint('xsv   ',nsv  ,numnp   ,0     ,iprec)
 c
 c     para armazenar matrizes locais
 c         
-         mp(makelm) = mpoint('akelm   ',neep ,neep  ,numel ,iprec)
-         mp(mbkelm) = mpoint('bkelm   ',neep ,nee   ,numel ,iprec)
+c$$$     mp(makelm) = mpoint('akelm   ',neep ,neep  ,numel ,iprec)
+c$$$     mp(mbkelm) = mpoint('bkelm   ',neep ,nee   ,numel ,iprec)
 c$$$     mp(maelm)  = mpoint('aelm    ',neep ,neep  ,numel ,iprec)
 c$$$     mp(mdbel)  = mpoint('dbel    ',nee  ,neep  ,numel ,iprec)
          
          allocate(aelm(neep,neep,numel))
          allocate(dbel(nee,neep,numel))         
-c         allocate(akelm(neep,neep,numel))
-c         allocate(bkelm(neep,nee,numel))
+         allocate(akelm(neep,neep,numel))
+         allocate(bkelm(neep,nee,numel))
 c
 c     new for continuous multp.
 c              
@@ -6324,7 +6324,7 @@ c
 c      
 c     &           a(mp(maelm)), a(mp(dbel)), a(mp(mfelm)),
      &           aelm, dbel, a(mp(mfelm)),      
-     &           a(mp(makelm)),a(mp(mbkelm)), a(mp(xnrml))
+     &           akelm,bkelm, a(mp(xnrml))
      &     )
 c
       return
@@ -6379,7 +6379,7 @@ c
      &                    nenp  ,nodsp ,index ,
      &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
      &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
-     &                    a(mp(makelm)),a(mp(xnrml)),
+     &                    akelm,a(mp(xnrml)),
      &                    a(mp(mienp)), a(mpxp), userctx)            
       
 c$$$      call flux3primal(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
@@ -6508,8 +6508,8 @@ c     libera memoria
 c      
       deallocate(aelm)
       deallocate(dbel)
-c      deallocate(akelm)
-c      deallocate(bkelm)
+      deallocate(akelm)
+      deallocate(bkelm)
 c      
       return
       end
