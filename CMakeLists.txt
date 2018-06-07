@@ -73,7 +73,7 @@ foreach(p ${PROGRAMS})
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-  target_link_libraries (${p} LINK_PUBLIC petsc mpifort lapack blas)
+  target_link_libraries (${p} LINK_PUBLIC petsc mpifort) #lapack blas)
 endforeach(p)
 
 #
@@ -92,7 +92,7 @@ target_include_directories (primal-monodomain PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-target_link_libraries (primal-monodomain LINK_PUBLIC petsc mpifort lapack blas)
+target_link_libraries (primal-monodomain LINK_PUBLIC petsc mpifort) # lapack blas)
 
 #
 # Monodominio multp. descontinuo
@@ -105,7 +105,7 @@ target_include_directories (primal-dc-monodomain-cells PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include )
-target_link_libraries (primal-dc-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)
+target_link_libraries (primal-dc-monodomain-cells LINK_PUBLIC petsc mpifort) # lapack blas)
 
 #
 # Monodominio multp. continuo
@@ -121,4 +121,4 @@ target_include_directories (primal-cm-monodomain-cells PUBLIC
     $ENV{PETSC_DIR}/include
     $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/include
     )
-target_link_libraries (primal-cm-monodomain-cells LINK_PUBLIC petsc mpifort lapack blas)
+target_link_libraries (primal-cm-monodomain-cells LINK_PUBLIC petsc mpifort) # lapack blas)

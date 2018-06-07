@@ -10095,7 +10095,7 @@ c
       dimension xstim(ndofsv), xmean(ndofsv), icont(ndofsv)
       dimension xnrml(3,6,*)
       dimension akelm(neep,neep,*)
-      dimension ienp(nenp,*)  ! nenp x numel
+      dimension ienp(nenp,*) ! nenp x numel
       dimension inod(8,8,8)
       dimension xp(3,*)
 c
@@ -10443,7 +10443,6 @@ c
       write(*,*) "dtime",dtime
       write(*,*) "dtm0",dtm0
       write(*,*) "dtm1",dtm1
-      write(*,*) "npsol",npsol
       write(*,*) "numnp",numnp
       write(*,*) "ndof",ndof
       write(*,*) "nmultp",nmultp
@@ -10715,7 +10714,6 @@ c
      &              - dtm0*(gama*pna*djn)
             end do
          end do
-
 
          call cpu_time(xauz2)
          xtauz = xtauz + (xauz2-xauz1)
@@ -11141,9 +11139,9 @@ c
          end do 
 c     
 c     valores nodais descontinuos AQUI
-c     valores para analise no ponto npsol
+c     valores para analise no ponto indnsave
 c     monodominio: copia ddis anterior para xsv
-c     NEW NEW NEW- tira a media e atribui DEPOIS
+c     tira a media e atribui DEPOIS
 c         
          do j=1,nenp
             jj = ienp(j,nel)
@@ -11170,9 +11168,6 @@ c
             xsv(1,jj) = xmean(jj) / icont(jj)
          end do
       end do
-c
-ccc      write(*,*) (xsv(1,jj),jj=1,100)
-ccc      write(*,*)
 c      
       call cpu_time(xpos2)
       xtpos = xtpos + (xpos2-xpos1)
@@ -11295,7 +11290,7 @@ c
       dimension shlpsd(nrowsh+1,nenp,*),shlcsd(nrowsh+1,nencon,*)
       dimension shgpsd(nrowsh+1,nenp,*),shgcsd(nrowsh+1,nencon,*)
 c
-      dimension vab(3),vad(3),vc(3),xn(3),coo(3),xxn(3)
+      dimension coo(3),xxn(3)
 c
 c     new parabolic
 c     
