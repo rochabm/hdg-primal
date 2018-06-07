@@ -82,7 +82,7 @@ c
       open(unit=interpl, file= 'erro-interpolante.dat')
       open(unit=ielmat,  file= 'matriz-elemento-primal-shdg-dc.dat')
       open(unit=idebug,  file= 'saida-hdg-dc.out')
-      open(unit=iwrite,  file= 'saida-tempo-npsol.out')
+      open(unit=iwrite,  file= 'saida-tempo-node.out')
 c
       mfirst = 1
       ilast  = 0
@@ -10123,15 +10123,6 @@ c
       gf2 = grav(2)
       gf3 = grav(3)
 c
-c     solution in one point
-c     last node for monodomain/benchmark
-c
-      npsol = (numnp+1)/2.0d0
-      do i=1,nen
-        sol(i) = 0.d00
-      end do
-      isol=1
-c
 c     zero arrays
 c
       do nel=1,numel
@@ -10334,7 +10325,27 @@ c      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
             end do
          end do         
       end do ! elem
+c
+c     find index of last node of the benchmark prob to save data
+c
+      xfind = 2.0d0
+      yfind = 0.7d0
+      zfind = 0.3d0
+      xtol = 1.0D-6
+      indnsave = 0
+      do i=1, ndofsv
+         if((abs(xp(1,i)-xfind).lt.xtol).and.
+     &      (abs(xp(2,i)-yfind).lt.xtol).and.
+     &      (abs(xp(3,i)-zfind).lt.xtol)) then
+            indnsave = i
+         end if
+      end do
 
+      if(indnsave.eq.0) then
+         write(*,*) "Erro ao encontrar ponto para salvar dados"
+         stop
+      end if
+      
 c$$$      do i=1,ndofsv
 c$$$         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
 c$$$      end do
@@ -10402,10 +10413,15 @@ c
 c
 c     save initial condition
 c
-            !jj = ien(i,nel)
             jj = ienp(i,nel)
             xval = xvm(jj)
             ddis(1,i,nel) = xval
+c
+c     save dat at indnsave point
+c
+            if(jj.eq.indnsave) then
+               sol(1) = xvm(jj)
+            end if
          end do
       end do
 c
@@ -10416,7 +10432,7 @@ c
 c
 c     write initial condition
 c
-      write(30,555) it,tempo,(sol(i),i=1,4)
+      write(30,555) it,tempo,sol(1)
       call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
       write(*,*) "beta",delta1
@@ -11134,7 +11150,11 @@ c
             xmean(jj) = xmean(jj) + elfbb(j)
             icont(jj) = icont(jj) + 1
 c
-            ddis(1,j,nel) = elfbb(j)           
+            ddis(1,j,nel) = elfbb(j)
+
+            if(jj.eq.indnsave) then
+               sol(1) = elfbb(j)
+            end if
          end do
         
 c ------------------------------------------------------------------------------
@@ -11160,7 +11180,7 @@ c
 c     escreve dados
 c
       write(25,*) it,tempo
-      write(30,555) it,tempo,(sol(i),i=1,4)
+      write(30,555) it,tempo,sol(1)
 c      
       if(mod(it,nsave).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
