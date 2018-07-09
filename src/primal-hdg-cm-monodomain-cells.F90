@@ -6383,49 +6383,106 @@ c
      &                    a(mp(mienp)), a(mpxp), userctx)            
 c
 c     versao otimizada da flux3
+c
+
+c     
+c     CONTINUAR AQUI - PASSO A PASSO!!
 c      
-c$$$      call flux3primalOpt(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
-c$$$     &                 a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
-c$$$     &                 a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
-c$$$     &                 a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
-c$$$     &                 a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
-c$$$     &                 a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
-c$$$     &                 a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
-c$$$     &                 a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
-c$$$     &                 a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-c$$$     &                 a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-c$$$     &                 a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-c$$$     &                 a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
-c$$$     &                 a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
+
+      write(*,*) "TEST FLUX3PRIMAL OPTIMIZED"
+      
+      call flux3primalOpt(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
+     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
+     &                    a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
+     &                    a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
+     &                    a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
+     &                    a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
+     &                    a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
+     &                    a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
+     &                    a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
+     &                    a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
+     &                    a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
+!    &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+     &                    a(mp(mddis )),a(mp(mddisa)),
+     &                    a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
+     &                    a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
+     &                    a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
+     &                    a(mp(melmcb)),a(mp(melmhb)), !a(mp(melfa )),
+        !&                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
+     &                    a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
+     &                    a(mp(melmdb)),a(mped      ),
+c
+     &                    a(mp(mshsde)),a(mpiedge),
+c
+     &                    a(mp(mshlpsd)),a(mp(mshlcsd)),
+     &                    a(mp(mshgpsd)),a(mp(mshgcsd)),
+
+!     &                    a(mp(maelm)),a(mp(mdbel)),
+     &                    aelm, dbel,
+     &                    a(mp(mfelm)),a(mp(mfdelm)),
+     &                    a(mp(mxvla)),a(mp(mxvlb)),
+c           
+     &                    numel ,neesq ,nen   ,
+     &                    nsd   ,nesd  ,nint  ,
+     &                    neg   ,nrowsh,ned   ,
+     &                    nee   ,numnp ,ndof  ,
+     &                    ncon  ,nencon,necon ,
+     &                    neep  ,nints ,nnods ,
+     &                    nenlad,npars ,nside ,
+     &                    nenp  ,nodsp ,index ,
+c      
+     &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
+     &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
+     &                    akelm, bkelm, a(mp(xnrml)),
+     &                    a(mp(mienp)), a(mpxp), userctx)            
+c
+
+!     &                    a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
+!     &                    a(mp(makelm)),a(mp(mbkelm)),
+!     &                    a(mp(xnrml)),userctx)
+
+c$$$      subroutine flux3primalOpt(ien   ,x     ,xl    ,
+c$$$     &                          d     ,dl    ,mat   ,
+c$$$     &                          det   ,shl   ,shg   ,
+c$$$     &                          w     ,c     ,idc   ,
+c$$$     &                          grav  ,ipar  ,lado  ,
+c$$$     &                          detc  ,shlc  ,shgc  ,
+c$$$     &                          eleffd,elresd,shln  ,
+c$$$     &                          shgn  ,wn    ,detn  ,
+c$$$     &                          detb  ,shlb  ,shgb  ,
+c$$$     &                          detpn ,shlpn ,shgpn ,
+c$$$     &                          idside,xls   ,idlsd ,
+c$$$     &                          ddis  ,ddisa,
+c$$$     &                          detp  ,shlp  ,shgp  ,
+c$$$     &                          elma  ,elmb  ,elmc  ,
+c$$$     &                          elmd  ,elmh  ,elmbb ,
+c$$$     &                          elmcb ,elmhb , 
+c$$$     &                          elfab ,elfbb ,elfcb ,
+c$$$     &                          elmdb ,ideg  , 
 c$$$c
-c$$$     &                 a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
-c$$$     &                 a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-c$$$     &                 a(mp(melmcb)),a(mp(melmhb)), !a(mp(melfa )),
-c$$$        !&                 a(mp(melfb )),a(mp(melfc )),a(mp(melfd )),
-c$$$     &                 a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
-c$$$     &                 a(mp(melmdb)),a(mped      ),
+c$$$     &                          shsde ,iedge,
+c$$$c     
+c$$$     &                          shlpsd,shlcsd,
+c$$$     &                          shgpsd,shgcsd,
+c$$$c      
+c$$$     &                          aelm,dbel,
+c$$$     &                          felm,fdelm,
+c$$$     &                          xvla,xvlb,
+c$$$c     
+c$$$     &                          numel ,neesq ,nen   ,
+c$$$     &                          nsd   ,nesd  ,nint  ,
+c$$$     &                          neg   ,nrowsh,ned   ,
+c$$$     &                          nee   ,numnp ,ndof  ,
+c$$$     &                          ncon  ,nencon,necon ,
+c$$$     &                          neep  ,nints ,nnods ,
+c$$$     &                          nenlad,npars ,nside ,
+c$$$     &                          nenp  ,nodsp ,index ,
 c$$$c
-c$$$     &                 a(mp(mshsde)),a(mpiedge),
-c$$$c
-c$$$     &                 a(mp(mshlpsd)),a(mp(mshlcsd)),
-c$$$     &                 a(mp(mshgpsd)),a(mp(mshgcsd)),
-c$$$
-c$$$     &                 a(mp(maelm)),a(mp(mdbel)),
-c$$$     &                 a(mp(mfelm)),a(mp(mfdelm)),
-c$$$     &                 a(mp(mxvla)),a(mp(mxvlb)),
-c$$$c           
-c$$$     &                 numel ,neesq ,nen   ,
-c$$$     &                 nsd   ,nesd  ,nint  ,
-c$$$     &                 neg   ,nrowsh,ned   ,
-c$$$     &                 nee   ,numnp ,ndof  ,
-c$$$     &                 ncon  ,nencon,necon ,
-c$$$     &                 neep  ,nints ,nnods ,
-c$$$     &                 nenlad,npars ,nside ,
-c$$$     &                 nenp  ,nodsp ,index ,
-c$$$     &                 nface ,nmultpc, a(mp(mlm)),
-c$$$     &                 a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
-c$$$     &                 a(mp(makelm)),a(mp(mbkelm)),
-c$$$     &                 a(mp(xnrml)),userctx)
+c$$$     &                          nface ,nmultp,ndofsv,
+c$$$     &                          lm    ,xbrhs ,xvm   ,
+c$$$     &                          xsv   ,akelm ,xnrml ,
+c$$$     &                          ienp  ,xp    ,userctx)
+      
       
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
@@ -8901,44 +8958,51 @@ c
 
 c-------------------------------------------------------------------------------
       subroutine flux3primalOpt(ien   ,x     ,xl    ,
-     &                       d     ,dl    ,mat   ,
-     &                       det   ,shl   ,shg   ,
-     &                       w     ,c     ,idc   ,
-     &                       grav  ,ipar  ,lado  ,
-     &                       detc  ,shlc  ,shgc  ,
-     &                       eleffd,elresd,shln  ,
-     &                       shgn  ,wn    ,detn  ,
-     &                       detb  ,shlb  ,shgb  ,
-     &                       detpn ,shlpn ,shgpn ,
-     &                       idside,xls   ,idlsd ,
-     &                       ddis  ,ddisa,
-     &                       detp  ,shlp  ,shgp  ,
-     &                       elma  ,elmb  ,elmc  ,
-     &                       elmd  ,elmh  ,elmbb ,
-     &                       elmcb ,elmhb , 
-     &                       elfab ,elfbb ,elfcb ,
-     &                       elmdb ,ideg  , 
+     &                          d     ,dl    ,mat   ,
+     &                          det   ,shl   ,shg   ,
+     &                          w     ,c     ,idc   ,
+     &                          grav  ,ipar  ,lado  ,
+     &                          detc  ,shlc  ,shgc  ,
+     &                          eleffd,elresd,shln  ,
+     &                          shgn  ,wn    ,detn  ,
+     &                          detb  ,shlb  ,shgb  ,
+     &                          detpn ,shlpn ,shgpn ,
+     &                          idside,xls   ,idlsd ,
+     &                          ddis  ,ddisa,
+     &                          detp  ,shlp  ,shgp  ,
+     &                          elma  ,elmb  ,elmc  ,
+     &                          elmd  ,elmh  ,elmbb ,
+     &                          elmcb ,elmhb , 
+     &                          elfab ,elfbb ,elfcb ,
+     &                          elmdb ,ideg  , 
 c
-     &                       shsde ,iedge,
+     &                          shsde ,iedge,
 c     
-     &                       shlpsd,shlcsd,
-     &                       shgpsd,shgcsd,
+     &                          shlpsd,shlcsd,
+     &                          shgpsd,shgcsd,
 c      
-     &                       aelm,dbel,
-     &                       felm,fdelm,
-     &                       xvla,xvlb,
+     &                          aelm,dbel,
+     &                          felm,fdelm,
+     &                          xvla,xvlb,
 c     
-     &                       numel ,neesq ,nen   ,
-     &                       nsd   ,nesd  ,nint  ,
-     &                       neg   ,nrowsh,ned   ,
-     &                       nee   ,numnp ,ndof  ,
-     &                       ncon  ,nencon,necon ,
-     &                       neep  ,nints ,nnods ,
-     &                       nenlad,npars ,nside ,
-     &                       nenp  ,nodsp ,index ,
-     &                       nface ,nmultp,lm    ,
-     &                       xbrhs ,xvm   ,xsv   ,
-     &                       akelm, bkelm ,xnrml, userctx)
+     &                          numel ,neesq ,nen   ,
+     &                          nsd   ,nesd  ,nint  ,
+     &                          neg   ,nrowsh,ned   ,
+     &                          nee   ,numnp ,ndof  ,
+     &                          ncon  ,nencon,necon ,
+     &                          neep  ,nints ,nnods ,
+     &                          nenlad,npars ,nside ,
+     &                          nenp  ,nodsp ,index ,
+c
+     &                          nface ,nmultp,ndofsv,
+     &                          lm    ,xbrhs ,xvm   ,
+     &                          xsv   ,akelm ,bkelm ,
+     &                          xnrml ,ienp  ,xp    ,
+     &                          userctx)
+      
+!     &                          nface ,nmultp,lm    ,
+!     &                          xbrhs ,xvm   ,xsv   ,
+!     &                          akelm, bkelm ,xnrml, userctx)
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
 c        plane elasticity element and
@@ -9978,10 +10042,11 @@ c
      &                          neep  ,nints ,nnods ,
      &                          nenlad,npars ,nside ,
      &                          nenp  ,nodsp ,index ,
+c
      &                          nface ,nmultp,ndofsv,
      &                          lm    ,xbrhs ,xvm   ,
      &                          xsv   ,akelm ,xnrml ,
-     &                          ienp  ,xp    , userctx)
+     &                          ienp  ,xp    ,userctx)
       
 c-------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array for the
