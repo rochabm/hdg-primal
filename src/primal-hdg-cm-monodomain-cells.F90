@@ -240,7 +240,7 @@ c
 c      
 c     Create linear solver context
 c
-      write(*,*) "petsc: criando solver"
+      write(*,*) "petsc: criando solver",n
       call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
 
 c     Set operators. Here the matrix that defines the linear system
@@ -319,6 +319,7 @@ c     set linear solver defaults for this problem (optional).
       
       call KSPGetPC(ksp,pc,ierr)
       call PCSetType(pc,PCJACOBI,ierr)
+      
       tol = 1.d-16
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
      &     PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
@@ -6338,49 +6339,49 @@ c
 
       call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
 
-      call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
-     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
-     &                    a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
-     &                    a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
-     &                    a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
-     &                    a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
-     &                    a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
-     &                    a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
-     &                    a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
-     &                    a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
-     &                    a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
-!     &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
-     &                    a(mp(mddis )),a(mp(mddisa)),
-     &                    a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
-c
-     &                    a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
-     &                    a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
-     &                    a(mp(melmcb)),a(mp(melmhb)),
-     &                    a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
-     &                    a(mp(melmdb)),a(mped      ),
-c
-     &                    a(mp(mshsde)),a(mpiedge),
-c
-     &                    a(mp(mshlpsd)),a(mp(mshlcsd)),
-     &                    a(mp(mshgpsd)),a(mp(mshgcsd)),
-
-c     &                   a(mp(maelm)),a(mp(mdbel)),
-     &                    aelm,dbel,
-     &                    a(mp(mfelm)),a(mp(mfdelm)),
-     &                    a(mp(mxvla)),a(mp(mxvlb)),
-c           
-     &                    numel ,neesq ,nen   ,
-     &                    nsd   ,nesd  ,nint  ,
-     &                    neg   ,nrowsh,ned   ,
-     &                    nee   ,numnp ,ndof  ,
-     &                    ncon  ,nencon,necon ,
-     &                    neep  ,nints ,nnods ,
-     &                    nenlad,npars ,nside ,
-     &                    nenp  ,nodsp ,index ,
-     &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
-     &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
-     &                    akelm,a(mp(xnrml)),
-     &                    a(mp(mienp)), a(mpxp), userctx)            
+c$$$      call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
+c$$$     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
+c$$$     &                    a(mp(mdet  )),a(mp(mshl  )),a(mp(mshg  )),
+c$$$     &                    a(mp(mw    )),a(mp(mc    )),a(mpidc     ),
+c$$$     &                    a(mp(mgrav )),a(mp(mipar )),a(mp(mlado )),
+c$$$     &                    a(mp(mdetc )),a(mp(mshlc )),a(mp(mshgc )),
+c$$$     &                    a(mp(melefd)),a(mp(melred)),a(mp(mshln )),
+c$$$     &                    a(mp(mshgn )),a(mp(mwn   )),a(mp(mdetn )),
+c$$$     &                    a(mp(mdetb )),a(mp(mshlb )),a(mp(mshgb )),
+c$$$     &                    a(mp(mdetpn)),a(mp(mshlpn)),a(mp(mshgpn)),
+c$$$     &                    a(mp(mdside)),a(mp(mxls  )),a(mp(midlsd)),
+c$$$!     &                    a(mp(mdsfl )),a(mp(mddis )),a(mp(mddisa)),
+c$$$     &                    a(mp(mddis )),a(mp(mddisa)),
+c$$$     &                    a(mp(mdetp )),a(mp(mshlp )),a(mp(mshgp )),
+c$$$c
+c$$$     &                    a(mp(melma )),a(mp(melmb )),a(mp(melmc )),
+c$$$     &                    a(mp(melmd )),a(mp(melmh )),a(mp(melmbb)),
+c$$$     &                    a(mp(melmcb)),a(mp(melmhb)),
+c$$$     &                    a(mp(melfab)),a(mp(melfbb)),a(mp(melfcb)),
+c$$$     &                    a(mp(melmdb)),a(mped      ),
+c$$$c
+c$$$     &                    a(mp(mshsde)),a(mpiedge),
+c$$$c
+c$$$     &                    a(mp(mshlpsd)),a(mp(mshlcsd)),
+c$$$     &                    a(mp(mshgpsd)),a(mp(mshgcsd)),
+c$$$
+c$$$c     &                   a(mp(maelm)),a(mp(mdbel)),
+c$$$     &                    aelm,dbel,
+c$$$     &                    a(mp(mfelm)),a(mp(mfdelm)),
+c$$$     &                    a(mp(mxvla)),a(mp(mxvlb)),
+c$$$c           
+c$$$     &                    numel ,neesq ,nen   ,
+c$$$     &                    nsd   ,nesd  ,nint  ,
+c$$$     &                    neg   ,nrowsh,ned   ,
+c$$$     &                    nee   ,numnp ,ndof  ,
+c$$$     &                    ncon  ,nencon,necon ,
+c$$$     &                    neep  ,nints ,nnods ,
+c$$$     &                    nenlad,npars ,nside ,
+c$$$     &                    nenp  ,nodsp ,index ,
+c$$$     &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
+c$$$     &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
+c$$$     &                    akelm,a(mp(xnrml)),
+c$$$     &                    a(mp(mienp)), a(mpxp), userctx)            
 c
 c     versao otimizada da flux3
 c
@@ -9067,17 +9068,19 @@ c
 c     new monodomain
 c
       dimension xvm(*), xsv(19,*), xdsv(19), xxsv(19)
-      dimension xstim(numnp), xmean(numnp), icont(numnp)
+      dimension xstim(ndofsv), xmean(ndofsv), icont(ndofsv)
       dimension xnrml(3,6,*)
-c      
       dimension akelm(neep,neep,*)
       dimension bkelm(neep,nee,*)
+      dimension ienp(nenp,*) ! nenp x numel
+      dimension inod(8,8,8)
+      dimension xp(3,*)      
 c
       common /consts/ zero,pt1667,pt25,pt5,one,two,three,four,five,six
       common /iounit/ iin,ipp,ipmx,ieco,ilp,ilocal,interpl,ielmat,iwrite
       common /colhtc/ neq
       common /times/ dtime,tempo,gf1,gf10
-c               
+
 c ------------------------------------------------------------------------------
 c     initialization
 c ------------------------------------------------------------------------------
@@ -9086,7 +9089,7 @@ c     PETSc stuff
 c
       xsol = userctx%x
       b    = userctx%b
-      A    = userctx%A
+      A    = userctx%A     
 c      
       call UserCreateKSPSolver(userctx)
 c
@@ -9097,15 +9100,6 @@ c
       gf2 = grav(2)
       gf3 = grav(3)
 c
-c     solution in one point
-c     last node for monodomain/benchmark
-c
-      npsol = (numnp+1)/2.0d0
-      do i=1,nen
-        sol(i) = 0.d00
-      end do
-      isol=1
-c
 c     zero arrays
 c
       do nel=1,numel
@@ -9114,6 +9108,225 @@ c
             ddisa(1,i,nel) = 0.d00
          end do
       end do
+
+c ------------------------------------------------------------------------------
+c     coordinates xlp
+c ------------------------------------------------------------------------------
+
+      inn = idnint(nenp**(1.0d0/3.0d0))
+      write(*,*) inn,nenp
+c
+      if(nenp.eq.1) inod(1,1,1) = 1
+c
+c     p=1
+c      
+      if(nenp.eq.8) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+c
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+      end if
+c
+c     p=2
+c      
+      if(nenp.eq.27) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 11
+         inod(1,3,1) = 12
+         inod(2,3,1) = 10
+         inod(3,3,1) = 25
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 13
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 15
+         inod(1,3,2) = 16
+         inod(2,3,2) = 14
+         inod(3,3,2) = 26
+c     
+         inod(1,1,3) = 17
+         inod(2,1,3) = 18
+         inod(3,1,3) = 21
+         inod(1,2,3) = 20
+         inod(2,2,3) = 19
+         inod(3,2,3) = 23
+         inod(1,3,3) = 24
+         inod(2,3,3) = 22
+         inod(3,3,3) = 27
+      end if
+
+c      
+c     p=3
+c      
+      if(nenp.eq.64) then
+         inod(1,1,1) = 1
+         inod(2,1,1) = 2
+         inod(3,1,1) = 9
+         inod(4,1,1) = 10
+         inod(1,2,1) = 4
+         inod(2,2,1) = 3
+         inod(3,2,1) = 13
+         inod(4,2,1) = 14
+         inod(1,3,1) = 15
+         inod(2,3,1) = 11
+         inod(3,3,1) = 49
+         inod(4,3,1) = 50
+         inod(1,4,1) = 16
+         inod(2,4,1) = 12
+         inod(3,4,1) = 51
+         inod(4,4,1) = 52
+c     
+         inod(1,1,2) = 5
+         inod(2,1,2) = 6
+         inod(3,1,2) = 17
+         inod(4,1,2) = 18
+         inod(1,2,2) = 8
+         inod(2,2,2) = 7
+         inod(3,2,2) = 21
+         inod(4,2,2) = 22
+         inod(1,3,2) = 23
+         inod(2,3,2) = 19
+         inod(3,3,2) = 53
+         inod(4,3,2) = 54
+         inod(1,4,2) = 24
+         inod(2,4,2) = 20
+         inod(3,4,2) = 55
+         inod(4,4,2) = 56
+c     
+         inod(1,1,3) = 25
+         inod(2,1,3) = 26
+         inod(3,1,3) = 33
+         inod(4,1,3) = 34
+         inod(1,2,3) = 28
+         inod(2,2,3) = 27
+         inod(3,2,3) = 38
+         inod(4,2,3) = 37
+         inod(1,3,3) = 40
+         inod(2,3,3) = 35
+         inod(3,3,3) = 57
+         inod(4,3,3) = 58
+         inod(1,4,3) = 39
+         inod(2,4,3) = 36
+         inod(3,4,3) = 59
+         inod(4,4,3) = 60
+c     
+         inod(1,1,4) = 29
+         inod(2,1,4) = 30
+         inod(3,1,4) = 41
+         inod(4,1,4) = 42
+         inod(1,2,4) = 32
+         inod(2,2,4) = 31
+         inod(3,2,4) = 46
+         inod(4,2,4) = 45
+         inod(1,3,4) = 48
+         inod(2,3,4) = 43
+         inod(3,3,4) = 61
+         inod(4,3,4) = 62
+         inod(1,4,4) = 47
+         inod(2,4,4) = 44
+         inod(3,4,4) = 63
+         inod(4,4,4) = 64
+      end if   
+c     
+c     cria array das coordenadas
+c      
+      do j=1,ndofsv
+         do i=1,nesd
+            xp(i,j) = 0.d0
+         end do
+      end do
+
+      do nel=1,numel
+         call local(ien(1,nel),x,xl,nen,nsd,nesd)
+         ! corners of the element
+         xx0 = xl(1,inod(1,1,1))
+         xx1 = xl(1,inod(2,1,1))
+c         
+         yy0 = xl(2,inod(1,1,1))
+         yy1 = xl(2,inod(1,2,1))
+c         
+         zz0 = xl(3,inod(1,1,1))
+         zz1 = xl(3,inod(1,1,2))
+c
+         dx = (xx1-xx0)/(inn-1)
+         dy = (yy1-yy0)/(inn-1)
+         dz = (zz1-zz0)/(inn-1)
+c
+         ! loop in nenp
+         do k=1,inn
+            do j=1,inn
+               do i=1,inn
+                  inenp = inod(i,j,k)
+                  ind = ienp(inenp,nel)
+                  ! x - linear interp for each coord
+                  if(i.eq.1) then
+                     xx = xx0
+                  else if(i.eq.2) then
+                     xx = xx1
+                  else
+                     xx = xx0 + (dx)*(i-2)
+                  end if
+                  ! y - linear interp
+                  if(j.eq.1) then
+                     yy = yy0
+                  else if(j.eq.2) then
+                     yy = yy1
+                  else
+                     yy = yy0 + (dy)*(j-2)
+                  end if
+                  ! z - linear interp
+                  if(k.eq.1) then
+                     zz = zz0
+                  else if(k.eq.2) then
+                     zz = zz1
+                  else
+                     zz = zz0 + (dz)*(k-2)
+                  end if                  
+                  xp(1,ind) = xx
+                  xp(2,ind) = yy
+                  xp(3,ind) = zz
+c      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
+                  !write(*,*) nel, i,j,k,inenp,ind
+               end do
+            end do
+         end do         
+      end do ! elem
+c
+c     find index of last node of the benchmark prob to save data
+c
+      xfind = 2.0d0
+      yfind = 0.7d0
+      zfind = 0.3d0
+      xtol = 1.0D-6
+      indnsave = 0
+      do i=1, ndofsv
+         if((abs(xp(1,i)-xfind).lt.xtol).and.
+     &      (abs(xp(2,i)-yfind).lt.xtol).and.
+     &      (abs(xp(3,i)-zfind).lt.xtol)) then
+            indnsave = i
+         end if
+      end do
+
+      if(indnsave.eq.0) then
+         write(*,*) "Erro ao encontrar ponto para salvar dados"
+         stop
+      end if
+      
+c$$$      do i=1,ndofsv
+c$$$         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
+c$$$      end do
+c$$$      stop
       
 c ------------------------------------------------------------------------------
 c     initial condition
@@ -9132,7 +9345,7 @@ c     number of state variables of the cell model
 c      
       nsv = 19
 c     
-      do i=1,numnp
+      do i=1,ndofsv
          call tt2006_init(nsv, xsv(1,i))
          xvm(i) = xsv(1,i)
       end do
@@ -9179,15 +9392,15 @@ c
 c
 c     save initial condition
 c
-            jj = ien(i,nel)
+            jj = ienp(i,nel)
             xval = xvm(jj)
             ddis(1,i,nel) = xval
 c
 c     save data at npsol point
 c            
-            if(ien(i,nel).eq.npsol) then
-               sol(isol) = xvm(jj)
-            end if
+c$$$            if(ien(i,nel).eq.npsol) then
+c$$$               sol(isol) = xvm(jj)
+c$$$            end if
          end do
       end do
 c
@@ -9254,7 +9467,7 @@ c     solve ODEs
 c ------------------------------------------------------------------------------
          call cpu_time(xode1)
 
-         do i=1,numnp
+         do i=1,ndofsv
             xstim(i) = 0.d00
          end do
          
@@ -9263,25 +9476,30 @@ c
             call local(ien(1,nel),x,xl,nen,nsd,nesd)
 c            
             do i=1,nenp
-               xx = xl(1,i)
-               yy = xl(2,i)
-               zz = xl(3,i)
+               !xx = xl(1,i)
+               !yy = xl(2,i)
+               !zz = xl(3,i)
+               jj = ienp(i,nel)               
+               xx = xp(1,jj)
+               yy = xp(2,jj)
+               zz = xp(3,jj)               
                if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
                   if(xx.ge.0.0.and.xx.le.0.15.and.
      &               yy.ge.0.0.and.yy.le.0.15.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-                     jj = ien(i,nel)
+                     !jj = ien(i,nel)
                      xstim(jj) = -35.714d0
                   end if
                end if
 
             end do ! nenp
          end do    ! numel
+
 c     
 c     NEW loop 
 c         
-         do i=1,numnp         
+         do i=1,ndofsv        
 c     
 c     compute RHS of the ODES
 c
@@ -9305,7 +9523,7 @@ c     TODO: improve this to WORK for Qk
 c     
          do nel=1,numel             
             do i=1,nenp
-               jj = ien(i,nel)                              
+               jj = ienp(i,nel)                              
                xval = xsv(1,jj)
                ddis(1,i,nel) = xval
             end do            
@@ -9721,7 +9939,7 @@ c ------------------------------------------------------------------------------
 
       call cpu_time(xpos1)
       
-      do i=1,numnp
+      do i=1,ndofsv
          xmean(i) = 0.d0
          icont(i) = 0
       end do
@@ -9946,19 +10164,17 @@ c     monodominio: copia ddis anterior para xsv
 c     NEW NEW NEW- tira a media e atribui DEPOIS
 c         
          do j=1,nenp
-            jj = ien(j,nel)
+            jj = ienp(j,nel)
             xmean(jj) = xmean(jj) + elfbb(j)
             icont(jj) = icont(jj) + 1
 c
             ddis(1,j,nel) = elfbb(j)
+
+c            if(jj.eq.indnsave) then
+c               sol(1) = elfbb(j)
+c            end if            
          end do
         
-         do j=1,nen
-            if(ien(j,nel).eq.npsol) then
-               sol(j) = elfbb(j)
-            end if
-         end do         
-c
 c ------------------------------------------------------------------------------
  599  continue
 c --- end of element loop ------------------------------------------------------        
@@ -9968,7 +10184,7 @@ c     atribui a media
 c                    
       do nel=1,numel
          do j=1,nenp
-            jj = ien(j,nel)
+            jj = ienp(j,nel)
             xsv(1,jj) = xmean(jj) / icont(jj)
          end do
       end do
