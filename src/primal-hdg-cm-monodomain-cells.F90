@@ -9283,7 +9283,6 @@ c
 c$$$      do i=1,ndofsv
 c$$$         write(*,"(A,I6,10E16.6)") "sv",i,xp(1,i),xp(2,i),xp(3,i)
 c$$$      end do
-c$$$      stop
       
 c ------------------------------------------------------------------------------
 c     initial condition
@@ -9352,11 +9351,12 @@ c
             xval = xvm(jj)
             ddis(1,i,nel) = xval
 c
-c     save data at npsol point
+c     save dat at indnsave point
+c
+            if(jj.eq.indnsave) then
+               sol(1) = xvm(jj)
+            end if
 c            
-c$$$            if(ien(i,nel).eq.npsol) then
-c$$$               sol(isol) = xvm(jj)
-c$$$            end if
          end do
       end do
 c
@@ -9367,7 +9367,7 @@ c
 c
 c     write initial condition
 c     
-      write(30,555) it,tempo,(sol(i),i=1,4)
+      write(30,555) it,tempo,sol(1)
       call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
 c
       write(*,*) "beta",delta1
@@ -10126,9 +10126,9 @@ c
 c
             ddis(1,j,nel) = elfbb(j)
 
-c            if(jj.eq.indnsave) then
-c               sol(1) = elfbb(j)
-c            end if            
+            if(jj.eq.indnsave) then
+               sol(1) = elfbb(j)
+            end if            
          end do
         
 c ------------------------------------------------------------------------------
@@ -10151,7 +10151,7 @@ c
 c     escreve dados
 c
       write(25,*) it,tempo
-      write(30,555) it,tempo,(sol(i),i=1,4)
+      write(30,555) it,tempo,sol(1)
 c      
       if(mod(it,nsave).eq.0) then
          call savevtk(it,ddis,ned,nenp,numel,x,numnp,ien)
