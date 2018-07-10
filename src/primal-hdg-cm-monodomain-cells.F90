@@ -6440,50 +6440,7 @@ c
 
 !     &                    a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
 !     &                    a(mp(makelm)),a(mp(mbkelm)),
-!     &                    a(mp(xnrml)),userctx)
-
-c$$$      subroutine flux3primalOpt(ien   ,x     ,xl    ,
-c$$$     &                          d     ,dl    ,mat   ,
-c$$$     &                          det   ,shl   ,shg   ,
-c$$$     &                          w     ,c     ,idc   ,
-c$$$     &                          grav  ,ipar  ,lado  ,
-c$$$     &                          detc  ,shlc  ,shgc  ,
-c$$$     &                          eleffd,elresd,shln  ,
-c$$$     &                          shgn  ,wn    ,detn  ,
-c$$$     &                          detb  ,shlb  ,shgb  ,
-c$$$     &                          detpn ,shlpn ,shgpn ,
-c$$$     &                          idside,xls   ,idlsd ,
-c$$$     &                          ddis  ,ddisa,
-c$$$     &                          detp  ,shlp  ,shgp  ,
-c$$$     &                          elma  ,elmb  ,elmc  ,
-c$$$     &                          elmd  ,elmh  ,elmbb ,
-c$$$     &                          elmcb ,elmhb , 
-c$$$     &                          elfab ,elfbb ,elfcb ,
-c$$$     &                          elmdb ,ideg  , 
-c$$$c
-c$$$     &                          shsde ,iedge,
-c$$$c     
-c$$$     &                          shlpsd,shlcsd,
-c$$$     &                          shgpsd,shgcsd,
-c$$$c      
-c$$$     &                          aelm,dbel,
-c$$$     &                          felm,fdelm,
-c$$$     &                          xvla,xvlb,
-c$$$c     
-c$$$     &                          numel ,neesq ,nen   ,
-c$$$     &                          nsd   ,nesd  ,nint  ,
-c$$$     &                          neg   ,nrowsh,ned   ,
-c$$$     &                          nee   ,numnp ,ndof  ,
-c$$$     &                          ncon  ,nencon,necon ,
-c$$$     &                          neep  ,nints ,nnods ,
-c$$$     &                          nenlad,npars ,nside ,
-c$$$     &                          nenp  ,nodsp ,index ,
-c$$$c
-c$$$     &                          nface ,nmultp,ndofsv,
-c$$$     &                          lm    ,xbrhs ,xvm   ,
-c$$$     &                          xsv   ,akelm ,xnrml ,
-c$$$     &                          ienp  ,xp    ,userctx)
-      
+!     &                    a(mp(xnrml)),userctx)    
       
 c
 c  esta rotina calcula os erros das aproximacoes para a variavel
@@ -9021,7 +8978,7 @@ c
       Vec xsol      
 c
       integer bflag
-      real*8 xtode, xtpde, xtpos, xtrhs, xtaux, xtauz
+      real*8 xtode, xtpde, xtpos, xtrhs, xtaux
 c
       dimension iedge(npars,*)
 c
@@ -9339,7 +9296,6 @@ c
       xtpos = 0.0d0
       xtrhs = 0.0d0
       xtaux = 0.0d0
-      xtauz = 0.0d0
 c
 c     number of state variables of the cell model
 c      
@@ -10213,10 +10169,8 @@ c
       write(*,"(A,F10.4)") "time in ODEs:",xtode
       write(*,"(A,F10.4)") "time in PDE :",xtpde
       write(*,"(A,F10.4)") "time in rhs :",xtrhs
-      write(*,"(A,F10.4)") "time in pos :",xtpos
-c      
+      write(*,"(A,F10.4)") "time in pos :",xtpos      
       write(*,"(A,F10.4)") "time in aux :",xtaux
-      write(*,"(A,F10.4)") "time in auz :",xtauz
 c      
       return
       end
