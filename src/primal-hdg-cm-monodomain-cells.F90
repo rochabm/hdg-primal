@@ -31,6 +31,8 @@ c ----------------------------------------------------------------------
       module Globals
         real*8, allocatable, dimension(:,:,:)  :: aelm,dbel
         real*8, allocatable, dimension(:,:,:)  :: akelm,bkelm
+        real*8, allocatable, dimension(:,:)    :: xxsv, xxp
+        real*8, allocatable, dimension(:)      :: xxvm
       end module Globals
 
 c ----------------------------------------------------------------------
@@ -511,9 +513,12 @@ c
 c     allocate EDOs arrays
 c      
       nsv = 19
-      mpvm = mpoint('xvm     ',ndofsv,0        ,0     ,iprec)
-      mpsv = mpoint('xsv     ',nsv   ,ndofsv   ,0     ,iprec)
-      mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
+c     mpvm = mpoint('xvm     ',ndofsv,0        ,0     ,iprec)
+      allocate(xxvm(ndofsv))      
+c     mpsv = mpoint('xsv     ',nsv   ,ndofsv   ,0     ,iprec)
+      allocate(xxsv(nsv,ndofsv))      
+c     mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
+      allocate(xxp(3,ndofsv))
 c
 c     determine addresses of diagonals in left-hand-side matrix
 c
@@ -6337,7 +6342,8 @@ c     primal p no nivel de cada elemento usando as aproximacoes do multiplicador
 c
       write(*,'(A)') "subroutine flux3primal"
 
-      call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
+      !call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
+      call fillsvm(19,ndofsv,a(mpvm),xxsv,a(mpbrhs))
 
 c$$$      call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
 c$$$     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6433,9 +6439,11 @@ c
      &                    nenp  ,nodsp ,index ,
 c      
      &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
-     &                    a(mpbrhs),a(mpvm),a(mpsv), ! novo     
+!ccccc&                    a(mpbrhs),a(mpvm),a(mpsv), ! novo
+     &                    a(mpbrhs),xxvm,xxsv, ! novo           
      &                    akelm, bkelm, a(mp(xnrml)),
-     &                    a(mp(mienp)), a(mpxp), userctx)            
+!cccc &                    a(mp(mienp)), a(mpxp), userctx)
+      &                    a(mp(mienp)), xxp, userctx)            
 c
 
 !     &                    a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
@@ -6480,6 +6488,8 @@ c
       deallocate(dbel)
       deallocate(akelm)
       deallocate(bkelm)
+
+      deallocate(xxsv)
 c      
       return
       end
