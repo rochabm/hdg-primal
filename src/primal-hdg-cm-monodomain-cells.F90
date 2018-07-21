@@ -517,9 +517,10 @@ c     mpvm = mpoint('xvm     ',ndofsv,0        ,0     ,iprec)
       allocate(xxvm(ndofsv))      
 c     mpsv = mpoint('xsv     ',nsv   ,ndofsv   ,0     ,iprec)
       allocate(xxsv(nsv,ndofsv))      
-c     mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
-      allocate(xxp(3,ndofsv))
-c
+      mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
+cccc      allocate(xxp(3,ndofsv))
+
+c     
 c     determine addresses of diagonals in left-hand-side matrix
 c
 c$$$  call diag(a(mpdiag),neq,nalhs)
@@ -6343,7 +6344,7 @@ c
       write(*,'(A)') "subroutine flux3primal"
 
       !call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
-      call fillsvm(19,ndofsv,a(mpvm),xxsv,a(mpbrhs))
+      call fillsvm(19,ndofsv,xxvm,xxsv,a(mpbrhs))
 
 c$$$      call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
 c$$$     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6442,8 +6443,8 @@ c
 !ccccc&                    a(mpbrhs),a(mpvm),a(mpsv), ! novo
      &                    a(mpbrhs),xxvm,xxsv, ! novo           
      &                    akelm, bkelm, a(mp(xnrml)),
-!cccc &                    a(mp(mienp)), a(mpxp), userctx)
-      &                    a(mp(mienp)), xxp, userctx)            
+     &                    a(mp(mienp)), a(mpxp), userctx)
+ccccc     &                    a(mp(mienp)), xxp, userctx)            
 c
 
 !     &                    a(mp(mxbrhs)),a(mp(mxvm)),a(mp(mxsv)),
@@ -6488,8 +6489,10 @@ c
       deallocate(dbel)
       deallocate(akelm)
       deallocate(bkelm)
-
+c
+c      deallocate(xxp)
       deallocate(xxsv)
+      deallocate(xxvm)
 c      
       return
       end
