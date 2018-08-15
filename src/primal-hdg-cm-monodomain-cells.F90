@@ -145,15 +145,23 @@ c
 c     Create matrix.  When using MatCreate(), the matrix format can
 c     be specified at runtime.
 c     
-      call MatCreate(PETSC_COMM_WORLD,A,ierr)
-      call MatSetType(A,MATSEQAIJ,ierr)
-      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)      
-      call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+c$$$      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+c$$$      call MatSetType(A,MATSEQAIJ,ierr)
+c$$$      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,tot,tot,ierr)      
+c$$$      call MatSeqAIJSetPreallocation(A,nnz,PETSC_NULL_INTEGER,ierr)
+     
+     
+ccccc
+ccccc      
+      call MatCreateSeqAIJ(PETSC_COMM_WORLD,tot,tot,nnz,
+     &                     PETSC_NULL_INTEGER,A, ierr)
+ccccc
+ccccc      
 
+ 
 c     For debugging this option should use: PETSC_TRUE
       call MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR,
-     &     PETSC_FALSE, ierr)
-      
+     &     PETSC_FALSE, ierr)    
       call MatSetFromOptions(A,ierr)
       call MatSetUp(A,ierr)
 c     
@@ -318,9 +326,6 @@ c
       call KSPSetInitialGuessNonzero(ksp,PETSC_TRUE,ierr)
       
 c     set linear solver defaults for this problem (optional).
-      
-      call KSPGetPC(ksp,pc,ierr)
-      call PCSetType(pc,PCJACOBI,ierr)
       
       tol = 1.d-16
       call KSPSetTolerances(ksp,tol,PETSC_DEFAULT_REAL,
