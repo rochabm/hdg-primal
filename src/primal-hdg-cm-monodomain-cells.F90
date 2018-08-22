@@ -8382,7 +8382,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 1400.0d0
+         xsurfvol = 150.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)         
 c         
@@ -9280,9 +9280,16 @@ c      write(*,"(I6,12E12.4)") ind,xx,yy,zz,xp(1,ind),xp(2,ind),xp(3,ind)
 c
 c     find index of last node of the benchmark prob to save data
 c
-      xfind = 2.0d0
-      yfind = 0.7d0
-      zfind = 0.3d0
+      ! Benchmark
+      !xfind = 2.0d0
+      !yfind = 0.7d0
+      !zfind = 0.3d0
+
+      ! Slab
+      xfind = 2.5d0
+      yfind = 2.5d0
+      zfind = 0.05d0
+      
       xtol = 1.0D-6
       indnsave = 0
       do i=1, ndofsv
@@ -9349,7 +9356,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 1400.0d0
+         xsurfvol = 150.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -9413,6 +9420,19 @@ c
       do ii=1,nmultp
          d(1,ii) = xval
       end do
+c
+c     conta vizinhos para procedimento de tirar a media
+c
+      do i=1,ndofsv
+         icont(i) = 0
+      end do
+      
+      do nel=1,numel
+         do j=1,nenp
+            jj = ienp(j,nel)
+            icont(jj) = icont(jj) + 1
+         end do
+      end do      
 c      
 c ------------------------------------------------------------------------------
 c     time integration loop
@@ -9456,16 +9476,31 @@ c
                jj = ienp(i,nel)               
                xx = xp(1,jj)
                yy = xp(2,jj)
-               zz = xp(3,jj)               
+               zz = xp(3,jj)
+               !     
+               ! Benchmark stimulus
+               !               
+      !         if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
+      !            if(xx.ge.0.0.and.xx.le.0.15.and.
+      !&               yy.ge.0.0.and.yy.le.0.15.and.
+      !&               zz.ge.0.0.and.zz.le.0.15)
+      !&            then
+               !      !jj = ien(i,nel)
+               !      xstim(jj) = -35.714d0
+               !   end if
+               !end if
+
+               !     
+               ! Benchmark stimulus
+               !               
                if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
-                  if(xx.ge.0.0.and.xx.le.0.15.and.
-     &               yy.ge.0.0.and.yy.le.0.15.and.
+                  if(xx.ge.0.0.and.xx.le.0.5.and.
+     &               yy.ge.0.0.and.yy.le.10.00.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-                     !jj = ien(i,nel)
                      xstim(jj) = -35.714d0
                   end if
-               end if
+               end if               
 
             end do ! nenp
          end do    ! numel
@@ -9588,7 +9623,7 @@ c$$$         gf10   = c(4,m)
 c$$$         teta   = c(5,m)
 c$$$         dtime  = c(6,m)
 c$$$c
-c$$$         xsurfvol = 1400.0d0
+c$$$         xsurfvol = 150.0d0
 c$$$         xcm = 1.0d0
 c$$$         dtime = dtime/(xsurfvol*xcm)
 c$$$c         
@@ -9910,12 +9945,10 @@ c
 c ------------------------------------------------------------------------------
 c    calculo de p^{n+1}
 c ------------------------------------------------------------------------------
-
-      call cpu_time(xpos1)
-      
+     
       do i=1,ndofsv
          xmean(i) = 0.d0
-         icont(i) = 0
+c         icont(i) = 0
       end do
 c$$$c     
 c$$$c     calculo de h - caracteristico para cada elemento
@@ -9926,7 +9959,9 @@ c$$$         h2 = h2 + (xl(1,l)-xl(1,l+2))**2 + (xl(2,l)-xl(2,l+2))**2
 c$$$     &           + (xl(3,l)-xl(3,l+2))**2
 c$$$      end do
 c$$$      h = dsqrt(h2)/2.d00
-c$$$      h2 = h*h      
+c$$$  h2 = h*h
+
+      call cpu_time(xpos1)
       
 c ------------------------------------------------------------------------------      
       do 599 nel=1,numel
@@ -9934,13 +9969,15 @@ c ------------------------------------------------------------------------------
 c     
 c     recupera o vetor de carga: (f,v)
 c     
-         do i=1,neep
-            elfbb(i) = fdelm(i,nel)
-         end do
+c$$$         do i=1,neep
+c$$$            elfbb(i) = fdelm(i,nel)
+c$$$         end do
+
+         
 c     
 c     localize coordinates and Dirichlet b.c.
 c     
-         call local(ien(1,nel),x,xl,nen,nsd,nesd)         
+!!!!!         call local(ien(1,nel),x,xl,nen,nsd,nesd)         
          call local(ipar(1,nel),d,dl,nodsp,ndof,ned)
 c$$$c     
 c$$$c     centroide
@@ -9977,7 +10014,7 @@ c$$$         gf10   = c(4,m)
 c$$$         teta   = c(5,m)
 c$$$         dtime  = c(6,m)
 c$$$c
-c$$$         xsurfvol = 1400.0d0
+c$$$         xsurfvol = 150.0d0
 c$$$         xcm = 1.0d0
 c$$$         dtime = dtime/(xsurfvol*xcm)
 c$$$c         
@@ -10130,7 +10167,8 @@ c
             do j=1,neep
                elfbb(i) = elfbb(i) + elmbb(i,j)*fab(j)
             end do
-         end do 
+         end do
+         
 c     
 c     valores nodais descontinuos AQUI
 c     valores para analise no ponto npsol
@@ -10140,7 +10178,7 @@ c
          do j=1,nenp
             jj = ienp(j,nel)
             xmean(jj) = xmean(jj) + elfbb(j)
-            icont(jj) = icont(jj) + 1
+c            icont(jj) = icont(jj) + 1
 c
             ddis(1,j,nel) = elfbb(j)
 
@@ -10152,7 +10190,9 @@ c
 c ------------------------------------------------------------------------------
  599  continue
 c --- end of element loop ------------------------------------------------------        
-
+     
+      call cpu_time(xpos2)
+      xtpos = xtpos + (xpos2-xpos1)
 c
 c     atribui a media
 c                    
@@ -10161,10 +10201,7 @@ c
             jj = ienp(j,nel)
             xsv(1,jj) = xmean(jj) / icont(jj)
          end do
-      end do
-c      
-      call cpu_time(xpos2)
-      xtpos = xtpos + (xpos2-xpos1)
+      end do      
 c     
 c     escreve dados
 c
@@ -10605,7 +10642,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 1400.0d0
+         xsurfvol = 150.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -10855,7 +10892,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 1400.0d0
+         xsurfvol = 150.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -11207,7 +11244,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 1400.0d0
+         xsurfvol = 150.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         

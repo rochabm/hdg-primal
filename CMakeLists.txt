@@ -25,7 +25,7 @@ endif (NOT CMAKE_BUILD_TYPE)
 if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
   # gfortran
   #set (CMAKE_Fortran_FLAGS_RELEASE "-w -Wfatal-errors -ffixed-form -mcmodel=large -fno-f2c -g -O0 -fbacktrace -ffpe-trap=zero,overflow,underflow")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-w -Wfatal-errors -ffixed-form -mcmodel=large -funroll-all-loops -fno-f2c -O3")
+  set (CMAKE_Fortran_FLAGS_RELEASE "-w -Wfatal-errors -ffixed-form -mcmodel=large -funroll-all-loops -fno-f2c -O3 -ffast-math")
   #set (CMAKE_Fortran_FLAGS_DEBUG   "-mcmodel=large -fno-f2c -O0 -g")
 elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
   # ifort (untested)
@@ -79,7 +79,8 @@ endforeach(p)
 #
 # Program to test cell model (TT2006)
 #
-add_executable (cellmodel "src/cellmodel.F90" "src/tt2006.F90")
+#add_executable (cellmodel "src/cellmodel.F90" "src/tt2006.F90")
+add_executable (cellmodel "src/cellmodel.F90" "src/tt3.F90")
 
 #
 # Programa to monodomain solver - HDG
