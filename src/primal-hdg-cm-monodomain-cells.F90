@@ -14,8 +14,7 @@ c ----------------------------------------------------------------------
 
       module UserModule
 #include <petsc/finclude/petscksp.h>
-      use petscksp
-      
+      use petscksp      
       type User
       Vec x
       Vec b
@@ -33,6 +32,8 @@ c ----------------------------------------------------------------------
         real*8, allocatable, dimension(:,:,:)  :: akelm,bkelm
         real*8, allocatable, dimension(:,:)    :: xxsv, xxp
         real*8, allocatable, dimension(:)      :: xxvm
+        real*8, allocatable, dimension(:,:)    :: xfibr
+        real*8, allocatable, dimension(:,:,:)  :: xsigm
       end module Globals
 
 c ----------------------------------------------------------------------
@@ -76,6 +77,7 @@ c
       ielmat = 15
       idebug = 99
       iwrite = 30
+      ifiber = 98
 c
       open(unit=iin,     file= 'primal-hdg-dc.dat',status='old')
       open(unit=ieco,    file= 'saida-hdg-dc.eco')
@@ -108,7 +110,7 @@ c
       call lpgm(userctx)
 c
 c     system-dependent unit/file specifications
-c
+c      
       close(iin)
       close(ieco)
       close(ipp)
@@ -517,12 +519,13 @@ c
 c
 c     allocate EDOs arrays
 c      
-      nsv = 19
+      nsv = 12 !19
 c     mpvm = mpoint('xvm     ',ndofsv,0        ,0     ,iprec)
       allocate(xxvm(ndofsv))      
 c     mpsv = mpoint('xsv     ',nsv   ,ndofsv   ,0     ,iprec)
       allocate(xxsv(nsv,ndofsv))      
       mpxp = mpoint('xp      ',3     ,ndofsv   ,0     ,iprec)
+
 cccc      allocate(xxp(3,ndofsv))
 
 c     
@@ -6205,6 +6208,12 @@ c$$$     mp(mdbel)  = mpoint('dbel    ',nee  ,neep  ,numel ,iprec)
          allocate(akelm(neep,neep,numel))
          allocate(bkelm(neep,nee,numel))
 c
+c     conductivity tensors
+c
+         allocate(xfibr(numel,3))
+         allocate(xsigm(numel,3,3))
+
+c
 c     new for continuous multp.
 c              
          mp(mindno)  = mpoint('indno   ',numnp  ,0     ,0     ,1    )
@@ -6336,7 +6345,7 @@ c
 c      
 c     &           a(mp(maelm)), a(mp(dbel)), a(mp(mfelm)),
      &           aelm, dbel, a(mp(mfelm)),      
-     &           akelm,bkelm, a(mp(xnrml))
+     &           akelm,bkelm, xfibr, xsigm, a(mp(xnrml))
      &     )
 c
       return
@@ -6349,7 +6358,7 @@ c
       write(*,'(A)') "subroutine flux3primal"
 
       !call fillsvm(19,ndofsv,a(mpvm),a(mpsv),a(mpbrhs))
-      call fillsvm(19,ndofsv,xxvm,xxsv,a(mpbrhs))
+      call fillsvm(12,ndofsv,xxvm,xxsv,a(mpbrhs))
 
 c$$$      call flux3primalNew(a(mp(mien  )),a(mpx       ),a(mp(mxl   )),
 c$$$     &                    a(mpd       ),a(mp(mdl   )),a(mp(mmat  )),
@@ -6447,7 +6456,7 @@ c
      &                    nface ,nmultpc, ndofsv, a(mp(mlm)),
 !ccccc&                    a(mpbrhs),a(mpvm),a(mpsv), ! novo
      &                    a(mpbrhs),xxvm,xxsv, ! novo           
-     &                    akelm, bkelm, a(mp(xnrml)),
+     &                    akelm, bkelm, xsigm, a(mp(xnrml)),
      &                    a(mp(mienp)), a(mpxp), userctx)
 ccccc     &                    a(mp(mienp)), xxp, userctx)            
 c
@@ -6496,8 +6505,11 @@ c
       deallocate(bkelm)
 c
 c      deallocate(xxp)
+c
       deallocate(xxsv)
       deallocate(xxvm)
+      deallocate(xfibr)
+      deallocate(xsigm)
 c      
       return
       end
@@ -6867,6 +6879,8 @@ c ----------------------------------------------------------------------
 c     generation of conectivities for the continuous multiplier
 c ----------------------------------------------------------------------
 
+      write(*,'(A)') "generation of conectivities for cont. multp."
+      
       do i=1,numnp
          indno(i) = 0
       end do
@@ -8218,7 +8232,7 @@ c
      &                 nside ,nenp  ,nedge ,nodsp ,index, nface,
      &                 userctx,
      &                 aelm, dbel, felm,
-     &                 akelm, bkelm, xnrml)
+     &                 akelm, bkelm, xfibr, xsigm, xnrml)
 c------------------------------------------------------------------------------
 c     program to calculate stifness matrix and force array
 c     for ...
@@ -8273,6 +8287,8 @@ c     new for parabolic - matrizes para armazenar e usar na fluxo3
 c      
       dimension akelm(neep,neep,*),  elmak(neep,neep) ! matriz local de a(.,.)
       dimension bkelm(neep,nee,*),   elmbk(neep,nee)  ! matriz local de b(.,.)
+      dimension xfibr(numel,3)
+      dimension xsigm(numel,3,3)
 c      
       dimension xnrml(3,6,*)
 c      
@@ -8301,6 +8317,62 @@ c
             xnrml(3,ns,nel) = 0.d00
          end do
       end do
+
+c     ------------------------------------------------------------------
+c     open fiber file
+c     ------------------------------------------------------------------
+
+      write(*,*) "READING FIBER FIELD FROM FILE"
+      open(unit=ifiber, file='in_fibers.dat', status='old')         
+      do iel=1,numel
+         read(ifiber,*) xfibr(iel,1), xfibr(iel,2), xfibr(iel,3)
+      end do         
+      close(ifiber)
+
+      !do iel=1,numel
+      !	write(*,*) (xfibr(iel,j),j=1,3)
+      !end do
+
+      write(*,*) "COMPUTING CONDUCTIVITY TENSOR FIELD FROM FILE"
+c
+c     isotropic setting
+c      
+      sigmal = 1.334d0
+      sigmat = 1.334d0
+      sigman = 1.334d0
+c
+c     transversely isotropic
+c      
+      !sigmal = 1.334d0
+      !sigmat = 0.176d0
+      !sigman = 0.176d0
+
+      do iel=1,numel
+c
+         !xf1 = xfibr(iel,1) 
+         !xf2 = xfibr(iel,2) 
+         !xf3 = xfibr(iel,3) 
+c
+         xf1 = 1.0d0
+         xf2 = 0.0d0
+         xf3 = 0.0d0
+c     
+         xsigd = sigmal - sigmat		  
+c      	
+         xsigm(iel,1,1) = xsigd*xf1*xf1 + sigmat
+         xsigm(iel,1,2) = xsigd*xf1*xf2
+         xsigm(iel,1,3) = xsigd*xf1*xf3
+c
+         xsigm(iel,2,1) = xsigd*xf2*xf1
+         xsigm(iel,2,2) = xsigd*xf2*xf2 + sigmat
+         xsigm(iel,2,3) = xsigd*xf2*xf3
+c
+         xsigm(iel,3,1) = xsigd*xf3*xf1
+         xsigm(iel,3,2) = xsigd*xf3*xf2
+         xsigm(iel,3,3) = xsigd*xf3*xf3 + sigmat
+      end do
+c
+      !stop
 
 c     ------------------------------------------------------------------
 c     element loop
@@ -8382,7 +8454,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 150.0d0
+         xsurfvol = 1400.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)         
 c         
@@ -8393,10 +8465,97 @@ c
 c
 c     conductivities (mS/cm)
 c
-         sigmal = 1.334d0
-         sigmat = 0.176d0
-         sigman = 0.176d0         
+         !sigmal = 1.334d0
+         !sigmat = 0.176d0
+         !sigman = 0.176d0
 c
+c     normal conductivities
+c         
+         sigmal = 1.334d0
+         sigmat = 1.334d0
+         sigman = 1.334d0
+
+         sig11 = xsigm(nel,1,1)
+         sig12 = xsigm(nel,1,2)
+         sig13 = xsigm(nel,1,3)
+         
+         sig21 = xsigm(nel,2,1)
+         sig22 = xsigm(nel,2,2)
+         sig23 = xsigm(nel,2,3)
+
+         sig31 = xsigm(nel,3,1)
+         sig32 = xsigm(nel,3,2)
+         sig33 = xsigm(nel,3,3)
+c
+c     circulo 1
+c         
+c$$$         xc = 7.0d0
+c$$$         yc = 5.0d0
+c$$$         zc = 0.0d0
+c$$$         xraio = 2.0d0
+c$$$         
+c$$$         xxc = coo(1)
+c$$$         xyc = coo(2)
+c$$$         xzc = coo(3)
+c$$$
+c$$$         xdelta = (xc-xxc)
+c$$$         ydelta = (yc-xyc)
+c$$$         zdelta = (zc-xzc)
+c$$$         
+c$$$         xdist = dsqrt(xdelta**2 + ydelta**2 + zdelta**2)
+c$$$         
+c$$$         if (xdist.le.xraio) then
+c$$$            call random_number(xrand)
+c$$$            irand = 2.0d0 + floor( xrand*10.0d0 )
+c$$$            xfactr = irand            
+c$$$            write(*,*) "Alterando cond elem",nel,"factor",xfactr
+c$$$            sigmal = sigmal/xfactr
+c$$$            sigmat = sigmat/xfactr
+c$$$            sigman = sigman/xfactr
+c$$$         end if
+c
+c     circulo 2
+c
+c$$$         xc = 2.0d0
+c$$$         yc = 5.0d0
+c$$$         zc = 0.0d0
+c$$$         xraio = 2.0d0
+c$$$         
+c$$$         xxc = coo(1)
+c$$$         xyc = coo(2)
+c$$$         xzc = coo(3)
+c$$$
+c$$$         xdelta = (xc-xxc)
+c$$$         ydelta = (yc-xyc)
+c$$$         zdelta = (zc-xzc)
+c$$$         
+c$$$         xdist = dsqrt(xdelta**2 + ydelta**2 + zdelta**2)
+c$$$         
+c$$$         if (xdist.le.xraio) then
+c$$$            call random_number(xrand)
+c$$$            irand = 2.0d0 + floor( xrand*10.0d0 )
+c$$$            xfactr = irand            
+c$$$            write(*,*) "Alterando cond elem",nel,"factor",xfactr
+c$$$            sigmal = sigmal/xfactr
+c$$$            sigmat = sigmat/xfactr
+c$$$            sigman = sigman/xfactr
+c$$$         end if         
+c
+c     HETEROGENEIDADES NO TECIDO
+c         
+         
+c$$$         xxc = coo(1)
+c$$$         xyc = coo(2)
+c$$$         xzc = coo(3)
+c$$$         if((xxc.ge.4.0d0.and.xxc.le.6.0d0).and.
+c$$$     &      (xyc.ge.2.5d0.and.xyc.le.7.5d0).and.
+c$$$     &      (xzc.ge.0.0d0.and.xzc.le.0.1d0)) then
+c$$$            sigmal = sigmal/5.0d0
+c$$$            sigmat = sigmat/5.0d0
+c$$$            sigman = sigman/5.0d0
+c$$$         end if
+
+c     
 c     loop on integration points
 c
          do l=1,nint
@@ -8460,17 +8619,30 @@ c     (p^{n+1},q) + dt*a(p,q)
 c
                   elmbb(nbi1,nbj1) = elmbb(nbi1,nbj1)
      &                             + din*djn
-     &                             + dtm1*(sigmal*dix*djx
-     &                                   + sigmat*diy*djy
-     &                                   + sigman*diz*djz)
+     &         + dtm1*((sig11*dix + sig12*diy + sig13*diz)*djx
+     &                +(sig21*dix + sig22*diy + sig23*diz)*djy
+     &                +(sig31*dix + sig32*diy + sig33*diz)*djz)
+c	 
+c      old	
+c
+!&                             + dtm1*(sigmal*dix*djx
+!&                                   + sigmat*diy*djy
+!&                                   + sigman*diz*djz)
+
 c
 c     armazena matriz pra calcular RHS na fluxo3
 c                  
                   elmak(nbi1,nbj1) = elmak(nbi1,nbj1)
      &                             + din*djn
-     &                             - dtm0*(sigmal*dix*djx +
-     &                                     sigmat*diy*djy +
-     &                                     sigman*diz*djz)
+     &         - dtm0*((sig11*dix + sig12*diy + sig13*diz)*djx
+     &                +(sig21*dix + sig22*diy + sig23*diz)*djy
+     &                +(sig31*dix + sig32*diy + sig33*diz)*djz)     
+c	 
+c      old	
+c
+!&                             - dtm0*(sigmal*dix*djx +
+!&                                     sigmat*diy*djy +
+!&                                     sigman*diz*djz)
                end do
             end do
          end do
@@ -8622,13 +8794,22 @@ c
                   ddjz = shgpsd(3,j,lb)*detpn(ls)*wn(ls)
                   ddjn = shgpsd(4,j,lb)*detpn(ls)*wn(ls)
 c                  
-                  gjn = sigmal*djx*xn1
-     &                + sigmat*djy*xn2
-     &                + sigman*djz*xn3
+c                  gjn = sigmal*djx*xn1
+c     &                + sigmat*djy*xn2
+c     &                + sigman*djz*xn3
+
+                  gjn = (sig11*djx + sig12*djy + sig13*djz)*xn1 + 
+     &                  (sig21*djx + sig22*djy + sig23*djz)*xn2 +
+     &                  (sig31*djx + sig32*djy + sig33*djz)*xn3     
                   
-                  gdjn = sigmal*ddjx*xn1
-     &                 + sigmat*ddjy*xn2
-     &                 + sigman*ddjz*xn3
+c                  gdjn = sigmal*ddjx*xn1
+c     &                 + sigmat*ddjy*xn2
+c     &                 + sigman*ddjz*xn3
+
+                  gdjn = (sig11*ddjx + sig12*ddjy + sig13*ddjz)*xn1 + 
+     &                   (sig21*ddjx + sig22*ddjy + sig23*ddjz)*xn2 +
+     &                   (sig31*ddjx + sig32*ddjy + sig33*ddjz)*xn3     
+
 c
                   do i=1,nenp
                      nbi = ned*(i-1)
@@ -8638,9 +8819,14 @@ c
                      diz = shgpsd(3,i,lb)
                      din = shgpsd(4,i,lb)
 c                     
-                     gin = sigmal*dix*xn1
-     &                   + sigmat*diy*xn2
-     &                   + sigman*diz*xn3
+c                     gin = sigmal*dix*xn1
+c     &                   + sigmat*diy*xn2
+c     &                   + sigman*diz*xn3
+
+                      gin = (sig11*dix + sig12*diy + sig13*diz)*xn1 + 
+     &                      (sig21*dix + sig22*diy + sig23*diz)*xn2 +
+     &                      (sig31*dix + sig32*diy + sig33*diz)*xn3     
+
 c
 c     -(grad p.n, q) - (grad q.n, p)
 c                     
@@ -8675,9 +8861,14 @@ c
                      diz = shgpsd(3,i,lb)
                      din = shgpsd(4,i,lb)
 c                     
-                     gin = sigmal*dix*xn1
-     &                   + sigmat*diy*xn2
-     &                   + sigman*diz*xn3
+c                     gin = sigmal*dix*xn1
+c     &                   + sigmat*diy*xn2
+c     &                   + sigman*diz*xn3
+
+                      gin = (sig11*dix + sig12*diy + sig13*diz)*xn1 + 
+     &                      (sig21*dix + sig22*diy + sig23*diz)*xn2 +
+     &                      (sig31*dix + sig32*diy + sig33*diz)*xn3   
+
 c
                      elmcb(nbi1,ncj1) = elmcb(nbi1,ncj1) - teta*gin*djn
                      elmbc(ncj1,nbi1) = elmbc(ncj1,nbi1) + gin*djn
@@ -8973,6 +9164,7 @@ c
      &                          nface ,nmultp,ndofsv,
      &                          lm    ,xbrhs ,xvm   ,
      &                          xsv   ,akelm ,bkelm ,
+     &                          xsigm,
      &                          xnrml ,ienp  ,xp    ,
      &                          userctx)
       
@@ -8995,7 +9187,7 @@ c
       Vec b
       Vec xsol      
 c
-      integer bflag
+      integer bflag, breadsv
       real*8 xtode, xtpde, xtpos, xtrhs, xtaux
 c
       dimension iedge(npars,*)
@@ -9042,11 +9234,14 @@ c
 c
 c     new monodomain
 c
-      dimension xvm(*), xsv(19,*), xdsv(19), xxsv(19)
+!     dimension xvm(*), xsv(19,*), xdsv(19), xxsv(19)
+      dimension xvm(*), xsv(12,*), xdsv(12), xxsv(12)
       dimension xstim(ndofsv), xmean(ndofsv), icont(ndofsv)
       dimension xnrml(3,6,*)
       dimension akelm(neep,neep,*)
       dimension bkelm(neep,nee,*)
+      dimension xsigm(numel,3,3)
+
       dimension ienp(nenp,*) ! nenp x numel
       dimension inod(8,8,8)
       dimension xp(3,*)      
@@ -9286,9 +9481,9 @@ c
       !zfind = 0.3d0
 
       ! Slab
-      xfind = 2.5d0
-      yfind = 2.5d0
-      zfind = 0.05d0
+      xfind = 5.0d0
+      yfind = 5.0d0
+      zfind = 0.0d0
       
       xtol = 1.0D-6
       indnsave = 0
@@ -9323,10 +9518,11 @@ c
 c
 c     number of state variables of the cell model
 c      
-      nsv = 19
+      nsv = 12 !19
 c     
       do i=1,ndofsv
-         call tt2006_init(nsv, xsv(1,i))
+!     call tt2006_init(nsv, xsv(1,i))
+         call tt3_init(nsv, xsv(1,i))
          xvm(i) = xsv(1,i)
       end do
 c
@@ -9356,7 +9552,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 150.0d0
+         xsurfvol = 1400.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -9403,7 +9599,7 @@ c
       write(*,*) "dtime",dtime
       write(*,*) "dtm0",dtm0
       write(*,*) "dtm1",dtm1
-      write(*,*) "npsol",npsol
+      !write(*,*) "npsol",npsol
       write(*,*) "numnp",numnp
       write(*,*) "ndof",ndof
       write(*,*) "nmultp",nmultp
@@ -9432,7 +9628,29 @@ c
             jj = ienp(j,nel)
             icont(jj) = icont(jj) + 1
          end do
-      end do      
+      end do
+     
+c ------------------------------------------------------------------------------
+c     READ the initial condition from file
+c ------------------------------------------------------------------------------
+c
+c     controls reading of initial conditions from file
+c     0 - dont read
+c     1 - to read file for initial conditions
+c      
+      breadsv = 0
+c     
+      if(breadsv.eq.1) then
+
+         write(*,*) "READING INITIAL CONDITIONS FROM FILE"
+         open(unit=iinsvar, file='in_state_variables.dat', status='old')         
+         do i=1,ndofsv
+            read(iinsvar,"(20E20.8)") (xsv(j,i),j=1,nsv)
+         end do         
+         close(iinsvar)
+         
+      end if
+     
 c      
 c ------------------------------------------------------------------------------
 c     time integration loop
@@ -9446,6 +9664,8 @@ c
       nstep = int(tempof/dt)
 
       saver = 1.0d0
+      !saver = 10.0d0      
+      
       nsave = int(saver/dt)
       
       do 5555 it=1,nstep
@@ -9456,6 +9676,20 @@ c
             write(*,"(A,I5,F12.6,A)",advance="no") "Tempo",it,tempo," "
          end if
 
+c ------------------------------------------------------------------------------
+c     SAVE the state variables from ODEs
+c ------------------------------------------------------------------------------
+         
+         if(it.eq.nstep) then
+
+            open(unit=iosvar, file= 'state_variables.dat')
+            do i=1,ndofsv ! num nodes with ODEs       
+               write(iosvar,"(20E20.8)") (xsv(j,i),j=1,nsv)
+            end do            
+            close(iosvar)
+            
+         end if        
+         
 c ------------------------------------------------------------------------------
 c     solve ODEs
 c ------------------------------------------------------------------------------
@@ -9480,27 +9714,64 @@ c
                !     
                ! Benchmark stimulus
                !               
-      !         if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
-      !            if(xx.ge.0.0.and.xx.le.0.15.and.
-      !&               yy.ge.0.0.and.yy.le.0.15.and.
-      !&               zz.ge.0.0.and.zz.le.0.15)
-      !&            then
-               !      !jj = ien(i,nel)
-               !      xstim(jj) = -35.714d0
-               !   end if
-               !end if
+!               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
+!                  if(xx.ge.0.0.and.xx.le.0.15.and.
+!     &               yy.ge.0.0.and.yy.le.0.15.and.
+!     &               zz.ge.0.0.and.zz.le.0.15)
+!     &            then
+!                     !jj = ien(i,nel)
+!                    xstim(jj) = -35.714d0
+!                  end if
+!               end if
 
                !     
-               ! Benchmark stimulus
-               !               
+               ! Stimulus
+               ! S1
+               !
                if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
-                  if(xx.ge.0.0.and.xx.le.0.5.and.
-     &               yy.ge.0.0.and.yy.le.10.00.and.
+                  if(xx.ge.0.0.and.xx.le.0.1.and.
+     &               yy.ge.0.0.and.yy.le.10.0.and.
      &               zz.ge.0.0.and.zz.le.0.15)
      &            then
-                     xstim(jj) = -35.714d0
-                  end if
-               end if               
+                      xstim(jj) = -35.714d0
+                   end if                  
+                end if
+
+!                ! S2
+                if (tempo.gt.176.0d0.and.tempo.lt.179.0d0) then
+                   if(xx.ge.2.0.and.xx.le.4.5.and.
+     &               yy.ge.0.0.and.yy.le.5.0.and.
+     &               zz.ge.0.0.and.zz.le.0.15)
+     &            then
+                      xstim(jj) = -35.714d0
+                   end if                  
+                end if
+
+
+               
+c$$$               !     
+c$$$               ! Stimulus for spiral figure-of-8 OK!
+c$$$               ! S1
+c$$$               !
+c$$$               if (tempo.gt.1.0d0.and.tempo.lt.3.0d0) then
+c$$$                  if(xx.ge.0.0.and.xx.le.0.1.and.
+c$$$     &               yy.ge.0.0.and.yy.le.10.0.and.
+c$$$     &               zz.ge.0.0.and.zz.le.0.15)
+c$$$     &            then
+c$$$                     xstim(jj) = -35.714d0
+c$$$                  end if                  
+c$$$               end if
+c$$$
+c$$$               ! S2
+c$$$               if (tempo.gt.196.0d0.and.tempo.lt.199.0d0) then
+c$$$                  if(xx.ge.3.5.and.xx.le.5.5.and.
+c$$$     &               yy.ge.2.0.and.yy.le.8.0.and.
+c$$$     &               zz.ge.0.0.and.zz.le.0.15)
+c$$$     &            then
+c$$$                     xstim(jj) = -35.714d0
+c$$$                  end if                  
+c$$$               end if 
+               
 
             end do ! nenp
          end do    ! numel
@@ -9513,12 +9784,14 @@ c
 c     compute RHS of the ODES
 c
             xval = xstim(i)
-            call tt2006_equation(nsv, dt, xsv(1,i), xdsv, xval)
+            !call tt2006_equation(nsv, dt, xsv(1,i), xdsv, xval)
+            call tt3_equation(nsv, dt, xsv(1,i), xdsv, xval)
 c
 c     advance ODEs with method (Euler,RL)
 c
             do j=1,nsv
-               if(j.ge.2.and.j.le.13) then
+               !tt2006 -> !if(j.ge.2.and.j.le.13) then
+               if(j.ge.2.and.j.le.12) then
                   xsv(j,i) = xdsv(j)
                else
                   xsv(j,i) = xsv(j,i) + dt * xdsv(j)
@@ -9623,7 +9896,7 @@ c$$$         gf10   = c(4,m)
 c$$$         teta   = c(5,m)
 c$$$         dtime  = c(6,m)
 c$$$c
-c$$$         xsurfvol = 150.0d0
+c$$$         xsurfvol = 1400.0d0
 c$$$         xcm = 1.0d0
 c$$$         dtime = dtime/(xsurfvol*xcm)
 c$$$c         
@@ -9721,7 +9994,7 @@ c$$$c               write(*,*) (dls(i),i=1,npars)
 c$$$c            end if
 c$$$            
 c$$$c     
-c$$$c     localiza os no's do lado ns
+c$$$c     localiza os nohs do lado ns
 c$$$c     
 c$$$            ns1 = idside(ns,1)
 c$$$            ns2 = idside(ns,2)
@@ -10014,7 +10287,7 @@ c$$$         gf10   = c(4,m)
 c$$$         teta   = c(5,m)
 c$$$         dtime  = c(6,m)
 c$$$c
-c$$$         xsurfvol = 150.0d0
+c$$$         xsurfvol = 1400.0d0
 c$$$         xcm = 1.0d0
 c$$$         dtime = dtime/(xsurfvol*xcm)
 c$$$c         
@@ -10047,7 +10320,7 @@ c$$$c$$$               nld = (ns-1)*npars + nn
 c$$$c$$$               dls(nn) = dl(1,nld)
 c$$$            end do
 c$$$c     
-c$$$c     localiza os no's do lado ns
+c$$$c     localiza os nohs do lado ns
 c$$$c            
 c$$$            ns1 = idside(ns,1)
 c$$$            ns2 = idside(ns,2)
@@ -10178,7 +10451,7 @@ c
          do j=1,nenp
             jj = ienp(j,nel)
             xmean(jj) = xmean(jj) + elfbb(j)
-c            icont(jj) = icont(jj) + 1
+c           icont(jj) = icont(jj) + 1
 c
             ddis(1,j,nel) = elfbb(j)
 
@@ -10587,7 +10860,7 @@ c
       end do
 
       if(indnsave.eq.0) then
-         write(*,*) "Erro ao encontrar ponto para salvar dados"
+         write(*,*) "Erro ao encontrar ponto para salvar dados"         
          stop
       end if
       
@@ -10642,7 +10915,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 150.0d0
+         xsurfvol = 1400.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -10892,7 +11165,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 150.0d0
+         xsurfvol = 1400.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -10903,9 +11176,12 @@ c
 c
 c     conductivity
 c
+         !sigmal = 1.334d0
+         !sigmat = 0.176d0
+         !sigman = 0.176d0
          sigmal = 1.334d0
-         sigmat = 0.176d0
-         sigman = 0.176d0         
+         sigmat = 1.334d0
+         sigman = 1.334d0                  
 c     
 c     recupera o vetor de carga: (f,v)
 c
@@ -11244,7 +11520,7 @@ c
          teta   = c(5,m)
          dtime  = c(6,m)
 c
-         xsurfvol = 150.0d0
+         xsurfvol = 1400.0d0
          xcm = 1.0d0
          dtime = dtime/(xsurfvol*xcm)
 c         
@@ -11255,9 +11531,12 @@ c
 c
 c     conductivity
 c
+         !sigmal = 1.334d0
+         !sigmat = 0.176d0
+         !sigman = 0.176d0
          sigmal = 1.334d0
-         sigmat = 0.176d0
-         sigman = 0.176d0
+         sigmat = 1.334d0
+         sigman = 1.334d0                  
 c     
 c     boundary terms - symmetrization
 c     
@@ -11452,7 +11731,7 @@ c-------------------------------------------------------------------------------
       use UserModule
       implicit real*8 (a-h,o-z)
 c
-      dimension vm(*),sv(19,*),brhs(*)
+      dimension vm(*),sv(12,*),brhs(*)
 c
       do j=1,nmult
          do i=1,nsv
